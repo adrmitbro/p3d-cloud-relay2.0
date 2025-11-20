@@ -937,7 +937,7 @@ function getMobileAppHTML() {
             if (!map) return;
             
             const planeIcon = L.divIcon({
-                html: \`<div style="font-size:24px;transform:rotate(\${heading}deg)">✈️</div>\`,
+                html: '<div style="font-size:24px;transform:rotate(' + heading + 'deg)">✈️</div>',
                 className: '',
                 iconSize: [24, 24],
                 iconAnchor: [12, 12]
