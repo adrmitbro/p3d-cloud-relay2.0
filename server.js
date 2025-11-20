@@ -903,19 +903,19 @@ function getMobileAppHTML() {
                 return;
             }
             
-            listDiv.innerHTML = clients.map(c => {
+            let html = '';
+            clients.forEach(c => {
                 const roleColor = c.role === 'owner' ? '#ffd700' : (c.role === 'pilot' ? '#4caf50' : '#2196f3');
                 const roleIcon = c.role === 'owner' ? '👑' : (c.role === 'pilot' ? '✈️' : '👁️');
-                return `
-                    <div class="client-list-item">
-                        <div>
-                            <strong>${roleIcon} ${c.nickname}</strong>
-                            <div style="font-size:11px;color:#999;margin-top:3px;">${c.role}</div>
-                        </div>
-                        <div style="width:12px;height:12px;border-radius:50%;background:${roleColor};"></div>
-                    </div>
-                `;
-            }).join('');
+                html += '<div class="client-list-item">';
+                html += '<div>';
+                html += '<strong>' + roleIcon + ' ' + c.nickname + '</strong>';
+                html += '<div style="font-size:11px;color:#999;margin-top:3px;">' + c.role + '</div>';
+                html += '</div>';
+                html += '<div style="width:12px;height:12px;border-radius:50%;background:' + roleColor + ';"></div>';
+                html += '</div>';
+            });
+            listDiv.innerHTML = html;
         }
 
         function initMap() {
