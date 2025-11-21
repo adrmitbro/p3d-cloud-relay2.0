@@ -1,4 +1,4 @@
-// P3D Remote Cloud Relay - Simple Edition
+// P3D Remote Cloud Relay - Enhanced Edition
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -110,7 +110,15 @@ wss.on('connection', (ws, req) => {
           // Check if command requires control access
           if (data.type.includes('autopilot') || 
               data.type === 'pause_toggle' || 
-              data.type === 'save_game') {
+              data.type === 'save_game' ||
+              data.type === 'toggle_gear' ||
+              data.type === 'change_flaps' ||
+              data.type === 'toggle_nav_mode' ||
+              data.type === 'toggle_speedbrake' ||
+              data.type === 'toggle_parking_brake' ||
+              data.type === 'set_throttle' ||
+              data.type === 'engine_start' ||
+              data.type === 'engine_stop') {
             if (!ws.hasControlAccess) {
               ws.send(JSON.stringify({ 
                 type: 'control_required',
@@ -237,15 +245,19 @@ function getMobileAppHTML() {
             font-weight: bold;
             cursor: pointer;
             margin: 8px 0;
+            transition: all 0.2s;
         }
         .btn-primary { background: #00c853; color: white; }
         .btn-secondary { background: #005a9c; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-paused { background: #ff9800; color: white; }
         .btn:disabled { background: #555; opacity: 0.5; }
         
         .tabs {
             display: flex;
             background: #003057;
             border-bottom: 2px solid #005a9c;
+            overflow-x: auto;
         }
         .tab {
             flex: 1;
@@ -257,6 +269,8 @@ function getMobileAppHTML() {
             color: #7ab8e8;
             font-size: 14px;
             font-weight: bold;
+            white-space: nowrap;
+            min-width: 80px;
         }
         .tab.active {
             color: white;
@@ -323,9 +337,16 @@ function getMobileAppHTML() {
             font-weight: bold;
             cursor: pointer;
             font-size: 12px;
+            min-width: 60px;
         }
         .toggle-btn.on { background: #00c853; color: white; }
         .toggle-btn.off { background: #555; color: #999; }
+        
+        .throttle-slider {
+            width: 100%;
+            height: 40px;
+            margin: 10px 0;
+        }
         
         .hidden { display: none !important; }
         
@@ -334,6 +355,14 @@ function getMobileAppHTML() {
             padding: 12px;
             border-radius: 8px;
             margin: 10px 0;
+            font-size: 13px;
+        }
+        
+        .waypoint-info {
+            background: #003057;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
             font-size: 13px;
         }
     </style>
@@ -350,7 +379,7 @@ function getMobileAppHTML() {
             <div class='info-box'>
                 Enter your Unique ID from the PC Server
             </div>
-            <input type='text' id='uniqueId' placeholder='Unique ID (e.g., Adrian)' autocapitalize='off'>
+            <input type='text' id='uniqueId' placeholder='Unique ID' autocapitalize='off'>
             <button class='btn btn-primary' onclick='connectToSim()'>Connect</button>
         </div>
     </div>
@@ -360,13 +389,20 @@ function getMobileAppHTML() {
             <button class='tab active' onclick='switchTab(0)'>Flight</button>
             <button class='tab' onclick='switchTab(1)'>Map</button>
             <button class='tab' onclick='switchTab(2)'>Autopilot</button>
+            <button class='tab' onclick='switchTab(3)'>Aircraft</button>
         </div>
 
         <div class='tab-content active'>
             <div class='card'>
-                <div class='data-label'>Distance to Destination</div>
-                <div class='data-value'><span id='distance'>--</span> nm</div>
-                <div style='margin-top: 8px; color: #7ab8e8; font-size: 13px;' id='ete'>ETE: --</div>
+                <div class='data-label'>Total Distance to Destination</div>
+                <div class='data-value'><span id='totalDistance'>--</span> nm</div>
+                <div style='margin-top: 8px; color: #7ab8e8; font-size: 13px;' id='totalEte'>Total ETE: --</div>
+                
+                <div class='waypoint-info'>
+                    <div style='font-weight: bold; margin-bottom: 5px;'>Next Waypoint: <span id='nextWaypoint'>--</span></div>
+                    <div>Distance: <span id='waypointDistance'>--</span> nm</div>
+                    <div>ETE: <span id='waypointEte'>--</span></div>
+                </div>
             </div>
 
             <div class='card'>
@@ -412,7 +448,7 @@ function getMobileAppHTML() {
             <div id='controlPanel' class='hidden'>
                 <div class='card'>
                     <button class='btn btn-secondary' id='btnPause' onclick='togglePause()'>⏸️ Pause</button>
-                    <button class='btn btn-primary' onclick='saveGame()'>💾 Save</button>
+                    <button class='btn btn-primary' onclick='saveGame()'>💾 Quick Save</button>
                 </div>
                 
                 <div class='card'>
@@ -424,36 +460,46 @@ function getMobileAppHTML() {
                     </div>
                     
                     <div class='control-row'>
-                        <span class='control-label'>Altitude</span>
+                        <span class='control-label'>Altitude Hold</span>
                         <button class='toggle-btn off' id='apAlt' onclick='toggleAP("altitude")'>OFF</button>
                     </div>
-                    <input type='number' id='targetAlt' placeholder='Target Altitude'>
-                    <button class='btn btn-primary' onclick='setAltitude()'>Set</button>
+                    <input type='number' id='targetAlt' placeholder='Target Altitude (ft)'>
+                    <button class='btn btn-primary' onclick='setAltitude()'>Set Altitude</button>
                     
                     <div class='control-row'>
                         <span class='control-label'>V/S</span>
                         <button class='toggle-btn off' id='apVS' onclick='toggleAP("vs")'>OFF</button>
                     </div>
                     <input type='number' id='targetVS' placeholder='Vertical Speed (fpm)'>
-                    <button class='btn btn-primary' onclick='setVS()'>Set</button>
+                    <button class='btn btn-primary' onclick='setVS()'>Set V/S</button>
                     
                     <div class='control-row'>
                         <span class='control-label'>Speed</span>
                         <button class='toggle-btn off' id='apSpeed' onclick='toggleAP("speed")'>OFF</button>
                     </div>
                     <input type='number' id='targetSpeed' placeholder='Target Speed (kts)'>
-                    <button class='btn btn-primary' onclick='setSpeed()'>Set</button>
+                    <button class='btn btn-primary' onclick='setSpeed()'>Set Speed</button>
                     
                     <div class='control-row'>
                         <span class='control-label'>Heading</span>
                         <button class='toggle-btn off' id='apHdg' onclick='toggleAP("heading")'>OFF</button>
                     </div>
-                    <input type='number' id='targetHdg' placeholder='Heading'>
-                    <button class='btn btn-primary' onclick='setHeading()'>Set</button>
+                    <input type='number' id='targetHdg' placeholder='Heading (degrees)'>
+                    <button class='btn btn-primary' onclick='setHeading()'>Set Heading</button>
                     
                     <div class='control-row'>
-                        <span class='control-label'>NAV/GPS</span>
+                        <span class='control-label'>NAV/GPS Mode</span>
                         <button class='toggle-btn off' id='navMode' onclick='toggleNavMode()'>GPS</button>
+                    </div>
+                    
+                    <div class='control-row'>
+                        <span class='control-label'>LOC (NAV1)</span>
+                        <button class='toggle-btn off' id='apLoc' onclick='toggleAP("loc")'>OFF</button>
+                    </div>
+                    
+                    <div class='control-row'>
+                        <span class='control-label'>ILS Mode</span>
+                        <button class='toggle-btn off' id='ilsMode' onclick='toggleAP("ils")'>OFF</button>
                     </div>
                     
                     <div class='control-row'>
@@ -466,9 +512,19 @@ function getMobileAppHTML() {
                         <button class='toggle-btn off' id='autoThrottle' onclick='toggleAP("throttle")'>OFF</button>
                     </div>
                 </div>
-                
+            </div>
+        </div>
+        
+        <div class='tab-content'>
+            <div id='controlLock2' class='card'>
+                <div class='info-box'>🔒 Enter password to access controls</div>
+                <input type='password' id='controlPassword2' placeholder='Password'>
+                <button class='btn btn-primary' onclick='unlockControls2()'>Unlock Controls</button>
+            </div>
+            
+            <div id='aircraftPanel' class='hidden'>
                 <div class='card'>
-                    <h3 style='margin-bottom: 15px;'>Aircraft</h3>
+                    <h3 style='margin-bottom: 15px;'>Flight Controls</h3>
                     
                     <div class='control-row'>
                         <span class='control-label'>Landing Gear</span>
@@ -482,6 +538,34 @@ function getMobileAppHTML() {
                             <span id='flapsPos'>0%</span>
                             <button class='btn btn-secondary' style='width:auto; padding:8px 12px; margin:0 5px;' onclick='changeFlaps(1)'>+</button>
                         </div>
+                    </div>
+                    
+                    <div class='control-row'>
+                        <span class='control-label'>Speedbrakes</span>
+                        <button class='toggle-btn off' id='speedbrake' onclick='toggleSpeedbrake()'>OFF</button>
+                    </div>
+                    
+                    <div class='control-row'>
+                        <span class='control-label'>Parking Brake</span>
+                        <button class='toggle-btn off' id='parkingBrake' onclick='toggleParkingBrake()'>OFF</button>
+                    </div>
+                </div>
+                
+                <div class='card'>
+                    <h3 style='margin-bottom: 15px;'>Engine Controls</h3>
+                    
+                    <div class='control-row'>
+                        <span class='control-label'>Engines</span>
+                        <div>
+                            <button class='btn btn-primary' style='width:auto; padding:8px 16px; margin:0 5px;' onclick='startEngines()'>Start</button>
+                            <button class='btn btn-danger' style='width:auto; padding:8px 16px; margin:0 5px;' onclick='stopEngines()'>Stop</button>
+                        </div>
+                    </div>
+                    
+                    <div style='margin: 15px 0;'>
+                        <div class='data-label'>Throttle Position</div>
+                        <div class='data-value' id='throttleDisplay'>0%</div>
+                        <input type='range' min='0' max='100' value='0' class='throttle-slider' id='throttleSlider' oninput='updateThrottle(this.value)'>
                     </div>
                 </div>
             </div>
@@ -558,6 +642,8 @@ function getMobileAppHTML() {
                     hasControl = true;
                     document.getElementById('controlLock').classList.add('hidden');
                     document.getElementById('controlPanel').classList.remove('hidden');
+                    document.getElementById('controlLock2').classList.add('hidden');
+                    document.getElementById('aircraftPanel').classList.remove('hidden');
                     break;
                     
                 case 'auth_failed':
@@ -599,14 +685,40 @@ function getMobileAppHTML() {
             document.getElementById('altitude').textContent = Math.round(data.altitude).toLocaleString();
             document.getElementById('heading').textContent = Math.round(data.heading) + '°';
             document.getElementById('vs').textContent = Math.round(data.verticalSpeed);
-            document.getElementById('distance').textContent = data.totalDistance.toFixed(1);
             
-            const hours = Math.floor(data.ete / 3600);
-            const minutes = Math.floor((data.ete % 3600) / 60);
-            document.getElementById('ete').textContent = 'ETE: ' + (hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'm');
+            // Total distance to destination
+            document.getElementById('totalDistance').textContent = data.totalDistance ? data.totalDistance.toFixed(1) : '--';
+            
+            // Total ETE
+            if (data.totalEte && data.totalEte > 0) {
+                const hours = Math.floor(data.totalEte / 3600);
+                const minutes = Math.floor((data.totalEte % 3600) / 60);
+                document.getElementById('totalEte').textContent = 'Total ETE: ' + (hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'm');
+            } else {
+                document.getElementById('totalEte').textContent = 'Total ETE: --';
+            }
+            
+            // Next waypoint info
+            document.getElementById('nextWaypoint').textContent = data.nextWaypoint || '--';
+            document.getElementById('waypointDistance').textContent = data.waypointDistance ? data.waypointDistance.toFixed(1) : '--';
+            
+            if (data.waypointEte && data.waypointEte > 0) {
+                const hours = Math.floor(data.waypointEte / 3600);
+                const minutes = Math.floor((data.waypointEte % 3600) / 60);
+                document.getElementById('waypointEte').textContent = (hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'm');
+            } else {
+                document.getElementById('waypointEte').textContent = '--';
+            }
 
+            // Update pause button style
             const btnPause = document.getElementById('btnPause');
-            btnPause.textContent = data.isPaused ? '▶️ Resume' : '⏸️ Pause';
+            if (data.isPaused) {
+                btnPause.textContent = '▶️ Resume';
+                btnPause.className = 'btn btn-paused';
+            } else {
+                btnPause.textContent = '⏸️ Pause';
+                btnPause.className = 'btn btn-secondary';
+            }
 
             if (map && data.latitude && data.longitude) {
                 updateMap(data.latitude, data.longitude, data.heading);
@@ -620,152 +732,22 @@ function getMobileAppHTML() {
             updateToggle('apVS', data.vs);
             updateToggle('apSpeed', data.speed);
             updateToggle('apApp', data.approach);
+            updateToggle('apLoc', data.loc);
+            updateToggle('ilsMode', data.ils);
             updateToggle('autoThrottle', data.throttle);
             updateToggle('gear', data.gear, data.gear ? 'DOWN' : 'UP');
+            updateToggle('speedbrake', data.speedbrake);
+            updateToggle('parkingBrake', data.parkingBrake);
             
             document.getElementById('flapsPos').textContent = Math.round(data.flaps) + '%';
             
-            // NAV/GPS toggle
+            // NAV/GPS toggle - FIXED: Show GPS when GPS is active
             const navBtn = document.getElementById('navMode');
             navBtn.textContent = data.navMode ? 'NAV' : 'GPS';
-            navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
-        }
-
-        function updateToggle(id, state, text) {
-            const btn = document.getElementById(id);
-            btn.className = 'toggle-btn ' + (state ? 'on' : 'off');
-            btn.textContent = text || (state ? 'ON' : 'OFF');
-        }
-
-        function initMap() {
-            map = L.map('map').setView([0, 0], 8);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
+            navBtn.className = 'toggle-btn ' + (data.navMode || data.gpsActive ? 'on' : 'off');
             
-            aircraftMarker = L.marker([0, 0], {
-                icon: createPlaneIcon('#FFD700', 32)
-            }).addTo(map);
-        }
-
-        function createPlaneIcon(color, size) {
-            return L.divIcon({
-                html: '<div style="font-size:' + size + 'px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">✈️</div>',
-                className: '',
-                iconSize: [size, size],
-                iconAnchor: [size/2, size/2]
-            });
-        }
-
-        function updateMap(lat, lon, heading) {
-            if (!map) return;
-            
-            const icon = L.divIcon({
-                html: '<div style="font-size:32px;transform:rotate(' + heading + 'deg);filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));">✈️</div>',
-                className: '',
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
-            });
-            
-            aircraftMarker.setLatLng([lat, lon]);
-            aircraftMarker.setIcon(icon);
-            map.setView([lat, lon], map.getZoom());
-        }
-
-        function updateAITraffic(aircraft) {
-            // Clear old markers
-            aiMarkers.forEach(m => map.removeLayer(m));
-            aiMarkers = [];
-            
-            if (!map) return;
-            
-            aircraft.forEach(ac => {
-                const marker = L.marker([ac.latitude, ac.longitude], {
-                    icon: createPlaneIcon('#FFFFFF', 20)
-                }).addTo(map);
-                
-                marker.bindPopup('<strong>' + ac.callsign + '</strong><br>' +
-                    'Alt: ' + Math.round(ac.altitude) + ' ft<br>' +
-                    'Speed: ' + Math.round(ac.speed) + ' kts');
-                
-                aiMarkers.push(marker);
-            });
-        }
-
-        function toggleRoute() {
-            // Implement route toggle
-        }
-
-        function unlockControls() {
-            const password = document.getElementById('controlPassword').value;
-            ws.send(JSON.stringify({ type: 'request_control', password }));
-        }
-
-        function togglePause() {
-            ws.send(JSON.stringify({ type: 'pause_toggle' }));
-        }
-
-        function saveGame() {
-            ws.send(JSON.stringify({ type: 'save_game' }));
-            alert('Flight saved!');
-        }
-
-        function toggleAP(system) {
-            ws.send(JSON.stringify({ type: 'autopilot_toggle', system }));
-        }
-
-        function setAltitude() {
-            const alt = parseInt(document.getElementById('targetAlt').value);
-            if (!isNaN(alt)) {
-                ws.send(JSON.stringify({ type: 'autopilot_set', param: 'altitude', value: alt }));
+            // Update throttle display if available
+            if (data.throttlePercent !== undefined) {
+                document.getElementById('throttleDisplay').textContent = data.throttlePercent + '%';
+                document.getElementById('throttleSlider').value = data.throttlePercent;
             }
-        }
-
-        function setHeading() {
-            const hdg = parseInt(document.getElementById('targetHdg').value);
-            if (!isNaN(hdg)) {
-                ws.send(JSON.stringify({ type: 'autopilot_set', param: 'heading', value: hdg }));
-            }
-        }
-
-        function setVS() {
-            const vs = parseInt(document.getElementById('targetVS').value);
-            if (!isNaN(vs)) {
-                ws.send(JSON.stringify({ type: 'autopilot_set', param: 'vs', value: vs }));
-            }
-        }
-
-        function setSpeed() {
-            const speed = parseInt(document.getElementById('targetSpeed').value);
-            if (!isNaN(speed)) {
-                ws.send(JSON.stringify({ type: 'autopilot_set', param: 'speed', value: speed }));
-            }
-        }
-
-        function toggleNavMode() {
-            ws.send(JSON.stringify({ type: 'toggle_nav_mode' }));
-        }
-
-        function toggleGear() {
-            ws.send(JSON.stringify({ type: 'toggle_gear' }));
-        }
-
-        function changeFlaps(direction) {
-            ws.send(JSON.stringify({ type: 'change_flaps', direction }));
-        }
-
-        // Load saved ID
-        window.onload = () => {
-            const savedId = localStorage.getItem('p3d_unique_id');
-            if (savedId) {
-                document.getElementById('uniqueId').value = savedId;
-            }
-        };
-    </script>
-</body>
-</html>`;
-}
-
-server.listen(PORT, () => {
-  console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
-});
