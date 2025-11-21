@@ -747,7 +747,244 @@ function getMobileAppHTML() {
             navBtn.className = 'toggle-btn ' + (data.navMode || data.gpsActive ? 'on' : 'off');
             
             // Update throttle display if available
-            if (data.throttlePercent !== undefined) {
-                document.getElementById('throttleDisplay').textContent = data.throttlePercent + '%';
-                document.getElementById('throttleSlider').value = data.throttlePercent;
+            if (data.throttle !== undefined) {
+                const throttlePercent = Math.round(data.throttle * 100);
+                document.getElementById('throttleDisplay').textContent = throttlePercent + '%';
+                document.getElementById('throttleSlider').value = throttlePercent;
             }
+        }
+
+        function updateToggle(id, state, customText) {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            
+            btn.className = 'toggle-btn ' + (state ? 'on' : 'off');
+            btn.textContent = customText || (state ? 'ON' : 'OFF');
+        }
+
+        function initMap() {
+            map = L.map('map').setView([0, 0], 2);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        function updateMap(lat, lon, heading) {
+            if (!map || !aircraftMarker) {
+                const planeIcon = L.divIcon({
+                    html: '<div style="transform: rotate(' + heading + 'deg); font-size: 20px;">✈️</div>',
+                    iconSize: [20, 20],
+                    className: 'aircraft-icon'
+                });
+                
+                aircraftMarker = L.marker([lat, lon], { icon: planeIcon }).addTo(map);
+                map.setView([lat, lon], 10);
+            } else {
+                aircraftMarker.setLatLng([lat, lon]);
+                aircraftMarker.setIcon(L.divIcon({
+                    html: '<div style="transform: rotate(' + heading + 'deg); font-size: 20px;">✈️</div>',
+                    iconSize: [20, 20],
+                    className: 'aircraft-icon'
+                }));
+            }
+        }
+
+        function updateAITraffic(aircraft) {
+            // Clear existing markers
+            aiMarkers.forEach(marker => map.removeLayer(marker));
+            aiMarkers = [];
+            
+            // Add new markers
+            aircraft.forEach(ac => {
+                const marker = L.marker([ac.lat, ac.lon]).addTo(map);
+                marker.bindPopup(ac.type + ' (' + ac.tailNumber + ')');
+                aiMarkers.push(marker);
+            });
+        }
+
+        function toggleRoute() {
+            const btn = document.getElementById('btnRoute');
+            showingRoute = !showingRoute;
+            
+            if (showingRoute) {
+                btn.textContent = 'Hide Route';
+                // Request route data from PC
+                if (ws) {
+                    ws.send(JSON.stringify({ type: 'get_route' }));
+                }
+            } else {
+                btn.textContent = 'Show Route';
+                if (routePolyline) {
+                    map.removeLayer(routePolyline);
+                    routePolyline = null;
+                }
+            }
+        }
+
+        function unlockControls() {
+            const password = document.getElementById('controlPassword').value;
+            if (!password) {
+                alert('Please enter a password');
+                return;
+            }
+            
+            if (ws) {
+                ws.send(JSON.stringify({
+                    type: 'request_control',
+                    password: password
+                }));
+            }
+        }
+
+        function unlockControls2() {
+            const password = document.getElementById('controlPassword2').value;
+            if (!password) {
+                alert('Please enter a password');
+                return;
+            }
+            
+            if (ws) {
+                ws.send(JSON.stringify({
+                    type: 'request_control',
+                    password: password
+                }));
+            }
+        }
+
+        function togglePause() {
+            if (ws) {
+                ws.send(JSON.stringify({ type: 'pause_toggle' }));
+            }
+        }
+
+        function saveGame() {
+            if (ws) {
+                ws.send(JSON.stringify({ type: 'save_game' }));
+            }
+        }
+
+        function toggleAP(mode) {
+            if (ws) {
+                ws.send(JSON.stringify({ type: 'autopilot_toggle', mode: mode }));
+            }
+        }
+
+        function setAltitude() {
+            const altitude = document.getElementById('targetAlt').value;
+            if (!altitude) return;
+            
+            if (ws) {
+                ws.send(JSON.stringify({ 
+                    type: 'autopilot_set_altitude', 
+                    value: parseInt(altitude) 
+                }));
+            }
+        }
+
+        function setVS() {
+            const vs = document.getElementById('targetVS').value;
+            if (!vs) return;
+            
+            if (ws) {
+                ws.send(JSON.stringify({ 
+                    type: 'autopilot_set_vs', 
+                    value: parseInt(vs) 
+                }));
+            }
+        }
+
+        function setSpeed() {
+            const speed = document.getElementById('targetSpeed').value;
+            if (!speed) return;
+            
+            if (ws) {
+                ws.send(JSON.stringify({ 
+                    type: 'autopilot_set_speed', 
+                    value: parseInt(speed) 
+                }));
+            }
+        }
+
+        function setHeading() {
+            const heading = document.getElementById('targetHdg').value;
+            if (!heading) return;
+            
+            if (ws) {
+                ws.send(JSON.stringify({ 
+                    type: 'autopilot_set_heading', 
+                    value: parseInt(heading) 
+                }));
+            }
+        }
+
+        function toggleNavMode() {
+            if (ws) {
+                ws.send(JSON.stringify({ type: 'toggle_nav_mode' }));
+            }
+        }
+
+        function toggleGear() {
+            if (ws) {
+                ws.send(JSON.stringify({ type: 'toggle_gear' }));
+            }
+        }
+
+        function changeFlaps(direction) {
+            if (ws) {
+                ws.send(JSON.stringify({ 
+                    type: 'change_flaps', 
+                    direction: direction 
+                }));
+            }
+        }
+
+        function toggleSpeedbrake() {
+            if (ws) {
+                ws.send(JSON.stringify({ type: 'toggle_speedbrake' }));
+            }
+        }
+
+        function toggleParkingBrake() {
+            if (ws) {
+                ws.send(JSON.stringify({ type: 'toggle_parking_brake' }));
+            }
+        }
+
+        function updateThrottle(value) {
+            document.getElementById('throttleDisplay').textContent = value + '%';
+            
+            if (ws) {
+                ws.send(JSON.stringify({ 
+                    type: 'set_throttle', 
+                    value: parseInt(value) / 100 
+                }));
+            }
+        }
+
+        function startEngines() {
+            if (ws) {
+                ws.send(JSON.stringify({ type: 'engine_start' }));
+            }
+        }
+
+        function stopEngines() {
+            if (ws) {
+                ws.send(JSON.stringify({ type: 'engine_stop' }));
+            }
+        }
+
+        // Check for saved unique ID
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedId = localStorage.getItem('p3d_unique_id');
+            if (savedId) {
+                document.getElementById('uniqueId').value = savedId;
+            }
+        });
+    </script>
+</body>
+</html>`;
+}
+
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
