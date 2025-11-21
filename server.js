@@ -1,7 +1,7 @@
-// P3D Remote Cloud Relay - Simple Edition
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
@@ -37,6 +37,15 @@ wss.on('connection', (ws, req) => {
         const uniqueId = data.uniqueId;
         const password = data.password;
         const guestPassword = data.guestPassword;
+        
+        // Check if uniqueId is already taken
+        if (sessions.has(uniqueId)) {
+          const session = sessions.get(uniqueId);
+          if (session.pcClient && session.pcClient !== ws && session.pcClient.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'error', message: 'ID already in use by another client' }));
+            return;
+          }
+        }
         
         ws.uniqueId = uniqueId;
         ws.clientType = 'pc';
@@ -110,7 +119,12 @@ wss.on('connection', (ws, req) => {
           // Check if command requires control access
           if (data.type.includes('autopilot') || 
               data.type === 'pause_toggle' || 
-              data.type === 'save_game') {
+              data.type === 'save_game' ||
+              data.type.includes('throttle') ||
+              data.type.includes('engine') ||
+              data.type === 'toggle_parking_brake' ||
+              data.type === 'toggle_speedbrake' ||
+              data.type === 'set_speedbrake') {
             if (!ws.hasControlAccess) {
               ws.send(JSON.stringify({ 
                 type: 'control_required',
@@ -240,7 +254,9 @@ function getMobileAppHTML() {
         }
         .btn-primary { background: #00c853; color: white; }
         .btn-secondary { background: #005a9c; color: white; }
+        .btn-danger { background: #f44336; color: white; }
         .btn:disabled { background: #555; opacity: 0.5; }
+        .btn.paused { background: #ff9800; }
         
         .tabs {
             display: flex;
@@ -336,6 +352,91 @@ function getMobileAppHTML() {
             margin: 10px 0;
             font-size: 13px;
         }
+        
+        .waypoint-info {
+            background: #003057;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .waypoint-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #00c853;
+            margin-bottom: 5px;
+        }
+        
+        .waypoint-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #7ab8e8;
+        }
+        
+        .slider-container {
+            margin: 10px 0;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #003057;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00c853;
+            cursor: pointer;
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00c853;
+            cursor: pointer;
+        }
+        
+        .engine-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .engine-control {
+            background: #003057;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .engine-label {
+            font-size: 12px;
+            color: #7ab8e8;
+            margin-bottom: 5px;
+        }
+        
+        .engine-status {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .engine-status.on {
+            color: #00c853;
+        }
+        
+        .engine-status.off {
+            color: #f44336;
+        }
     </style>
 </head>
 <body>
@@ -350,7 +451,7 @@ function getMobileAppHTML() {
             <div class='info-box'>
                 Enter your Unique ID from the PC Server
             </div>
-            <input type='text' id='uniqueId' placeholder='Unique ID (e.g., Adrian)' autocapitalize='off'>
+            <input type='text' id='uniqueId' placeholder='Unique ID' autocapitalize='off'>
             <button class='btn btn-primary' onclick='connectToSim()'>Connect</button>
         </div>
     </div>
@@ -360,9 +461,18 @@ function getMobileAppHTML() {
             <button class='tab active' onclick='switchTab(0)'>Flight</button>
             <button class='tab' onclick='switchTab(1)'>Map</button>
             <button class='tab' onclick='switchTab(2)'>Autopilot</button>
+            <button class='tab' onclick='switchTab(3)'>Aircraft</button>
         </div>
 
         <div class='tab-content active'>
+            <div class='waypoint-info'>
+                <div class='waypoint-name' id='nextWaypoint'>--</div>
+                <div class='waypoint-details'>
+                    <span>Distance: <span id='waypointDistance'>--</span> nm</span>
+                    <span>Bearing: <span id='waypointBearing'>--</span>°</span>
+                </div>
+            </div>
+            
             <div class='card'>
                 <div class='data-label'>Distance to Destination</div>
                 <div class='data-value'><span id='distance'>--</span> nm</div>
@@ -457,6 +567,11 @@ function getMobileAppHTML() {
                     </div>
                     
                     <div class='control-row'>
+                        <span class='control-label'>NAV1</span>
+                        <button class='toggle-btn off' id='nav1Mode' onclick='toggleAP("nav1")'>OFF</button>
+                    </div>
+                    
+                    <div class='control-row'>
                         <span class='control-label'>Approach</span>
                         <button class='toggle-btn off' id='apApp' onclick='toggleAP("approach")'>OFF</button>
                     </div>
@@ -465,10 +580,25 @@ function getMobileAppHTML() {
                         <span class='control-label'>Auto Throttle</span>
                         <button class='toggle-btn off' id='autoThrottle' onclick='toggleAP("throttle")'>OFF</button>
                     </div>
+                    
+                    <div class='control-row'>
+                        <span class='control-label'>ILS</span>
+                        <button class='toggle-btn off' id='ilsMode' onclick='toggleILS()'>OFF</button>
+                    </div>
                 </div>
-                
+            </div>
+        </div>
+        
+        <div class='tab-content'>
+            <div id='aircraftLock' class='card'>
+                <div class='info-box'>🔒 Enter password to access aircraft controls</div>
+                <input type='password' id='aircraftPassword' placeholder='Password'>
+                <button class='btn btn-primary' onclick='unlockAircraftControls()'>Unlock Controls</button>
+            </div>
+            
+            <div id='aircraftPanel' class='hidden'>
                 <div class='card'>
-                    <h3 style='margin-bottom: 15px;'>Aircraft</h3>
+                    <h3 style='margin-bottom: 15px;'>Landing Gear & Brakes</h3>
                     
                     <div class='control-row'>
                         <span class='control-label'>Landing Gear</span>
@@ -476,11 +606,79 @@ function getMobileAppHTML() {
                     </div>
                     
                     <div class='control-row'>
+                        <span class='control-label'>Parking Brake</span>
+                        <button class='toggle-btn off' id='parkingBrake' onclick='toggleParkingBrake()'>OFF</button>
+                    </div>
+                    
+                    <div class='control-row'>
+                        <span class='control-label'>Speed Brake</span>
+                        <button class='toggle-btn off' id='speedBrake' onclick='toggleSpeedBrake()'>OFF</button>
+                    </div>
+                    <div class='slider-container'>
+                        <input type='range' min='0' max='100' value='0' class='slider' id='speedBrakeSlider' oninput='setSpeedBrake(this.value)'>
+                        <div style='display: flex; justify-content: space-between; font-size: 12px; color: #7ab8e8;'>
+                            <span>0%</span>
+                            <span id='speedBrakeValue'>0%</span>
+                            <span>100%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class='card'>
+                    <h3 style='margin-bottom: 15px;'>Flaps</h3>
+                    
+                    <div class='control-row'>
                         <span class='control-label'>Flaps</span>
                         <div>
                             <button class='btn btn-secondary' style='width:auto; padding:8px 12px; margin:0 5px;' onclick='changeFlaps(-1)'>-</button>
                             <span id='flapsPos'>0%</span>
                             <button class='btn btn-secondary' style='width:auto; padding:8px 12px; margin:0 5px;' onclick='changeFlaps(1)'>+</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class='card'>
+                    <h3 style='margin-bottom: 15px;'>Engines</h3>
+                    
+                    <div class='engine-grid'>
+                        <div class='engine-control'>
+                            <div class='engine-label'>Engine 1</div>
+                            <div class='engine-status' id='engine1Status'>OFF</div>
+                            <button class='btn btn-secondary' style='width:100%;' onclick='toggleEngine(1)'>Toggle</button>
+                            <div class='slider-container'>
+                                <input type='range' min='0' max='100' value='0' class='slider' id='throttle1' oninput='setThrottle(1, this.value)'>
+                                <div style='font-size: 12px; color: #7ab8e8;'>Throttle: <span id='throttle1Value'>0%</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class='engine-control'>
+                            <div class='engine-label'>Engine 2</div>
+                            <div class='engine-status' id='engine2Status'>OFF</div>
+                            <button class='btn btn-secondary' style='width:100%;' onclick='toggleEngine(2)'>Toggle</button>
+                            <div class='slider-container'>
+                                <input type='range' min='0' max='100' value='0' class='slider' id='throttle2' oninput='setThrottle(2, this.value)'>
+                                <div style='font-size: 12px; color: #7ab8e8;'>Throttle: <span id='throttle2Value'>0%</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class='engine-control'>
+                            <div class='engine-label'>Engine 3</div>
+                            <div class='engine-status' id='engine3Status'>OFF</div>
+                            <button class='btn btn-secondary' style='width:100%;' onclick='toggleEngine(3)'>Toggle</button>
+                            <div class='slider-container'>
+                                <input type='range' min='0' max='100' value='0' class='slider' id='throttle3' oninput='setThrottle(3, this.value)'>
+                                <div style='font-size: 12px; color: #7ab8e8;'>Throttle: <span id='throttle3Value'>0%</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class='engine-control'>
+                            <div class='engine-label'>Engine 4</div>
+                            <div class='engine-status' id='engine4Status'>OFF</div>
+                            <button class='btn btn-secondary' style='width:100%;' onclick='toggleEngine(4)'>Toggle</button>
+                            <div class='slider-container'>
+                                <input type='range' min='0' max='100' value='0' class='slider' id='throttle4' oninput='setThrottle(4, this.value)'>
+                                <div style='font-size: 12px; color: #7ab8e8;'>Throttle: <span id='throttle4Value'>0%</span></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -497,6 +695,7 @@ function getMobileAppHTML() {
         let showingRoute = false;
         let uniqueId = null;
         let hasControl = false;
+        let hasAircraftControl = false;
 
         function switchTab(index) {
             document.querySelectorAll('.tab').forEach((tab, i) => {
@@ -606,7 +805,20 @@ function getMobileAppHTML() {
             document.getElementById('ete').textContent = 'ETE: ' + (hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'm');
 
             const btnPause = document.getElementById('btnPause');
-            btnPause.textContent = data.isPaused ? '▶️ Resume' : '⏸️ Pause';
+            if (data.isPaused) {
+                btnPause.textContent = '▶️ Resume';
+                btnPause.classList.add('paused');
+            } else {
+                btnPause.textContent = '⏸️ Pause';
+                btnPause.classList.remove('paused');
+            }
+
+            // Update waypoint info
+            if (data.nextWaypoint) {
+                document.getElementById('nextWaypoint').textContent = data.nextWaypoint;
+                document.getElementById('waypointDistance').textContent = data.distanceToWaypoint.toFixed(1);
+                document.getElementById('waypointBearing').textContent = Math.round(data.bearingToWaypoint);
+            }
 
             if (map && data.latitude && data.longitude) {
                 updateMap(data.latitude, data.longitude, data.heading);
@@ -620,10 +832,44 @@ function getMobileAppHTML() {
             updateToggle('apVS', data.vs);
             updateToggle('apSpeed', data.speed);
             updateToggle('apApp', data.approach);
+            updateToggle('apNav1', data.nav1);
             updateToggle('autoThrottle', data.throttle);
             updateToggle('gear', data.gear, data.gear ? 'DOWN' : 'UP');
+            updateToggle('parkingBrake', data.parkingBrake);
+            updateToggle('speedBrake', data.speedBrake > 0);
+            updateToggle('ilsMode', data.ilsMode);
             
             document.getElementById('flapsPos').textContent = Math.round(data.flaps) + '%';
+            
+            // Update speed brake slider
+            document.getElementById('speedBrakeSlider').value = data.speedBrake;
+            document.getElementById('speedBrakeValue').textContent = Math.round(data.speedBrake) + '%';
+            
+            // Update engine status and throttles
+            for (let i = 1; i <= 4; i++) {
+                const engineStatus = document.getElementById('engine' + i + 'Status');
+                const throttleSlider = document.getElementById('throttle' + i);
+                const throttleValue = document.getElementById('throttle' + i + 'Value');
+                
+                if (data['engine' + i]) {
+                    engineStatus.textContent = 'ON';
+                    engineStatus.className = 'engine-status on';
+                } else {
+                    engineStatus.textContent = 'OFF';
+                    engineStatus.className = 'engine-status off';
+                }
+                
+                if (data['throttle' + i] !== undefined) {
+                    throttleSlider.value = data['throttle' + i];
+                    throttleValue.textContent = Math.round(data['throttle' + i]) + '%';
+                }
+            }
+            
+            // Update target values
+            document.getElementById('targetAlt').value = data.targetAltitude || '';
+            document.getElementById('targetHdg').value = data.targetHeading || '';
+            document.getElementById('targetVS').value = data.targetVS || '';
+            document.getElementById('targetSpeed').value = data.targetSpeed || '';
             
             // NAV/GPS toggle
             const navBtn = document.getElementById('navMode');
@@ -633,6 +879,8 @@ function getMobileAppHTML() {
 
         function updateToggle(id, state, text) {
             const btn = document.getElementById(id);
+            if (!btn) return;
+            
             btn.className = 'toggle-btn ' + (state ? 'on' : 'off');
             btn.textContent = text || (state ? 'ON' : 'OFF');
         }
@@ -701,13 +949,21 @@ function getMobileAppHTML() {
             ws.send(JSON.stringify({ type: 'request_control', password }));
         }
 
+        function unlockAircraftControls() {
+            const password = document.getElementById('aircraftPassword').value;
+            ws.send(JSON.stringify({ type: 'request_control', password }));
+        }
+
         function togglePause() {
             ws.send(JSON.stringify({ type: 'pause_toggle' }));
         }
 
         function saveGame() {
-            ws.send(JSON.stringify({ type: 'save_game' }));
-            alert('Flight saved!');
+            const saveName = prompt('Enter a name for your save:');
+            if (saveName) {
+                ws.send(JSON.stringify({ type: 'save_game', name: saveName }));
+                alert('Flight saved as: ' + saveName);
+            }
         }
 
         function toggleAP(system) {
@@ -746,12 +1002,38 @@ function getMobileAppHTML() {
             ws.send(JSON.stringify({ type: 'toggle_nav_mode' }));
         }
 
+        function toggleILS() {
+            ws.send(JSON.stringify({ type: 'toggle_ils' }));
+        }
+
         function toggleGear() {
             ws.send(JSON.stringify({ type: 'toggle_gear' }));
         }
 
+        function toggleParkingBrake() {
+            ws.send(JSON.stringify({ type: 'toggle_parking_brake' }));
+        }
+
+        function toggleSpeedBrake() {
+            ws.send(JSON.stringify({ type: 'toggle_speedbrake' }));
+        }
+
+        function setSpeedBrake(value) {
+            document.getElementById('speedBrakeValue').textContent = value + '%';
+            ws.send(JSON.stringify({ type: 'set_speedbrake', value: parseInt(value) }));
+        }
+
         function changeFlaps(direction) {
             ws.send(JSON.stringify({ type: 'change_flaps', direction }));
+        }
+
+        function toggleEngine(engine) {
+            ws.send(JSON.stringify({ type: 'toggle_engine', engine }));
+        }
+
+        function setThrottle(engine, value) {
+            document.getElementById('throttle' + engine + 'Value').textContent = value + '%';
+            ws.send(JSON.stringify({ type: 'set_throttle', engine, value: parseInt(value) }));
         }
 
         // Load saved ID
