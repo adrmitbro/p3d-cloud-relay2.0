@@ -147,21 +147,23 @@ wss.on('connection', (ws, req) => {
         
         if (ws.clientType === 'mobile' && session.pcClient) {
           // Check if command requires control access
-          if (data.type.includes('autopilot') || 
-              data.type === 'pause_toggle' || 
-              data.type === 'save_game' ||
-              data.type.includes('throttle') ||
-              data.type.includes('engine') ||
-              data.type === 'toggle_parking_brake' ||
-              data.type === 'toggle_speedbrake' ||
-              data.type === 'set_speedbrake') {
-            if (!ws.hasControlAccess) {
-              ws.send(JSON.stringify({ 
-                type: 'control_required',
-                message: 'Enter password to access controls'
-              }));
-              return;
-            }
+          const requiresControl = data.type.includes('autopilot') || 
+                                 data.type === 'pause_toggle' || 
+                                 data.type === 'save_game' ||
+                                 data.type.includes('throttle') ||
+                                 data.type.includes('engine') ||
+                                 data.type === 'toggle_parking_brake' ||
+                                 data.type === 'toggle_speedbrake' ||
+                                 data.type === 'set_speedbrake' ||
+                                 data.type === 'toggle_gear' ||
+                                 data.type === 'change_flaps';
+          
+          if (requiresControl && !ws.hasControlAccess) {
+            ws.send(JSON.stringify({ 
+              type: 'control_required',
+              message: 'Enter password to access controls'
+            }));
+            return;
           }
           
           // Forward to PC
@@ -580,28 +582,28 @@ function getMobileAppHTML() {
                         <span class='control-label'>Altitude</span>
                         <button class='toggle-btn off' id='apAlt' onclick='toggleAP("altitude")'>OFF</button>
                     </div>
-                    <input type='number' id='targetAlt' placeholder='Target Altitude'>
+                    <input type='number' id='targetAlt' placeholder='Target Altitude' onchange='setAltitude()'>
                     <button class='btn btn-primary' onclick='setAltitude()'>Set</button>
                     
                     <div class='control-row'>
                         <span class='control-label'>V/S</span>
                         <button class='toggle-btn off' id='apVS' onclick='toggleAP("vs")'>OFF</button>
                     </div>
-                    <input type='number' id='targetVS' placeholder='Vertical Speed (fpm)'>
+                    <input type='number' id='targetVS' placeholder='Vertical Speed (fpm)' onchange='setVS()'>
                     <button class='btn btn-primary' onclick='setVS()'>Set</button>
                     
                     <div class='control-row'>
                         <span class='control-label'>Speed</span>
                         <button class='toggle-btn off' id='apSpeed' onclick='toggleAP("speed")'>OFF</button>
                     </div>
-                    <input type='number' id='targetSpeed' placeholder='Target Speed (kts)'>
+                    <input type='number' id='targetSpeed' placeholder='Target Speed (kts)' onchange='setSpeed()'>
                     <button class='btn btn-primary' onclick='setSpeed()'>Set</button>
                     
                     <div class='control-row'>
                         <span class='control-label'>Heading</span>
                         <button class='toggle-btn off' id='apHdg' onclick='toggleAP("heading")'>OFF</button>
                     </div>
-                    <input type='number' id='targetHdg' placeholder='Heading'>
+                    <input type='number' id='targetHdg' placeholder='Heading' onchange='setHeading()'>
                     <button class='btn btn-primary' onclick='setHeading()'>Set</button>
                     
                     <div class='control-row'>
@@ -813,6 +815,7 @@ function getMobileAppHTML() {
                     
                 case 'control_granted':
                     hasControl = true;
+                    hasAircraftControl = true;
                     document.getElementById('controlLock').classList.add('hidden');
                     document.getElementById('controlPanel').classList.remove('hidden');
                     document.getElementById('aircraftLock').classList.add('hidden');
@@ -921,13 +924,21 @@ function getMobileAppHTML() {
                 }
             }
             
-            // Update target values
-            document.getElementById('targetAlt').value = data.targetAltitude || '';
-            document.getElementById('targetHdg').value = data.targetHeading || '';
-            document.getElementById('targetVS').value = data.targetVS || '';
-            document.getElementById('targetSpeed').value = data.targetSpeed || '';
+            // Update target values - only if field is empty to avoid overwriting user input
+            if (!document.getElementById('targetAlt').value && data.targetAltitude) {
+                document.getElementById('targetAlt').value = data.targetAltitude;
+            }
+            if (!document.getElementById('targetHdg').value && data.targetHeading) {
+                document.getElementById('targetHdg').value = data.targetHeading;
+            }
+            if (!document.getElementById('targetVS').value && data.targetVS) {
+                document.getElementById('targetVS').value = data.targetVS;
+            }
+            if (!document.getElementById('targetSpeed').value && data.targetSpeed) {
+                document.getElementById('targetSpeed').value = data.targetSpeed;
+            }
             
-            // NAV/GPS toggle
+            // NAV/GPS toggle - Fixed the inversion
             const navBtn = document.getElementById('navMode');
             navBtn.textContent = data.navMode ? 'NAV' : 'GPS';
             navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
