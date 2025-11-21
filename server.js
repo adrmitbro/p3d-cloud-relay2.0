@@ -189,7 +189,7 @@ function getMobileAppHTML() {
             background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
             padding: 15px 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-            border-bottom: 2px solid #00c853;
+            border-bottom: 2px solid #167fac;
         }
         .header h1 { 
             font-size: 20px;
@@ -205,7 +205,7 @@ function getMobileAppHTML() {
             margin-top: 5px;
             display: inline-block;
         }
-        .status.connected { background: #00c853; color: #000; }
+        .status.connected { background: #167fac; color: #fff; }
         .status.offline { background: #f44336; color: white; }
         
         .login-screen {
@@ -220,7 +220,7 @@ function getMobileAppHTML() {
             box-shadow: 0 4px 20px rgba(0,0,0,0.5);
             border: 1px solid #333;
         }
-        .login-card h2 { margin-bottom: 20px; color: #00c853; }
+        .login-card h2 { margin-bottom: 20px; color: #167fac; }
         
         input {
             width: 100%;
@@ -233,7 +233,7 @@ function getMobileAppHTML() {
             margin: 10px 0;
         }
         input::placeholder { color: #666; }
-        input:focus { outline: none; border-color: #00c853; }
+        input:focus { outline: none; border-color: #167fac; }
         
         .btn {
             width: 100%;
@@ -246,8 +246,8 @@ function getMobileAppHTML() {
             margin: 8px 0;
             transition: all 0.3s;
         }
-        .btn-primary { background: #00c853; color: #000; }
-        .btn-primary:active { background: #00e676; }
+        .btn-primary { background: #167fac; color: #fff; }
+        .btn-primary:active { background: #1a8fc4; }
         .btn-secondary { background: #2d2d2d; color: white; border: 1px solid #444; }
         .btn-secondary:active { background: #3d3d3d; }
         .btn-warning { background: #ff9800; color: #000; }
@@ -282,9 +282,9 @@ function getMobileAppHTML() {
             transition: all 0.3s;
         }
         .tab.active {
-            color: #00c853;
+            color: #167fac;
             background: #1a1a1a;
-            border-bottom: 3px solid #00c853;
+            border-bottom: 3px solid #167fac;
         }
         
         .tab-content {
@@ -322,7 +322,7 @@ function getMobileAppHTML() {
         .data-value {
             font-size: 24px;
             font-weight: bold;
-            color: #00c853;
+            color: #167fac;
         }
         
         #map {
@@ -352,7 +352,7 @@ function getMobileAppHTML() {
             font-size: 12px;
             transition: all 0.3s;
         }
-        .toggle-btn.on { background: #00c853; color: #000; }
+        .toggle-btn.on { background: #167fac; color: #fff; }
         .toggle-btn.off { background: #333; color: #888; }
         
         .input-group {
@@ -397,7 +397,7 @@ function getMobileAppHTML() {
         }
         
         h3 {
-            color: #00c853;
+            color: #167fac;
             margin-bottom: 15px;
         }
     </style>
@@ -436,8 +436,8 @@ function getMobileAppHTML() {
 
             <div class='card'>
                 <div class='data-label'>Total Distance to Destination</div>
-                <div class='data-value'><span id='distance'>--</span> nm</div>
-                <div style='margin-top: 8px; color: #888; font-size: 13px;' id='ete'>Total ETE: --</div>
+                <div class='data-value'><span id='totalDistance'>--</span> nm</div>
+                <div style='margin-top: 8px; color: #888; font-size: 13px;' id='totalEte'>Total ETE: --</div>
             </div>
 
             <div class='card'>
@@ -705,20 +705,20 @@ function getMobileAppHTML() {
                 document.getElementById('wpEte').textContent = 'ETE: --';
             }
             
-            // Total distance to destination
+            // Total distance to destination - FIXED
             if (data.totalDistance && data.totalDistance > 0) {
-                document.getElementById('distance').textContent = data.totalDistance.toFixed(1);
+                document.getElementById('totalDistance').textContent = data.totalDistance.toFixed(1);
             } else {
-                document.getElementById('distance').textContent = '--';
+                document.getElementById('totalDistance').textContent = '--';
             }
             
-            // Total ETE
-            if (data.ete && data.ete > 0) {
-                const hours = Math.floor(data.ete / 3600);
-                const minutes = Math.floor((data.ete % 3600) / 60);
-                document.getElementById('ete').textContent = 'Total ETE: ' + (hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'm');
+            // Total ETE - FIXED
+            if (data.totalEte && data.totalEte > 0) {
+                const hours = Math.floor(data.totalEte / 3600);
+                const minutes = Math.floor((data.totalEte % 3600) / 60);
+                document.getElementById('totalEte').textContent = 'Total ETE: ' + (hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'm');
             } else {
-                document.getElementById('ete').textContent = 'Total ETE: --';
+                document.getElementById('totalEte').textContent = 'Total ETE: --';
             }
 
             isPaused = data.isPaused;
@@ -751,13 +751,13 @@ function getMobileAppHTML() {
             
             document.getElementById('flapsPos').textContent = Math.round(data.flaps) + '%';
             
-            // Spoilers
+            // Spoilers - FIXED
             const spoilersBtn = document.getElementById('spoilers');
             const spoilersActive = data.spoilers > 10;
             spoilersBtn.className = 'toggle-btn ' + (spoilersActive ? 'on' : 'off');
             spoilersBtn.textContent = spoilersActive ? 'DEPLOYED' : 'RETRACTED';
             
-            // NAV/GPS toggle - FIXED: inverted the logic
+            // NAV/GPS toggle
             const navBtn = document.getElementById('navMode');
             navBtn.textContent = data.navMode ? 'GPS' : 'NAV';
             navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
@@ -820,7 +820,14 @@ function getMobileAppHTML() {
         }
 
         function toggleAP(system) {
-            ws.send(JSON.stringify({ type: 'autopilot_toggle', system }));
+            // FIXED: Send specific messages for LOC and ILS
+            if (system === 'nav') {
+                ws.send(JSON.stringify({ type: 'autopilot_toggle_loc' }));
+            } else if (system === 'approach') {
+                ws.send(JSON.stringify({ type: 'autopilot_toggle_ils' }));
+            } else {
+                ws.send(JSON.stringify({ type: 'autopilot_toggle', system }));
+            }
         }
 
         function setAltitude() {
@@ -864,10 +871,12 @@ function getMobileAppHTML() {
         }
 
         function toggleSpoilers() {
-            ws.send(JSON.stringify({ type: 'toggle_spoilers' }));
+            // FIXED: Send specific message for speedbrakes
+            ws.send(JSON.stringify({ type: 'toggle_speedbrake' }));
         }
 
         function toggleParkingBrake() {
+            // FIXED: Send specific message for parking brake
             ws.send(JSON.stringify({ type: 'toggle_parking_brake' }));
         }
 
