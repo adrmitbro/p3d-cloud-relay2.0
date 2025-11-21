@@ -1,4 +1,3 @@
-// P3D Remote Cloud Relay - Enhanced Edition
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -102,7 +101,7 @@ wss.on('connection', (ws, req) => {
       }
       
       else {
-        // Route all other messages
+        // Route all other messages to PC or to mobiles
         const session = sessions.get(ws.uniqueId);
         if (!session) return;
         
@@ -115,7 +114,9 @@ wss.on('connection', (ws, req) => {
               data.type === 'toggle_spoilers' ||
               data.type === 'toggle_parking_brake' ||
               data.type === 'change_flaps' ||
-              data.type === 'throttle_control') {
+              data.type === 'throttle_control' ||
+              data.type === 'toggle_speedbrake' ||
+              data.type === 'set_parking_brake' ) {
             if (!ws.hasControlAccess) {
               ws.send(JSON.stringify({ 
                 type: 'control_required',
@@ -124,7 +125,7 @@ wss.on('connection', (ws, req) => {
               return;
             }
           }
-          
+        
           // Forward to PC
           if (session.pcClient.readyState === WebSocket.OPEN) {
             session.pcClient.send(JSON.stringify(data));
@@ -189,7 +190,7 @@ function getMobileAppHTML() {
             background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
             padding: 15px 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-            border-bottom: 2px solid #00c853;
+            border-bottom: 2px solid #167fac;
         }
         .header h1 { 
             font-size: 20px;
@@ -205,7 +206,7 @@ function getMobileAppHTML() {
             margin-top: 5px;
             display: inline-block;
         }
-        .status.connected { background: #00c853; color: #000; }
+        .status.connected { background: #167fac; color: #000; }
         .status.offline { background: #f44336; color: white; }
         
         .login-screen {
@@ -220,7 +221,7 @@ function getMobileAppHTML() {
             box-shadow: 0 4px 20px rgba(0,0,0,0.5);
             border: 1px solid #333;
         }
-        .login-card h2 { margin-bottom: 20px; color: #00c853; }
+        .login-card h2 { margin-bottom: 20px; color: #167fac; }
         
         input {
             width: 100%;
@@ -233,7 +234,7 @@ function getMobileAppHTML() {
             margin: 10px 0;
         }
         input::placeholder { color: #666; }
-        input:focus { outline: none; border-color: #00c853; }
+        input:focus { outline: none; border-color: #167fac; }
         
         .btn {
             width: 100%;
@@ -246,8 +247,8 @@ function getMobileAppHTML() {
             margin: 8px 0;
             transition: all 0.3s;
         }
-        .btn-primary { background: #00c853; color: #000; }
-        .btn-primary:active { background: #00e676; }
+        .btn-primary { background: #167fac; color: #000; }
+        .btn-primary:active { background: #1aa0d3; }
         .btn-secondary { background: #2d2d2d; color: white; border: 1px solid #444; }
         .btn-secondary:active { background: #3d3d3d; }
         .btn-warning { background: #ff9800; color: #000; }
@@ -282,9 +283,9 @@ function getMobileAppHTML() {
             transition: all 0.3s;
         }
         .tab.active {
-            color: #00c853;
+            color: #167fac;
             background: #1a1a1a;
-            border-bottom: 3px solid #00c853;
+            border-bottom: 3px solid #167fac;
         }
         
         .tab-content {
@@ -322,7 +323,7 @@ function getMobileAppHTML() {
         .data-value {
             font-size: 24px;
             font-weight: bold;
-            color: #00c853;
+            color: #167fac;
         }
         
         #map {
@@ -352,7 +353,7 @@ function getMobileAppHTML() {
             font-size: 12px;
             transition: all 0.3s;
         }
-        .toggle-btn.on { background: #00c853; color: #000; }
+        .toggle-btn.on { background: #167fac; color: #000; }
         .toggle-btn.off { background: #333; color: #888; }
         
         .input-group {
@@ -397,7 +398,7 @@ function getMobileAppHTML() {
         }
         
         h3 {
-            color: #00c853;
+            color: #167fac;
             margin-bottom: 15px;
         }
     </style>
@@ -537,18 +538,18 @@ function getMobileAppHTML() {
                     </div>
                     
                     <div class='control-row'>
-                        <span class='control-label'>LOC Hold</span>
-                        <button class='toggle-btn off' id='apNav' onclick='toggleAP("nav")'>OFF</button>
+                        <span class='control-label'>LOC Hold (NAV1 LOCK)</span>
+                        <button class='toggle-btn off' id='apNav' onclick='toggleNavLock()'>OFF</button>
                     </div>
                     
                     <div class='control-row'>
-                        <span class='control-label'>Approach</span>
-                        <button class='toggle-btn off' id='apApp' onclick='toggleAP("approach")'>OFF</button>
+                        <span class='control-label'>Approach (ILS ARM)</span>
+                        <button class='toggle-btn off' id='apApp' onclick='toggleILSArm()'>OFF</button>
                     </div>
                     
                     <div class='control-row'>
-                        <span class='control-label'>ILS/Backcourse</span>
-                        <button class='toggle-btn off' id='apBackcourse' onclick='toggleAP("backcourse")'>OFF</button>
+                        <span class='control-label'>ILS Backcourse</span>
+                        <button class='toggle-btn off' id='apBackcourse' onclick='toggleILSBackcourse()'>OFF</button>
                     </div>
                     
                     <div class='control-row'>
@@ -576,7 +577,7 @@ function getMobileAppHTML() {
                     
                     <div class='control-row'>
                         <span class='control-label'>Speedbrakes</span>
-                        <button class='toggle-btn off' id='spoilers' onclick='toggleSpoilers()'>OFF</button>
+                        <button class='toggle-btn off' id='spoilers' onclick='toggleSpeedbrake()'>OFF</button>
                     </div>
                     
                     <div class='control-row'>
@@ -595,6 +596,8 @@ function getMobileAppHTML() {
         let uniqueId = null;
         let hasControl = false;
         let isPaused = false;
+        let parkingBrakeState = false; // local cache
+        let speedbrakeDeployed = false; // local cache
 
         function switchTab(index) {
             document.querySelectorAll('.tab').forEach((tab, i) => {
@@ -635,6 +638,7 @@ function getMobileAppHTML() {
 
             ws.onclose = () => {
                 updateStatus('offline');
+                // try reconnect after a short delay
                 setTimeout(connectToSim, 3000);
             };
         }
@@ -688,10 +692,10 @@ function getMobileAppHTML() {
         }
 
         function updateFlightData(data) {
-            document.getElementById('speed').textContent = Math.round(data.groundSpeed);
-            document.getElementById('altitude').textContent = Math.round(data.altitude).toLocaleString();
-            document.getElementById('heading').textContent = Math.round(data.heading) + '°';
-            document.getElementById('vs').textContent = Math.round(data.verticalSpeed);
+            document.getElementById('speed').textContent = Math.round(data.groundSpeed || 0);
+            document.getElementById('altitude').textContent = Math.round(data.altitude || 0).toLocaleString();
+            document.getElementById('heading').textContent = Math.round(data.heading || 0) + '°';
+            document.getElementById('vs').textContent = Math.round(data.verticalSpeed || 0);
             
             // Next waypoint info
             document.getElementById('nextWaypoint').textContent = data.nextWaypoint || 'No Active Waypoint';
@@ -705,9 +709,10 @@ function getMobileAppHTML() {
                 document.getElementById('wpEte').textContent = 'ETE: --';
             }
             
-            // Total distance to destination
-            if (data.totalDistance && data.totalDistance > 0) {
-                document.getElementById('distance').textContent = data.totalDistance.toFixed(1);
+            // Total distance to destination: prefer data.totalDistance, fallback to gpsTotalDistance
+            const totalDist = (typeof data.totalDistance !== 'undefined') ? data.totalDistance : data.gpsTotalDistance;
+            if (totalDist && totalDist > 0) {
+                document.getElementById('distance').textContent = totalDist.toFixed(1);
             } else {
                 document.getElementById('distance').textContent = '--';
             }
@@ -721,14 +726,10 @@ function getMobileAppHTML() {
                 document.getElementById('ete').textContent = 'Total ETE: --';
             }
 
-            isPaused = data.isPaused;
-            const btnPause = document.getElementById('btnPause');
-            if (data.isPaused) {
-                btnPause.textContent = '▶️ PAUSED - Resume';
-                btnPause.className = 'btn btn-warning paused';
-            } else {
-                btnPause.textContent = '⏸️ Pause';
-                btnPause.className = 'btn btn-secondary';
+            // Pause state -- keep server truth but also respect optimistic local toggle
+            if (typeof data.isPaused !== 'undefined') {
+                isPaused = !!data.isPaused;
+                updatePauseUI();
             }
 
             if (map && data.latitude && data.longitude) {
@@ -749,18 +750,22 @@ function getMobileAppHTML() {
             updateToggle('gear', data.gear, data.gear ? 'DOWN' : 'UP');
             updateToggle('parkingBrake', data.parkingBrake, data.parkingBrake ? 'SET' : 'OFF');
             
-            document.getElementById('flapsPos').textContent = Math.round(data.flaps) + '%';
+            document.getElementById('flapsPos').textContent = Math.round(data.flaps || 0) + '%';
             
-            // Spoilers
+            // Spoilers / speedbrake
             const spoilersBtn = document.getElementById('spoilers');
-            const spoilersActive = data.spoilers > 10;
+            const spoilersActive = (data.spoilers || 0) > 10;
             spoilersBtn.className = 'toggle-btn ' + (spoilersActive ? 'on' : 'off');
             spoilersBtn.textContent = spoilersActive ? 'DEPLOYED' : 'RETRACTED';
+            speedbrakeDeployed = spoilersActive;
             
-            // NAV/GPS toggle - FIXED: inverted the logic
+            // NAV/GPS toggle
             const navBtn = document.getElementById('navMode');
             navBtn.textContent = data.navMode ? 'GPS' : 'NAV';
             navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
+            
+            // Update parking brake local cache
+            parkingBrakeState = !!data.parkingBrake;
         }
 
         function updateToggle(id, state, text) {
@@ -810,22 +815,42 @@ function getMobileAppHTML() {
             ws.send(JSON.stringify({ type: 'request_control', password }));
         }
 
+        // Pause: optimistic toggle + server authoritative update when received
         function togglePause() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            // send toggle command
             ws.send(JSON.stringify({ type: 'pause_toggle' }));
+            // optimistic UI flip so it shows immediately
+            isPaused = !isPaused;
+            updatePauseUI();
+        }
+
+        function updatePauseUI() {
+            const btnPause = document.getElementById('btnPause');
+            if (isPaused) {
+                btnPause.textContent = '▶️ PAUSED - Resume';
+                btnPause.className = 'btn btn-warning paused';
+            } else {
+                btnPause.textContent = '⏸️ Pause';
+                btnPause.className = 'btn btn-secondary';
+            }
         }
 
         function saveGame() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
             ws.send(JSON.stringify({ type: 'save_game' }));
             alert('Flight saved!');
         }
 
+        // General AP toggle (for systems mapped to master by PC)
         function toggleAP(system) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
             ws.send(JSON.stringify({ type: 'autopilot_toggle', system }));
         }
 
         function setAltitude() {
             const alt = parseInt(document.getElementById('targetAlt').value);
-            if (!isNaN(alt)) {
+            if (!isNaN(alt) && ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: 'autopilot_set', param: 'altitude', value: alt }));
                 document.getElementById('targetAlt').value = '';
             }
@@ -833,7 +858,7 @@ function getMobileAppHTML() {
 
         function setHeading() {
             const hdg = parseInt(document.getElementById('targetHdg').value);
-            if (!isNaN(hdg)) {
+            if (!isNaN(hdg) && ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: 'autopilot_set', param: 'heading', value: hdg }));
                 document.getElementById('targetHdg').value = '';
             }
@@ -841,7 +866,7 @@ function getMobileAppHTML() {
 
         function setVS() {
             const vs = parseInt(document.getElementById('targetVS').value);
-            if (!isNaN(vs)) {
+            if (!isNaN(vs) && ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: 'autopilot_set', param: 'vs', value: vs }));
                 document.getElementById('targetVS').value = '';
             }
@@ -849,29 +874,64 @@ function getMobileAppHTML() {
 
         function setSpeed() {
             const speed = parseInt(document.getElementById('targetSpeed').value);
-            if (!isNaN(speed)) {
+            if (!isNaN(speed) && ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: 'autopilot_set', param: 'speed', value: speed }));
                 document.getElementById('targetSpeed').value = '';
             }
         }
 
+        // NAV lock (LOC hold) - send explicit message so PC can handle separately from master AP
+        function toggleNavLock() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            ws.send(JSON.stringify({ type: 'ap_toggle_navlock' }));
+        }
+
+        // ILS ARM (approach) - explicit
+        function toggleILSArm() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            ws.send(JSON.stringify({ type: 'ap_toggle_ils_arm' }));
+        }
+
+        // ILS backcourse toggle - explicit
+        function toggleILSBackcourse() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            ws.send(JSON.stringify({ type: 'ap_toggle_ils_backcourse' }));
+        }
+
         function toggleNavMode() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
             ws.send(JSON.stringify({ type: 'toggle_nav_mode' }));
         }
 
         function toggleGear() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
             ws.send(JSON.stringify({ type: 'toggle_gear' }));
         }
 
-        function toggleSpoilers() {
-            ws.send(JSON.stringify({ type: 'toggle_spoilers' }));
+        // Speedbrake (explicit)
+        function toggleSpeedbrake() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            // send explicit toggle, PC should respond with new spoilers value in autopilot_state/flight_data
+            ws.send(JSON.stringify({ type: 'toggle_speedbrake' }));
+            // optimistic toggle locally so UI feels instant
+            speedbrakeDeployed = !speedbrakeDeployed;
+            const spoilersBtn = document.getElementById('spoilers');
+            spoilersBtn.className = 'toggle-btn ' + (speedbrakeDeployed ? 'on' : 'off');
+            spoilersBtn.textContent = speedbrakeDeployed ? 'DEPLOYED' : 'RETRACTED';
         }
 
+        // Parking brake - send explicit set message (server only relays)
         function toggleParkingBrake() {
-            ws.send(JSON.stringify({ type: 'toggle_parking_brake' }));
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            parkingBrakeState = !parkingBrakeState;
+            ws.send(JSON.stringify({ type: 'set_parking_brake', value: parkingBrakeState }));
+            const pbBtn = document.getElementById('parkingBrake');
+            pbBtn.className = 'toggle-btn ' + (parkingBrakeState ? 'on' : 'off');
+            pbBtn.textContent = parkingBrakeState ? 'SET' : 'OFF';
         }
 
         function changeFlaps(direction) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
             ws.send(JSON.stringify({ type: 'change_flaps', direction }));
         }
 
