@@ -1,8 +1,10 @@
-// P3D Remote Cloud Relay - Enhanced Edition
+// P3D Remote Cloud Relay - All-in-One Edition
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
+const { exec } = require('child_process');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -27,6 +29,87 @@ app.get('/', (req, res) => {
   res.send(getMobileAppHTML());
 });
 
+// Screenshot capture function
+function captureScreenshot() {
+    return new Promise((resolve, reject) => {
+        // Method 1: PowerShell for Windows (built-in)
+        const tempPath = path.join(__dirname, 'temp_screenshot.png');
+        
+        // PowerShell script to capture screen
+        const psScript = `
+            Add-Type -AssemblyName System.Windows.Forms
+            Add-Type -AssemblyName System.Drawing
+            $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+            $bmp = New-Object System.Drawing.Bitmap $bounds.width, $bounds.height
+            $graphics = [System.Drawing.Graphics]::FromImage($bmp)
+            $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.size)
+            $bmp.Save('${tempPath.replace(/\\/g, '\\\\")}', [System.Drawing.Imaging.ImageFormat]::Png)
+            $graphics.Dispose()
+            $bmp.Dispose()
+        `;
+        
+        exec(`powershell -Command "${psScript.replace(/"/g, '\\"')}"`, (error, stdout, stderr) => {
+            if (error) {
+                console.error('Screenshot failed:', error);
+                reject(error);
+                return;
+            }
+            
+            try {
+                // Read the captured image
+                const imageBuffer = fs.readFileSync(tempPath);
+                const base64Image = imageBuffer.toString('base64');
+                
+                // Clean up temp file
+                fs.unlinkSync(tempPath);
+                
+                resolve(base64Image);
+            } catch (err) {
+                console.error('Error reading screenshot:', err);
+                reject(err);
+            }
+        });
+    });
+}
+
+// Simulate flight data (replace with actual SimConnect data)
+function getMockFlightData() {
+    return {
+        groundSpeed: 250 + Math.random() * 50,
+        altitude: 30000 + Math.random() * 5000,
+        heading: Math.random() * 360,
+        verticalSpeed: (Math.random() - 0.5) * 1000,
+        nextWaypoint: 'KORD',
+        distanceToWaypoint: 50 + Math.random() * 100,
+        waypointEte: 1800 + Math.random() * 600,
+        totalDistance: 500 + Math.random() * 200,
+        totalEte: 7200 + Math.random() * 1800,
+        isPaused: false,
+        latitude: 41.9742 + (Math.random() - 0.5) * 0.1,
+        longitude: -87.9073 + (Math.random() - 0.5) * 0.1
+    };
+}
+
+// Simulate autopilot data
+function getMockAutopilotData() {
+    return {
+        master: Math.random() > 0.5,
+        altitude: Math.random() > 0.5,
+        heading: Math.random() > 0.5,
+        vs: Math.random() > 0.5,
+        speed: Math.random() > 0.5,
+        approach: Math.random() > 0.5,
+        nav: Math.random() > 0.5,
+        backcourse: Math.random() > 0.5,
+        throttle: Math.random() > 0.5,
+        gear: Math.random() > 0.5,
+        parkingBrake: Math.random() > 0.3,
+        flaps: Math.random() * 100,
+        spoilers: Math.random() * 100,
+        navMode: Math.random() > 0.5
+    };
+}
+
 wss.on('connection', (ws, req) => {
   console.log('New connection from:', req.socket.remoteAddress);
   
@@ -48,7 +131,9 @@ wss.on('connection', (ws, req) => {
             pcClient: ws,
             mobileClients: new Set(),
             password: password,
-            guestPassword: guestPassword
+            guestPassword: guestPassword,
+            flightDataInterval: null,
+            autopilotInterval: null
           });
         } else {
           const session = sessions.get(uniqueId);
@@ -59,6 +144,37 @@ wss.on('connection', (ws, req) => {
         
         ws.send(JSON.stringify({ type: 'registered', uniqueId }));
         console.log(`PC registered: ${uniqueId}`);
+        
+        // Start sending mock data
+        const session = sessions.get(uniqueId);
+        
+        // Send flight data every second
+        session.flightDataInterval = setInterval(() => {
+          if (session.pcClient && session.pcClient.readyState === WebSocket.OPEN) {
+            session.mobileClients.forEach(client => {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                  type: 'flight_data',
+                  data: getMockFlightData()
+                }));
+              }
+            });
+          }
+        }, 1000);
+        
+        // Send autopilot data every 2 seconds
+        session.autopilotInterval = setInterval(() => {
+          if (session.pcClient && session.pcClient.readyState === WebSocket.OPEN) {
+            session.mobileClients.forEach(client => {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                  type: 'autopilot_state',
+                  data: getMockAutopilotData()
+                }));
+              }
+            });
+          }
+        }, 2000);
       }
       
       else if (data.type === 'connect_mobile') {
@@ -103,6 +219,38 @@ wss.on('connection', (ws, req) => {
         }
       }
       
+      else if (data.type === 'request_screenshot') {
+        // Handle screenshot request
+        const session = sessions.get(ws.uniqueId);
+        if (!session || !ws.hasControlAccess) {
+          ws.send(JSON.stringify({ 
+            type: 'control_required',
+            message: 'Enter password to access controls'
+          }));
+          return;
+        }
+        
+        captureScreenshot()
+          .then(base64Image => {
+            // Send screenshot to the requesting mobile client
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({
+                type: 'screenshot',
+                image: base64Image
+              }));
+            }
+          })
+          .catch(error => {
+            console.error('Screenshot capture failed:', error);
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({
+                type: 'screenshot_error',
+                message: 'Failed to capture screenshot'
+              }));
+            }
+          });
+      }
+      
       else {
         // Route all other messages
         const session = sessions.get(ws.uniqueId);
@@ -119,8 +267,7 @@ wss.on('connection', (ws, req) => {
               data.type === 'change_flaps' ||
               data.type === 'throttle_control' ||
               data.type === 'view_change' ||
-              data.type === 'camera_control' ||
-              data.type === 'request_screenshot') {
+              data.type === 'camera_control') {
             if (!ws.hasControlAccess) {
               ws.send(JSON.stringify({ 
                 type: 'control_required',
@@ -130,28 +277,27 @@ wss.on('connection', (ws, req) => {
             }
           }
           
-          // Forward to PC
+          // Handle view changes and camera controls
+          if (data.type === 'view_change') {
+            console.log('📷 View change requested:', data.view);
+            // Here you would integrate with SimConnect to change views
+          } else if (data.type === 'camera_control') {
+            console.log('🎥 Camera control:', data);
+            // Here you would integrate with SimConnect for camera controls
+          }
+          
+          // Forward to PC if it exists
           if (session.pcClient && session.pcClient.readyState === WebSocket.OPEN) {
             session.pcClient.send(JSON.stringify(data));
           }
         }
         else if (ws.clientType === 'pc') {
-          // Handle screenshot data
-          if (data.type === 'screenshot') {
-            // Broadcast screenshot to all mobile clients
-            session.mobileClients.forEach(client => {
-              if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify(data));
-              }
-            });
-          } else {
-            // Broadcast other messages to all mobile clients
-            session.mobileClients.forEach(client => {
-              if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify(data));
-              }
-            });
-          }
+          // Broadcast to all mobile clients
+          session.mobileClients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify(data));
+            }
+          });
         }
       }
       
@@ -167,6 +313,14 @@ wss.on('connection', (ws, req) => {
       if (ws.clientType === 'pc') {
         console.log(`PC disconnected: ${ws.uniqueId}`);
         session.pcClient = null;
+        
+        // Clear intervals
+        if (session.flightDataInterval) {
+          clearInterval(session.flightDataInterval);
+        }
+        if (session.autopilotInterval) {
+          clearInterval(session.autopilotInterval);
+        }
         
         // Notify mobile clients
         session.mobileClients.forEach(client => {
@@ -402,13 +556,6 @@ function getMobileAppHTML() {
             gap: 10px;
         }
         
-        .throttle-controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
         .hidden { display: none !important; }
         
         .info-box {
@@ -617,10 +764,11 @@ function getMobileAppHTML() {
                 <div class='view-info' id='viewInfo'>Current View: Cockpit</div>
                 <div id='simulatorView'>
                     <div id='simulatorImageContainer'>
-                        <div class='view-placeholder'>Waiting for simulator view...</div>
+                        <div class='view-placeholder'>📸 Waiting for simulator view...</div>
                     </div>
                     <img id='simulatorImage' style='display:none;' alt='Simulator View'>
                 </div>
+                <button class='btn btn-secondary' onclick='requestScreenshot()' style='margin-top: 10px;'>🔄 Refresh View</button>
             </div>
             
             <div class='card'>
@@ -892,6 +1040,11 @@ function getMobileAppHTML() {
                     updateSimulatorView(data.image);
                     break;
                     
+                case 'screenshot_error':
+                    updateSimulatorView(null);
+                    document.getElementById('simulatorImageContainer').innerHTML = '<div class="view-placeholder">❌ Failed to capture screenshot</div>';
+                    break;
+                    
                 case 'pc_offline':
                     updateStatus('offline');
                     break;
@@ -1025,6 +1178,7 @@ function getMobileAppHTML() {
         // View Tab Functions
         function requestScreenshot() {
             if (ws && ws.readyState === WebSocket.OPEN) {
+                document.getElementById('simulatorImageContainer').innerHTML = '<div class="view-placeholder">📸 Capturing screenshot...</div>';
                 ws.send(JSON.stringify({ type: 'request_screenshot' }));
             }
         }
@@ -1034,13 +1188,24 @@ function getMobileAppHTML() {
             const container = document.getElementById('simulatorImageContainer');
             
             if (imageData) {
-                img.src = 'data:image/jpeg;base64,' + imageData;
+                img.src = 'data:image/png;base64,' + imageData;
                 img.style.display = 'block';
                 container.style.display = 'none';
                 lastScreenshotTime = Date.now();
+                
+                // Add loading indicator
+                img.onload = () => {
+                    console.log('✅ Screenshot loaded');
+                };
+                img.onerror = () => {
+                    console.log('❌ Failed to load screenshot');
+                    container.style.display = 'block';
+                    container.innerHTML = '<div class="view-placeholder">❌ Failed to load image</div>';
+                };
             } else {
                 img.style.display = 'none';
                 container.style.display = 'block';
+                container.innerHTML = '<div class="view-placeholder">📸 No screenshot available</div>';
             }
         }
 
@@ -1198,10 +1363,10 @@ function getMobileAppHTML() {
         setInterval(() => {
             if (document.querySelector('.tab:nth-child(3)').classList.contains('active') && 
                 ws && ws.readyState === WebSocket.OPEN &&
-                Date.now() - lastScreenshotTime > 2000) {
+                Date.now() - lastScreenshotTime > 5000) {
                 requestScreenshot();
             }
-        }, 3000);
+        }, 5000);
 
         // Load saved ID and auto-connect
         window.onload = () => {
@@ -1228,6 +1393,8 @@ function getMobileAppHTML() {
 }
 
 server.listen(PORT, () => {
-  console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
-  console.log(`Access at: http://localhost:${PORT}`);
+  console.log(`🚀 P3D Remote Cloud Relay running on port ${PORT}`);
+  console.log(`📱 Access at: http://localhost:${PORT}`);
+  console.log(`💡 Use any ID to connect - the server will simulate flight data`);
+  console.log(`📸 Screenshot capture is built-in - just unlock controls to use it`);
 });
