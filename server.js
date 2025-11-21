@@ -494,7 +494,7 @@ function getMobileAppHTML() {
         <div class='login-card'>
             <h2>Connect to Simulator</h2>
             <div class='info-box'>
-                Enter your Unique ID from the PC Server
+                Enter your Unique ID from PC Server
             </div>
             <input type='text' id='uniqueId' placeholder='Unique ID' autocapitalize='off'>
             <button class='btn btn-primary' onclick='connectToSim()'>Connect</button>
@@ -582,28 +582,28 @@ function getMobileAppHTML() {
                         <span class='control-label'>Altitude</span>
                         <button class='toggle-btn off' id='apAlt' onclick='toggleAP("altitude")'>OFF</button>
                     </div>
-                    <input type='number' id='targetAlt' placeholder='Target Altitude' onchange='setAltitude()'>
+                    <input type='number' id='targetAlt' placeholder='Target Altitude' oninput='setAltitude()'>
                     <button class='btn btn-primary' onclick='setAltitude()'>Set</button>
                     
                     <div class='control-row'>
                         <span class='control-label'>V/S</span>
                         <button class='toggle-btn off' id='apVS' onclick='toggleAP("vs")'>OFF</button>
                     </div>
-                    <input type='number' id='targetVS' placeholder='Vertical Speed (fpm)' onchange='setVS()'>
+                    <input type='number' id='targetVS' placeholder='Vertical Speed (fpm)' oninput='setVS()'>
                     <button class='btn btn-primary' onclick='setVS()'>Set</button>
                     
                     <div class='control-row'>
                         <span class='control-label'>Speed</span>
                         <button class='toggle-btn off' id='apSpeed' onclick='toggleAP("speed")'>OFF</button>
                     </div>
-                    <input type='number' id='targetSpeed' placeholder='Target Speed (kts)' onchange='setSpeed()'>
+                    <input type='number' id='targetSpeed' placeholder='Target Speed (kts)' oninput='setSpeed()'>
                     <button class='btn btn-primary' onclick='setSpeed()'>Set</button>
                     
                     <div class='control-row'>
                         <span class='control-label'>Heading</span>
                         <button class='toggle-btn off' id='apHdg' onclick='toggleAP("heading")'>OFF</button>
                     </div>
-                    <input type='number' id='targetHdg' placeholder='Heading' onchange='setHeading()'>
+                    <input type='number' id='targetHdg' placeholder='Heading' oninput='setHeading()'>
                     <button class='btn btn-primary' onclick='setHeading()'>Set</button>
                     
                     <div class='control-row'>
@@ -726,6 +726,11 @@ function getMobileAppHTML() {
                             </div>
                         </div>
                     </div>
+                    
+                    <div style='margin-top: 15px; text-align: center;'>
+                        <button class='btn btn-primary' onclick='setAllThrottles(100)'>Full Throttle (100%)</button>
+                        <button class='btn btn-secondary' onclick='setAllThrottles(0)'>Idle (0%)</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -741,6 +746,7 @@ function getMobileAppHTML() {
         let uniqueId = null;
         let hasControl = false;
         let hasAircraftControl = false;
+        let isPaused = false;
 
         function switchTab(index) {
             document.querySelectorAll('.tab').forEach((tab, i) => {
@@ -863,8 +869,10 @@ function getMobileAppHTML() {
             const minutes = Math.floor((data.ete % 3600) / 60);
             document.getElementById('ete').textContent = 'ETE: ' + (hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'm');
 
+            // Update pause button state
+            isPaused = data.isPaused;
             const btnPause = document.getElementById('btnPause');
-            if (data.isPaused) {
+            if (isPaused) {
                 btnPause.textContent = '▶️ Resume';
                 btnPause.classList.add('paused');
             } else {
@@ -924,21 +932,13 @@ function getMobileAppHTML() {
                 }
             }
             
-            // Update target values - only if field is empty to avoid overwriting user input
-            if (!document.getElementById('targetAlt').value && data.targetAltitude) {
-                document.getElementById('targetAlt').value = data.targetAltitude;
-            }
-            if (!document.getElementById('targetHdg').value && data.targetHeading) {
-                document.getElementById('targetHdg').value = data.targetHeading;
-            }
-            if (!document.getElementById('targetVS').value && data.targetVS) {
-                document.getElementById('targetVS').value = data.targetVS;
-            }
-            if (!document.getElementById('targetSpeed').value && data.targetSpeed) {
-                document.getElementById('targetSpeed').value = data.targetSpeed;
-            }
+            // Update target values - always update to sync with sim
+            document.getElementById('targetAlt').value = data.targetAltitude || '';
+            document.getElementById('targetHdg').value = data.targetHeading || '';
+            document.getElementById('targetVS').value = data.targetVS || '';
+            document.getElementById('targetSpeed').value = data.targetSpeed || '';
             
-            // NAV/GPS toggle - Fixed the inversion
+            // NAV/GPS toggle - Fixed inversion
             const navBtn = document.getElementById('navMode');
             navBtn.textContent = data.navMode ? 'NAV' : 'GPS';
             navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
@@ -1022,6 +1022,17 @@ function getMobileAppHTML() {
         }
 
         function togglePause() {
+            isPaused = !isPaused;
+            const btnPause = document.getElementById('btnPause');
+            
+            if (isPaused) {
+                btnPause.textContent = '▶️ Resume';
+                btnPause.classList.add('paused');
+            } else {
+                btnPause.textContent = '⏸️ Pause';
+                btnPause.classList.remove('paused');
+            }
+            
             ws.send(JSON.stringify({ type: 'pause_toggle' }));
         }
 
@@ -1101,6 +1112,14 @@ function getMobileAppHTML() {
         function setThrottle(engine, value) {
             document.getElementById('throttle' + engine + 'Value').textContent = value + '%';
             ws.send(JSON.stringify({ type: 'set_throttle', engine, value: parseInt(value) }));
+        }
+        
+        function setAllThrottles(value) {
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById('throttle' + i).value = value;
+                document.getElementById('throttle' + i + 'Value').textContent = value + '%';
+                ws.send(JSON.stringify({ type: 'set_throttle', engine: i, value: value }));
+            }
         }
 
         // Load saved ID
