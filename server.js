@@ -424,7 +424,6 @@ function getMobileAppHTML() {
             <button class='tab active' onclick='switchTab(0)'>Flight</button>
             <button class='tab' onclick='switchTab(1)'>Map</button>
             <button class='tab' onclick='switchTab(2)'>Autopilot</button>
-            <button class='tab' onclick='switchTab(3)'>Controls</button>
         </div>
 
         <div class='tab-content active'>
@@ -481,6 +480,13 @@ function getMobileAppHTML() {
             </div>
             
             <div id='controlPanel' class='hidden'>
+                <div class='card'>
+                    <div class='btn-group'>
+                        <button class='btn btn-secondary' id='btnPause' onclick='togglePause()'>⏸️ Pause</button>
+                        <button class='btn btn-primary' onclick='saveGame()'>💾 Save Flight</button>
+                    </div>
+                </div>
+                
                 <div class='card'>
                     <h3>Autopilot</h3>
                     
@@ -550,26 +556,9 @@ function getMobileAppHTML() {
                         <button class='toggle-btn off' id='autoThrottle' onclick='toggleAP("throttle")'>OFF</button>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div class='tab-content'>
-            <div id='controlLock2' class='card'>
-                <div class='info-box'>🔒 Enter password to access controls</div>
-                <input type='password' id='controlPassword2' placeholder='Password'>
-                <button class='btn btn-primary' onclick='unlockControls2()'>Unlock Controls</button>
-            </div>
-            
-            <div id='controlPanel2' class='hidden'>
-                <div class='card'>
-                    <div class='btn-group'>
-                        <button class='btn btn-secondary' id='btnPause' onclick='togglePause()'>⏸️ Pause</button>
-                        <button class='btn btn-primary' onclick='saveGame()'>💾 Save Flight</button>
-                    </div>
-                </div>
                 
                 <div class='card'>
-                    <h3>Aircraft Controls</h3>
+                    <h3>Aircraft</h3>
                     
                     <div class='control-row'>
                         <span class='control-label'>Landing Gear</span>
@@ -593,18 +582,6 @@ function getMobileAppHTML() {
                     <div class='control-row'>
                         <span class='control-label'>Parking Brake</span>
                         <button class='toggle-btn off' id='parkingBrake' onclick='toggleParkingBrake()'>OFF</button>
-                    </div>
-                </div>
-                
-                <div class='card'>
-                    <h3>Engine Controls</h3>
-                    <div class='data-label'>Throttle: <span id='throttleDisplay'>0%</span></div>
-                    
-                    <div class='throttle-controls'>
-                        <button class='btn btn-primary' onclick='throttleControl("full")'>Full</button>
-                        <button class='btn btn-danger' onclick='throttleControl("cut")'>Idle</button>
-                        <button class='btn btn-secondary' onclick='throttleControl("increase")'>+ Increase</button>
-                        <button class='btn btn-secondary' onclick='throttleControl("decrease")'>- Decrease</button>
                     </div>
                 </div>
             </div>
@@ -678,8 +655,6 @@ function getMobileAppHTML() {
                     hasControl = true;
                     document.getElementById('controlLock').classList.add('hidden');
                     document.getElementById('controlPanel').classList.remove('hidden');
-                    document.getElementById('controlLock2').classList.add('hidden');
-                    document.getElementById('controlPanel2').classList.remove('hidden');
                     break;
                     
                 case 'auth_failed':
@@ -782,27 +757,10 @@ function getMobileAppHTML() {
             spoilersBtn.className = 'toggle-btn ' + (spoilersActive ? 'on' : 'off');
             spoilersBtn.textContent = spoilersActive ? 'DEPLOYED' : 'RETRACTED';
             
-            // Throttle
-            document.getElementById('throttleDisplay').textContent = Math.round(data.throttlePercent) + '%';
-            
             // NAV/GPS toggle - FIXED: inverted the logic
             const navBtn = document.getElementById('navMode');
             navBtn.textContent = data.navMode ? 'GPS' : 'NAV';
             navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
-            
-            // Update input fields with current values
-            if (data.targetAltitude > 0) {
-                document.getElementById('targetAlt').placeholder = 'Current: ' + data.targetAltitude + ' ft';
-            }
-            if (data.targetHeading >= 0) {
-                document.getElementById('targetHdg').placeholder = 'Current: ' + data.targetHeading + '°';
-            }
-            if (data.targetVS !== 0) {
-                document.getElementById('targetVS').placeholder = 'Current: ' + data.targetVS + ' fpm';
-            }
-            if (data.targetSpeed > 0) {
-                document.getElementById('targetSpeed').placeholder = 'Current: ' + data.targetSpeed + ' kts';
-            }
         }
 
         function updateToggle(id, state, text) {
@@ -849,11 +807,6 @@ function getMobileAppHTML() {
 
         function unlockControls() {
             const password = document.getElementById('controlPassword').value;
-            ws.send(JSON.stringify({ type: 'request_control', password }));
-        }
-
-        function unlockControls2() {
-            const password = document.getElementById('controlPassword2').value;
             ws.send(JSON.stringify({ type: 'request_control', password }));
         }
 
@@ -920,10 +873,6 @@ function getMobileAppHTML() {
 
         function changeFlaps(direction) {
             ws.send(JSON.stringify({ type: 'change_flaps', direction }));
-        }
-
-        function throttleControl(command) {
-            ws.send(JSON.stringify({ type: 'throttle_control', command }));
         }
 
         // Load saved ID
