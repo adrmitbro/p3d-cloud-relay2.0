@@ -1,3 +1,4 @@
+// P3D Remote Cloud Relay - Enhanced Edition
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -101,7 +102,7 @@ wss.on('connection', (ws, req) => {
       }
       
       else {
-        // Route all other messages to PC or to mobiles
+        // Route all other messages
         const session = sessions.get(ws.uniqueId);
         if (!session) return;
         
@@ -114,9 +115,7 @@ wss.on('connection', (ws, req) => {
               data.type === 'toggle_spoilers' ||
               data.type === 'toggle_parking_brake' ||
               data.type === 'change_flaps' ||
-              data.type === 'throttle_control' ||
-              data.type === 'toggle_speedbrake' ||
-              data.type === 'set_parking_brake' ) {
+              data.type === 'throttle_control') {
             if (!ws.hasControlAccess) {
               ws.send(JSON.stringify({ 
                 type: 'control_required',
@@ -125,7 +124,7 @@ wss.on('connection', (ws, req) => {
               return;
             }
           }
-        
+          
           // Forward to PC
           if (session.pcClient.readyState === WebSocket.OPEN) {
             session.pcClient.send(JSON.stringify(data));
@@ -206,7 +205,7 @@ function getMobileAppHTML() {
             margin-top: 5px;
             display: inline-block;
         }
-        .status.connected { background: #167fac; color: #000; }
+        .status.connected { background: #167fac; color: #fff; }
         .status.offline { background: #f44336; color: white; }
         
         .login-screen {
@@ -247,8 +246,8 @@ function getMobileAppHTML() {
             margin: 8px 0;
             transition: all 0.3s;
         }
-        .btn-primary { background: #167fac; color: #000; }
-        .btn-primary:active { background: #1aa0d3; }
+        .btn-primary { background: #167fac; color: #fff; }
+        .btn-primary:active { background: #1a8fc4; }
         .btn-secondary { background: #2d2d2d; color: white; border: 1px solid #444; }
         .btn-secondary:active { background: #3d3d3d; }
         .btn-warning { background: #ff9800; color: #000; }
@@ -353,7 +352,7 @@ function getMobileAppHTML() {
             font-size: 12px;
             transition: all 0.3s;
         }
-        .toggle-btn.on { background: #167fac; color: #000; }
+        .toggle-btn.on { background: #167fac; color: #fff; }
         .toggle-btn.off { background: #333; color: #888; }
         
         .input-group {
@@ -437,8 +436,8 @@ function getMobileAppHTML() {
 
             <div class='card'>
                 <div class='data-label'>Total Distance to Destination</div>
-                <div class='data-value'><span id='distance'>--</span> nm</div>
-                <div style='margin-top: 8px; color: #888; font-size: 13px;' id='ete'>Total ETE: --</div>
+                <div class='data-value'><span id='totalDistance'>--</span> nm</div>
+                <div style='margin-top: 8px; color: #888; font-size: 13px;' id='totalEte'>Total ETE: --</div>
             </div>
 
             <div class='card'>
@@ -534,22 +533,22 @@ function getMobileAppHTML() {
                     
                     <div class='control-row'>
                         <span class='control-label'>NAV/GPS Mode</span>
-                        <button class='toggle-btn off' id='navMode' onclick='toggleNavMode()'>GPS</button>
+                        <button class='toggle-btn off' id='navMode' onclick='toggleNavMode()'>NAV</button>
                     </div>
                     
                     <div class='control-row'>
-                        <span class='control-label'>LOC Hold (NAV1 LOCK)</span>
-                        <button class='toggle-btn off' id='apNav' onclick='toggleNavLock()'>OFF</button>
+                        <span class='control-label'>LOC Hold</span>
+                        <button class='toggle-btn off' id='apNav' onclick='toggleAP("nav")'>OFF</button>
                     </div>
                     
                     <div class='control-row'>
-                        <span class='control-label'>Approach (ILS ARM)</span>
-                        <button class='toggle-btn off' id='apApp' onclick='toggleILSArm()'>OFF</button>
+                        <span class='control-label'>Approach</span>
+                        <button class='toggle-btn off' id='apApp' onclick='toggleAP("approach")'>OFF</button>
                     </div>
                     
                     <div class='control-row'>
-                        <span class='control-label'>ILS Backcourse</span>
-                        <button class='toggle-btn off' id='apBackcourse' onclick='toggleILSBackcourse()'>OFF</button>
+                        <span class='control-label'>ILS/Backcourse</span>
+                        <button class='toggle-btn off' id='apBackcourse' onclick='toggleAP("backcourse")'>OFF</button>
                     </div>
                     
                     <div class='control-row'>
@@ -577,7 +576,7 @@ function getMobileAppHTML() {
                     
                     <div class='control-row'>
                         <span class='control-label'>Speedbrakes</span>
-                        <button class='toggle-btn off' id='spoilers' onclick='toggleSpeedbrake()'>OFF</button>
+                        <button class='toggle-btn off' id='spoilers' onclick='toggleSpoilers()'>OFF</button>
                     </div>
                     
                     <div class='control-row'>
@@ -596,8 +595,6 @@ function getMobileAppHTML() {
         let uniqueId = null;
         let hasControl = false;
         let isPaused = false;
-        let parkingBrakeState = false; // local cache
-        let speedbrakeDeployed = false; // local cache
 
         function switchTab(index) {
             document.querySelectorAll('.tab').forEach((tab, i) => {
@@ -638,7 +635,6 @@ function getMobileAppHTML() {
 
             ws.onclose = () => {
                 updateStatus('offline');
-                // try reconnect after a short delay
                 setTimeout(connectToSim, 3000);
             };
         }
@@ -692,10 +688,10 @@ function getMobileAppHTML() {
         }
 
         function updateFlightData(data) {
-            document.getElementById('speed').textContent = Math.round(data.groundSpeed || 0);
-            document.getElementById('altitude').textContent = Math.round(data.altitude || 0).toLocaleString();
-            document.getElementById('heading').textContent = Math.round(data.heading || 0) + '°';
-            document.getElementById('vs').textContent = Math.round(data.verticalSpeed || 0);
+            document.getElementById('speed').textContent = Math.round(data.groundSpeed);
+            document.getElementById('altitude').textContent = Math.round(data.altitude).toLocaleString();
+            document.getElementById('heading').textContent = Math.round(data.heading) + '°';
+            document.getElementById('vs').textContent = Math.round(data.verticalSpeed);
             
             // Next waypoint info
             document.getElementById('nextWaypoint').textContent = data.nextWaypoint || 'No Active Waypoint';
@@ -709,27 +705,30 @@ function getMobileAppHTML() {
                 document.getElementById('wpEte').textContent = 'ETE: --';
             }
             
-            // Total distance to destination: prefer data.totalDistance, fallback to gpsTotalDistance
-            const totalDist = (typeof data.totalDistance !== 'undefined') ? data.totalDistance : data.gpsTotalDistance;
-            if (totalDist && totalDist > 0) {
-                document.getElementById('distance').textContent = totalDist.toFixed(1);
+            // Total distance to destination
+            if (data.totalDistance && data.totalDistance > 0) {
+                document.getElementById('totalDistance').textContent = data.totalDistance.toFixed(1);
             } else {
-                document.getElementById('distance').textContent = '--';
+                document.getElementById('totalDistance').textContent = '--';
             }
             
             // Total ETE
-            if (data.ete && data.ete > 0) {
-                const hours = Math.floor(data.ete / 3600);
-                const minutes = Math.floor((data.ete % 3600) / 60);
-                document.getElementById('ete').textContent = 'Total ETE: ' + (hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'm');
+            if (data.totalEte && data.totalEte > 0) {
+                const hours = Math.floor(data.totalEte / 3600);
+                const minutes = Math.floor((data.totalEte % 3600) / 60);
+                document.getElementById('totalEte').textContent = 'Total ETE: ' + (hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'm');
             } else {
-                document.getElementById('ete').textContent = 'Total ETE: --';
+                document.getElementById('totalEte').textContent = 'Total ETE: --';
             }
 
-            // Pause state -- keep server truth but also respect optimistic local toggle
-            if (typeof data.isPaused !== 'undefined') {
-                isPaused = !!data.isPaused;
-                updatePauseUI();
+            isPaused = data.isPaused;
+            const btnPause = document.getElementById('btnPause');
+            if (data.isPaused) {
+                btnPause.textContent = '▶️ Resume';
+                btnPause.className = 'btn btn-warning paused';
+            } else {
+                btnPause.textContent = '⏸️ Pause';
+                btnPause.className = 'btn btn-secondary';
             }
 
             if (map && data.latitude && data.longitude) {
@@ -748,24 +747,24 @@ function getMobileAppHTML() {
             updateToggle('apBackcourse', data.backcourse);
             updateToggle('autoThrottle', data.throttle);
             updateToggle('gear', data.gear, data.gear ? 'DOWN' : 'UP');
-            updateToggle('parkingBrake', data.parkingBrake, data.parkingBrake ? 'SET' : 'OFF');
             
-            document.getElementById('flapsPos').textContent = Math.round(data.flaps || 0) + '%';
+            document.getElementById('flapsPos').textContent = Math.round(data.flaps) + '%';
             
-            // Spoilers / speedbrake
+            // Spoilers
             const spoilersBtn = document.getElementById('spoilers');
-            const spoilersActive = (data.spoilers || 0) > 10;
+            const spoilersActive = data.spoilers > 10;
             spoilersBtn.className = 'toggle-btn ' + (spoilersActive ? 'on' : 'off');
             spoilersBtn.textContent = spoilersActive ? 'DEPLOYED' : 'RETRACTED';
-            speedbrakeDeployed = spoilersActive;
+            
+            // Parking brake
+            const parkingBtn = document.getElementById('parkingBrake');
+            parkingBtn.className = 'toggle-btn ' + (data.parkingBrake ? 'on' : 'off');
+            parkingBtn.textContent = data.parkingBrake ? 'SET' : 'OFF';
             
             // NAV/GPS toggle
             const navBtn = document.getElementById('navMode');
             navBtn.textContent = data.navMode ? 'GPS' : 'NAV';
             navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
-            
-            // Update parking brake local cache
-            parkingBrakeState = !!data.parkingBrake;
         }
 
         function updateToggle(id, state, text) {
@@ -815,42 +814,22 @@ function getMobileAppHTML() {
             ws.send(JSON.stringify({ type: 'request_control', password }));
         }
 
-        // Pause: optimistic toggle + server authoritative update when received
         function togglePause() {
-            if (!ws || ws.readyState !== WebSocket.OPEN) return;
-            // send toggle command
             ws.send(JSON.stringify({ type: 'pause_toggle' }));
-            // optimistic UI flip so it shows immediately
-            isPaused = !isPaused;
-            updatePauseUI();
-        }
-
-        function updatePauseUI() {
-            const btnPause = document.getElementById('btnPause');
-            if (isPaused) {
-                btnPause.textContent = '▶️ PAUSED - Resume';
-                btnPause.className = 'btn btn-warning paused';
-            } else {
-                btnPause.textContent = '⏸️ Pause';
-                btnPause.className = 'btn btn-secondary';
-            }
         }
 
         function saveGame() {
-            if (!ws || ws.readyState !== WebSocket.OPEN) return;
             ws.send(JSON.stringify({ type: 'save_game' }));
             alert('Flight saved!');
         }
 
-        // General AP toggle (for systems mapped to master by PC)
         function toggleAP(system) {
-            if (!ws || ws.readyState !== WebSocket.OPEN) return;
             ws.send(JSON.stringify({ type: 'autopilot_toggle', system }));
         }
 
         function setAltitude() {
             const alt = parseInt(document.getElementById('targetAlt').value);
-            if (!isNaN(alt) && ws && ws.readyState === WebSocket.OPEN) {
+            if (!isNaN(alt)) {
                 ws.send(JSON.stringify({ type: 'autopilot_set', param: 'altitude', value: alt }));
                 document.getElementById('targetAlt').value = '';
             }
@@ -858,7 +837,7 @@ function getMobileAppHTML() {
 
         function setHeading() {
             const hdg = parseInt(document.getElementById('targetHdg').value);
-            if (!isNaN(hdg) && ws && ws.readyState === WebSocket.OPEN) {
+            if (!isNaN(hdg)) {
                 ws.send(JSON.stringify({ type: 'autopilot_set', param: 'heading', value: hdg }));
                 document.getElementById('targetHdg').value = '';
             }
@@ -866,7 +845,7 @@ function getMobileAppHTML() {
 
         function setVS() {
             const vs = parseInt(document.getElementById('targetVS').value);
-            if (!isNaN(vs) && ws && ws.readyState === WebSocket.OPEN) {
+            if (!isNaN(vs)) {
                 ws.send(JSON.stringify({ type: 'autopilot_set', param: 'vs', value: vs }));
                 document.getElementById('targetVS').value = '';
             }
@@ -874,64 +853,29 @@ function getMobileAppHTML() {
 
         function setSpeed() {
             const speed = parseInt(document.getElementById('targetSpeed').value);
-            if (!isNaN(speed) && ws && ws.readyState === WebSocket.OPEN) {
+            if (!isNaN(speed)) {
                 ws.send(JSON.stringify({ type: 'autopilot_set', param: 'speed', value: speed }));
                 document.getElementById('targetSpeed').value = '';
             }
         }
 
-        // NAV lock (LOC hold) - send explicit message so PC can handle separately from master AP
-        function toggleNavLock() {
-            if (!ws || ws.readyState !== WebSocket.OPEN) return;
-            ws.send(JSON.stringify({ type: 'ap_toggle_navlock' }));
-        }
-
-        // ILS ARM (approach) - explicit
-        function toggleILSArm() {
-            if (!ws || ws.readyState !== WebSocket.OPEN) return;
-            ws.send(JSON.stringify({ type: 'ap_toggle_ils_arm' }));
-        }
-
-        // ILS backcourse toggle - explicit
-        function toggleILSBackcourse() {
-            if (!ws || ws.readyState !== WebSocket.OPEN) return;
-            ws.send(JSON.stringify({ type: 'ap_toggle_ils_backcourse' }));
-        }
-
         function toggleNavMode() {
-            if (!ws || ws.readyState !== WebSocket.OPEN) return;
             ws.send(JSON.stringify({ type: 'toggle_nav_mode' }));
         }
 
         function toggleGear() {
-            if (!ws || ws.readyState !== WebSocket.OPEN) return;
             ws.send(JSON.stringify({ type: 'toggle_gear' }));
         }
 
-        // Speedbrake (explicit)
-        function toggleSpeedbrake() {
-            if (!ws || ws.readyState !== WebSocket.OPEN) return;
-            // send explicit toggle, PC should respond with new spoilers value in autopilot_state/flight_data
-            ws.send(JSON.stringify({ type: 'toggle_speedbrake' }));
-            // optimistic toggle locally so UI feels instant
-            speedbrakeDeployed = !speedbrakeDeployed;
-            const spoilersBtn = document.getElementById('spoilers');
-            spoilersBtn.className = 'toggle-btn ' + (speedbrakeDeployed ? 'on' : 'off');
-            spoilersBtn.textContent = speedbrakeDeployed ? 'DEPLOYED' : 'RETRACTED';
+        function toggleSpoilers() {
+            ws.send(JSON.stringify({ type: 'toggle_spoilers' }));
         }
 
-        // Parking brake - send explicit set message (server only relays)
         function toggleParkingBrake() {
-            if (!ws || ws.readyState !== WebSocket.OPEN) return;
-            parkingBrakeState = !parkingBrakeState;
-            ws.send(JSON.stringify({ type: 'set_parking_brake', value: parkingBrakeState }));
-            const pbBtn = document.getElementById('parkingBrake');
-            pbBtn.className = 'toggle-btn ' + (parkingBrakeState ? 'on' : 'off');
-            pbBtn.textContent = parkingBrakeState ? 'SET' : 'OFF';
+            ws.send(JSON.stringify({ type: 'toggle_parking_brake' }));
         }
 
         function changeFlaps(direction) {
-            if (!ws || ws.readyState !== WebSocket.OPEN) return;
             ws.send(JSON.stringify({ type: 'change_flaps', direction }));
         }
 
