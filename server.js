@@ -940,7 +940,14 @@ switch(data.type) {
                     document.getElementById('mainApp').classList.remove('hidden');
                     updateStatus(data.pcOnline ? 'connected' : 'offline');
                     break;
-                    
+
+                        case 'save_complete':
+            closeSaveProgress(true, data.filename);
+            break;
+            
+        case 'save_error':
+            closeSaveProgress(false, '');
+            break;    
                 case 'error':
                     alert(data.message);
                     break;
@@ -1407,10 +1414,95 @@ function updateAutopilotUI(data) {
             ws.send(JSON.stringify({ type: 'pause_toggle' }));
         }
 
-        function saveGame() {
-            ws.send(JSON.stringify({ type: 'save_game' }));
-            alert('Flight saved!');
+function saveGame() {
+    ws.send(JSON.stringify({ type: 'save_game' }));
+    
+    // Show progress popup
+    showSaveProgress();
+}
+
+function showSaveProgress() {
+    // Create progress overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'saveProgressOverlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    `;
+    
+    overlay.innerHTML = `
+        <div style="background: #1a1a1a; padding: 30px; border-radius: 15px; text-align: center; border: 2px solid #167fac;">
+            <div style="font-size: 40px; margin-bottom: 15px;">💾</div>
+            <h3 style="margin: 0 0 10px 0; color: #167fac;">Saving Flight...</h3>
+            <div style="color: #888; font-size: 14px;">Please wait</div>
+            <div style="margin-top: 20px;">
+                <div style="width: 200px; height: 4px; background: #333; border-radius: 2px; overflow: hidden;">
+                    <div id="saveProgressBar" style="width: 0%; height: 100%; background: #167fac; transition: width 0.3s;"></div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    // Animate progress bar
+    let progress = 0;
+    const progressBar = document.getElementById('saveProgressBar');
+    const interval = setInterval(() => {
+        progress += 10;
+        if (progress <= 90) {
+            progressBar.style.width = progress + '%';
         }
+    }, 200);
+    
+    // Store interval ID for cleanup
+    overlay.dataset.intervalId = interval;
+}
+
+function closeSaveProgress(success, filename) {
+    const overlay = document.getElementById('saveProgressOverlay');
+    if (!overlay) return;
+    
+    // Clear progress animation
+    const intervalId = overlay.dataset.intervalId;
+    if (intervalId) {
+        clearInterval(parseInt(intervalId));
+    }
+    
+    const progressBar = document.getElementById('saveProgressBar');
+    if (progressBar) {
+        progressBar.style.width = '100%';
+    }
+    
+    // Update message
+    const content = overlay.querySelector('div > div');
+    if (success) {
+        content.innerHTML = `
+            <div style="font-size: 40px; margin-bottom: 15px;">✅</div>
+            <h3 style="margin: 0 0 10px 0; color: #4CAF50;">Flight Saved!</h3>
+            <div style="color: #ccc; font-size: 14px;">${filename}</div>
+        `;
+    } else {
+        content.innerHTML = `
+            <div style="font-size: 40px; margin-bottom: 15px;">❌</div>
+            <h3 style="margin: 0 0 10px 0; color: #f44336;">Save Failed</h3>
+            <div style="color: #ccc; font-size: 14px;">Please try again</div>
+        `;
+    }
+    
+    // Auto-close after 2 seconds
+    setTimeout(() => {
+        overlay.remove();
+    }, 2000);
+}
 
         function toggleAP(system) {
             if (system === 'loc') {
@@ -1498,6 +1590,7 @@ function updateAutopilotUI(data) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
