@@ -211,6 +211,12 @@ function getMobileAppHTML() {
         }
         .status.connected { background: #167fac; color: #fff; }
         .status.offline { background: #f44336; color: white; }
+        .status.paused { 
+            background: #ff9800; 
+            color: #000;
+            display: none;
+        }
+        .status.paused.visible { display: inline-block; }
         
         .login-screen {
             padding: 20px;
@@ -595,6 +601,7 @@ function getMobileAppHTML() {
     <div class='header'>
         <h1>Prepar3D Remote</h1>
         <div id='statusBadge' class='status offline'>Offline</div>
+        <div id='pauseBadge' class='status paused'>⏸️ Paused</div>
     </div>
 
     <div id='loginScreen' class='login-screen'>
@@ -1027,18 +1034,23 @@ function getMobileAppHTML() {
                 document.getElementById('ete').textContent = 'Total ETE: --';
             }
 
-// ADD THIS DEBUG LINE
-console.log('Pause state received:', data.isPaused);
+            // Pause state - update badge visibility
+            const pauseBadge = document.getElementById('pauseBadge');
+            if (data.isPaused) {
+                pauseBadge.classList.add('visible');
+            } else {
+                pauseBadge.classList.remove('visible');
+            }
 
-// Pause state
-const btnPause = document.getElementById('btnPause');
-if (data.isPaused) {
-    btnPause.textContent = '▶️ Resume';
-    btnPause.className = 'btn btn-warning';
-} else {
-    btnPause.textContent = '⏸️ Pause';
-    btnPause.className = 'btn btn-secondary';
-}
+            // Pause button
+            const btnPause = document.getElementById('btnPause');
+            if (data.isPaused) {
+                btnPause.textContent = '▶️ Resume';
+                btnPause.className = 'btn btn-warning';
+            } else {
+                btnPause.textContent = '⏸️ Pause';
+                btnPause.className = 'btn btn-secondary';
+            }
 
             // Update map if visible
             if (map && data.latitude && data.longitude) {
@@ -1488,6 +1500,7 @@ function updateAutopilotUI(data) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
