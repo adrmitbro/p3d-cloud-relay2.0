@@ -575,6 +575,18 @@ function getMobileAppHTML() {
         .ai-aircraft.selected {
             animation: pulse 1.5s infinite;
         }
+
+        /* Waypoint info row styling */
+        .waypoint-info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+        }
+        
+        .waypoint-info-item {
+            color: #888;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body>
@@ -605,8 +617,11 @@ function getMobileAppHTML() {
             <div class='card'>
                 <div class='data-label'>Next Waypoint</div>
                 <div class='data-value' style='font-size: 18px;' id='nextWaypoint'>--</div>
-                <div style='margin-top: 8px; color: #888; font-size: 13px;' id='wpDistance'>Distance: --</div>
-                <div style='color: #888; font-size: 13px;' id='wpEte'>ETE: --</div>
+                <div class='waypoint-info-row'>
+                    <div class='waypoint-info-item' id='wpDistance'>Distance: --</div>
+                    <div class='waypoint-info-item' id='wpBearing'>Bearing: --°</div>
+                </div>
+                <div class='waypoint-info-item' id='wpEte'>ETE: --</div>
             </div>
 
             <div class='card'>
@@ -916,6 +931,9 @@ function getMobileAppHTML() {
             // Next waypoint info
             document.getElementById('nextWaypoint').textContent = data.nextWaypoint || 'No Active Waypoint';
             document.getElementById('wpDistance').textContent = 'Distance: ' + (data.distanceToWaypoint ? data.distanceToWaypoint.toFixed(1) + ' nm' : '--');
+            
+            // Add bearing information
+            document.getElementById('wpBearing').textContent = 'Bearing: ' + (data.bearingToWaypoint ? Math.round(data.bearingToWaypoint) + '°' : '--°');
             
             // Fixed ETE for next waypoint - use waypointEte instead of total ETE
             if (data.waypointEte && data.waypointEte > 0) {
