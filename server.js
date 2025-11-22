@@ -1027,15 +1027,15 @@ function getMobileAppHTML() {
                 document.getElementById('ete').textContent = 'Total ETE: --';
             }
 
-            // Pause state
-            const btnPause = document.getElementById('btnPause');
-            if (data.isPaused) {
-                btnPause.textContent = '▶️ PAUSED - Resume';
-                btnPause.className = 'btn btn-warning paused';
-            } else {
-                btnPause.textContent = '⏸️ Pause';
-                btnPause.className = 'btn btn-secondary';
-            }
+// Pause state - REMOVE THE PULSING ANIMATION
+const btnPause = document.getElementById('btnPause');
+if (data.isPaused) {
+    btnPause.textContent = '▶️ Resume';
+    btnPause.className = 'btn btn-warning';  // Removed 'paused' class that causes pulsing
+} else {
+    btnPause.textContent = '⏸️ Pause';
+    btnPause.className = 'btn btn-secondary';
+}
 
             // Update map if visible
             if (map && data.latitude && data.longitude) {
@@ -1068,7 +1068,7 @@ function updateAutopilotUI(data) {
     navBtn.textContent = data.navMode ? 'GPS' : 'NAV';
     navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
     
-    // Update lights and cabin controls
+    // Update lights and cabin controls - REMOVED lightCabin line
     updateToggle('lightStrobe', data.lightStrobe);
     updateToggle('lightPanel', data.lightPanel);
     updateToggle('lightLanding', data.lightLanding);
@@ -1078,7 +1078,7 @@ function updateAutopilotUI(data) {
     updateToggle('lightLogo', data.lightLogo);
     updateToggle('lightWing', data.lightWing);
     updateToggle('lightRecognition', data.lightRecognition);
-    updateToggle('lightCabin', data.lightCabin);  // ← REMOVE THIS LINE
+    // REMOVED: updateToggle('lightCabin', data.lightCabin);
     updateToggle('noSmokingSwitch', data.noSmokingSwitch);
     updateToggle('seatbeltsSwitch', data.seatbeltsSwitch);
 }
@@ -1485,5 +1485,6 @@ function updateAutopilotUI(data) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
