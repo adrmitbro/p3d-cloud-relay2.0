@@ -889,6 +889,11 @@ function getMobileAppHTML() {
         let userLat = 0;
         let userLon = 0;
         let userHeading = 0;
+        let userSpeed = 0;
+let userAltitude = 0;
+let userFlightPlan = '';
+let userNextWaypoint = '';
+let userDestination = '';
 
         function switchTab(index) {
             document.querySelectorAll('.tab').forEach((tab, i) => {
@@ -1211,9 +1216,69 @@ function updateAutopilotUI(data) {
             }
             
             // Add user aircraft marker with custom yellow icon
-            const userMarker = L.marker([lat, lon], { icon: createUserAircraftIcon(heading) }).addTo(map);
-            userMarker.bindPopup("You");
-            aircraftMarkers.push(userMarker);
+// Add user aircraft marker with custom yellow icon and popup
+const userMarker = L.marker([lat, lon], { icon: createUserAircraftIcon(heading) }).addTo(map);
+
+// Create detailed popup for user aircraft
+const userPopupContent = `
+    <div style="min-width:200px">
+        <h4 style="margin:0 0 5px 0; color: #FFD700;">Your Aircraft</h4>
+        <p style="margin:0 0 5px 0">Speed: ${Math.round(userSpeed)} kts</p>
+        <p style="margin:0 0 5px 0">Altitude: ${Math.round(userAltitude)} ft</p>
+        <p style="margin:0 0 5px 0">Heading: ${Math.round(userHeading)}°</p>
+        ${userFlightPlan ? `<p style="margin:5px 0 0 0; padding-top:5px; border-top:1px solid #444;">
+            <strong>Flight Plan:</strong><br>
+            ${userFlightPlan}
+        </p>` : ''}
+    </div>
+`;
+
+userMarker.bindPopup(userPopupContent);
+
+// Add click event to show user details in panel
+userMarker.on('click', function(e) {
+    L.DomEvent.stopPropagation(e);
+    showUserAircraftDetails();
+});
+
+function showUserAircraftDetails() {
+    const detailsPanel = document.getElementById('aircraftDetails');
+    if (!detailsPanel) return;
+    
+    selectedAircraft = null; // Deselect any AI aircraft
+    updateNearbyAircraftList();
+    
+    detailsPanel.innerHTML = `
+        <h4 style="margin-top:0; color: #FFD700;">Your Aircraft</h4>
+        <div class="detail-row">
+            <span class="detail-label">Speed:</span>
+            <span class="detail-value">${Math.round(userSpeed)} kts</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Altitude:</span>
+            <span class="detail-value">${Math.round(userAltitude)} ft</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Heading:</span>
+            <span class="detail-value">${Math.round(userHeading)}°</span>
+        </div>
+        ${userNextWaypoint ? `
+            <div style="margin-top:15px; padding-top:15px; border-top:1px solid #333;">
+                <h5 style="margin:0 0 10px 0; color: #167fac;">Active Flight Plan</h5>
+                <div class="detail-row">
+                    <span class="detail-label">Next Waypoint:</span>
+                    <span class="detail-value">${userNextWaypoint}</span>
+                </div>
+                ${userFlightPlan ? `<p style="margin-top:10px; color:#888; font-size:12px;">${userFlightPlan}</p>` : ''}
+            </div>
+        ` : '<p style="margin-top:15px; color:#666;">No active flight plan</p>'}
+    `;
+    
+    // Update map to show user is selected
+    updateMap(userLat, userLon, userHeading);
+}
+
+aircraftMarkers.push(userMarker);
             
             // Add AI aircraft markers with custom white/red icons
             aiAircraft.forEach(aircraft => {
@@ -1488,6 +1553,7 @@ function updateAutopilotUI(data) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
