@@ -1,4 +1,4 @@
-// P3D Remote Cloud Relay - Enhanced Edition with Lights & Cabin Controls
+// P3D Remote Cloud Relay - Enhanced Edition
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -117,8 +117,8 @@ wss.on('connection', (ws, req) => {
               data.type === 'toggle_parking_brake' ||
               data.type === 'change_flaps' ||
               data.type === 'throttle_control' ||
-              data.type === 'toggle_light' ||
-              data.type === 'toggle_cabin') {
+              data.type.includes('toggle_light') || 
+              data.type.includes('toggle_cabin')) {
             if (!ws.hasControlAccess) {
               ws.send(JSON.stringify({ 
                 type: 'control_required',
@@ -331,6 +331,7 @@ function getMobileAppHTML() {
             color: #167fac;
         }
         
+        /* Fixed Map Controls Layout */
         .map-controls {
             display: flex;
             flex-direction: column;
@@ -388,6 +389,7 @@ function getMobileAppHTML() {
             border: 1px solid #333;
         }
         
+        /* Fixed Aircraft Panel Layout */
         .aircraft-panel {
             display: flex;
             flex-direction: column;
@@ -561,6 +563,7 @@ function getMobileAppHTML() {
             font-weight: bold;
         }
         
+        /* Custom aircraft icon styles */
         .user-aircraft {
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
             z-index: 1000;
@@ -575,6 +578,7 @@ function getMobileAppHTML() {
             animation: pulse 1.5s infinite;
         }
 
+        /* Waypoint info row styling */
         .waypoint-info-row {
             display: flex;
             justify-content: space-between;
@@ -798,6 +802,7 @@ function getMobileAppHTML() {
                     </div>
                 </div>
                 
+                <!-- ===== Exterior Lights Card ===== -->
                 <div class='card'>
                     <h3>Exterior Lights</h3>
                     
@@ -842,6 +847,7 @@ function getMobileAppHTML() {
                     </div>
                 </div>
                 
+                <!-- ===== Cabin & Interior Card ===== -->
                 <div class='card'>
                     <h3>Cabin & Interior</h3>
                     
@@ -994,10 +1000,14 @@ function getMobileAppHTML() {
             document.getElementById('heading').textContent = Math.round(data.heading) + '°';
             document.getElementById('vs').textContent = Math.round(data.verticalSpeed);
             
+            // Next waypoint info
             document.getElementById('nextWaypoint').textContent = data.nextWaypoint || 'No Active Waypoint';
             document.getElementById('wpDistance').textContent = 'Distance: ' + (data.distanceToWaypoint ? data.distanceToWaypoint.toFixed(1) + ' nm' : '--');
+            
+            // Add bearing information
             document.getElementById('wpBearing').textContent = 'Bearing: ' + (data.bearingToWaypoint ? Math.round(data.bearingToWaypoint) + '°' : '--°');
             
+            // Fixed ETE for next waypoint - use waypointEte instead of total ETE
             if (data.waypointEte && data.waypointEte > 0) {
                 const wpMinutes = Math.floor(data.waypointEte / 60);
                 const wpSeconds = Math.floor(data.waypointEte % 60);
@@ -1006,12 +1016,14 @@ function getMobileAppHTML() {
                 document.getElementById('wpEte').textContent = 'ETE: --';
             }
             
+            // Total distance to destination
             if (data.totalDistance && data.totalDistance > 0) {
                 document.getElementById('distance').textContent = data.totalDistance.toFixed(1);
             } else {
                 document.getElementById('distance').textContent = '--';
             }
             
+            // Total ETE
             if (data.ete && data.ete > 0) {
                 const hours = Math.floor(data.ete / 3600);
                 const minutes = Math.floor((data.ete % 3600) / 60);
@@ -1020,6 +1032,7 @@ function getMobileAppHTML() {
                 document.getElementById('ete').textContent = 'Total ETE: --';
             }
 
+            // Pause state
             const btnPause = document.getElementById('btnPause');
             if (data.isPaused) {
                 btnPause.textContent = '▶️ PAUSED - Resume';
@@ -1029,6 +1042,7 @@ function getMobileAppHTML() {
                 btnPause.className = 'btn btn-secondary';
             }
 
+            // Update map if visible
             if (map && data.latitude && data.longitude) {
                 updateMap(data.latitude, data.longitude, data.heading);
             }
@@ -1048,16 +1062,18 @@ function getMobileAppHTML() {
             
             document.getElementById('flapsPos').textContent = Math.round(data.flaps) + '%';
             
+            // Speedbrake
             const spoilersBtn = document.getElementById('spoilers');
             const spoilersActive = data.spoilers > 10;
             spoilersBtn.className = 'toggle-btn ' + (spoilersActive ? 'on' : 'off');
             spoilersBtn.textContent = spoilersActive ? 'EXTENDED' : 'RETRACTED';
             
+            // NAV/GPS toggle
             const navBtn = document.getElementById('navMode');
             navBtn.textContent = data.navMode ? 'GPS' : 'NAV';
             navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
             
-            // Lights and Cabin Controls
+            // Update lights and cabin controls
             updateToggle('lightStrobe', data.lightStrobe);
             updateToggle('lightPanel', data.lightPanel);
             updateToggle('lightLanding', data.lightLanding);
@@ -1079,6 +1095,7 @@ function getMobileAppHTML() {
             btn.textContent = text || (state ? 'ON' : 'OFF');
         }
 
+        // Custom aircraft icon creation functions
         function createUserAircraftIcon(heading) {
             return L.divIcon({
                 html: \`<div class="user-aircraft" style="transform: rotate(\${heading}deg);">
@@ -1120,12 +1137,14 @@ function getMobileAppHTML() {
                 maxZoom: 18
             }).addTo(map);
             
+            // Add zoom control to bottom right
             L.control.zoom({
                 position: 'bottomright'
             }).addTo(map);
             
+            // Add map controls
             map.on('mousedown', function(e) {
-                if (e.originalEvent.button === 0) {
+                if (e.originalEvent.button === 0) { // Left click
                     isDragging = true;
                     mapDragStart = e.latlng;
                     followUser = false;
@@ -1145,19 +1164,24 @@ function getMobileAppHTML() {
                 mapDragStart = null;
             });
             
+            // Click anywhere on map to deselect aircraft
             map.on('click', function(e) {
+                // Check if clicking on an aircraft marker
                 if (e.originalEvent.target.closest('.leaflet-marker-icon')) {
-                    return;
+                    return; // Let the aircraft click handler handle this
                 }
                 
+                // Clicked on empty map space - deselect aircraft
                 selectedAircraft = null;
                 updateMap(userLat, userLon, userHeading);
                 updateNearbyAircraftList();
                 
+                // Clear aircraft details
                 const detailsPanel = document.getElementById('aircraftDetails');
                 detailsPanel.innerHTML = '<p>Click on an aircraft to view details</p>';
             });
             
+            // Update center coordinates when map is moved
             map.on('moveend', function() {
                 const center = map.getCenter();
                 mapCenterLat = center.lat;
@@ -1170,6 +1194,7 @@ function getMobileAppHTML() {
         function updateMap(lat, lon, heading) {
             if (!map) return;
             
+            // Update user position
             userLat = lat;
             userLon = lon;
             userHeading = heading;
@@ -1179,6 +1204,7 @@ function getMobileAppHTML() {
                 mapCenterLon = lon;
             }
             
+            // Clear existing markers
             if (aircraftMarkers) {
                 aircraftMarkers.forEach(marker => map.removeLayer(marker));
                 aircraftMarkers = [];
@@ -1186,10 +1212,12 @@ function getMobileAppHTML() {
                 aircraftMarkers = [];
             }
             
+            // Add user aircraft marker with custom yellow icon
             const userMarker = L.marker([lat, lon], { icon: createUserAircraftIcon(heading) }).addTo(map);
             userMarker.bindPopup("You");
             aircraftMarkers.push(userMarker);
             
+            // Add AI aircraft markers with custom white/red icons
             aiAircraft.forEach(aircraft => {
                 const isSelected = selectedAircraft && 
                                 ((selectedAircraft.atcId && selectedAircraft.atcId === aircraft.atcId) || 
@@ -1199,6 +1227,7 @@ function getMobileAppHTML() {
                     icon: createAIAircraftIcon(aircraft.heading, isSelected)
                 }).addTo(map);
                 
+                // Create popup content
                 let callsign = aircraft.atcId || "N/A";
                 let flightInfo = "";
                 if (aircraft.atcAirline && aircraft.atcFlightNumber) {
@@ -1228,8 +1257,9 @@ function getMobileAppHTML() {
                 
                 marker.bindPopup(popupContent);
                 
+                // Add click event to select aircraft
                 marker.on('click', function(e) {
-                    L.DomEvent.stopPropagation(e);
+                    L.DomEvent.stopPropagation(e); // Prevent map click event
                     selectedAircraft = aircraft;
                     updateAircraftDetails(aircraft);
                     updateMap(lat, lon, heading);
@@ -1237,6 +1267,7 @@ function getMobileAppHTML() {
                 
                 aircraftMarkers.push(marker);
                 
+                // Add label if enabled
                 if (showAircraftLabels) {
                     const label = L.divIcon({
                         html: \`<div style="background:rgba(0,0,0,0.7);color:white;padding:2px 5px;border-radius:3px;font-size:11px;white-space:nowrap">
@@ -1251,6 +1282,7 @@ function getMobileAppHTML() {
                 }
             });
             
+            // Update map view
             if (followUser) {
                 map.setView([lat, lon], mapZoom);
             }
@@ -1373,7 +1405,13 @@ function getMobileAppHTML() {
         }
 
         function toggleAP(system) {
-            ws.send(JSON.stringify({ type: 'autopilot_toggle', system }));
+            if (system === 'loc') {
+                ws.send(JSON.stringify({ type: 'autopilot_toggle', system: 'loc' }));
+            } else if (system === 'ils') {
+                ws.send(JSON.stringify({ type: 'autopilot_toggle', system: 'ils' }));
+            } else {
+                ws.send(JSON.stringify({ type: 'autopilot_toggle', system }));
+            }
         }
 
         function setAltitude() {
@@ -1427,7 +1465,8 @@ function getMobileAppHTML() {
         function changeFlaps(direction) {
             ws.send(JSON.stringify({ type: 'change_flaps', direction }));
         }
-
+        
+        // ===== New functions for lights and cabin controls =====
         function toggleLight(lightType) {
             ws.send(JSON.stringify({ type: 'toggle_light', lightType: lightType }));
         }
@@ -1436,6 +1475,7 @@ function getMobileAppHTML() {
             ws.send(JSON.stringify({ type: 'toggle_cabin', cabinType: cabinType }));
         }
 
+        // Load saved ID
         window.onload = () => {
             const savedId = localStorage.getItem('p3d_unique_id');
             if (savedId) {
@@ -1447,7 +1487,6 @@ function getMobileAppHTML() {
 </html>`;
 }
 
-// FIX: Replaced template literals with string concatenation to avoid encoding issues.
 server.listen(PORT, () => {
-  console.log('P3D Remote Cloud Relay running on port ' + PORT);
+  console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
