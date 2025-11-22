@@ -917,10 +917,18 @@ function getMobileAppHTML() {
             document.getElementById('nextWaypoint').textContent = data.nextWaypoint || 'No Active Waypoint';
             document.getElementById('wpDistance').textContent = 'Distance: ' + (data.distanceToWaypoint ? data.distanceToWaypoint.toFixed(1) + ' nm' : '--');
             
-            // Fixed ETE for next waypoint - use waypointEte instead of total ETE
+            // Fixed: Check for waypointEte first, then fallback to ete for next waypoint
             if (data.waypointEte && data.waypointEte > 0) {
                 const wpMinutes = Math.floor(data.waypointEte / 60);
                 const wpSeconds = Math.floor(data.waypointEte % 60);
+                document.getElementById('wpEte').textContent = 'ETE: ' + wpMinutes + 'm ' + wpSeconds + 's';
+            } else if (data.ete && data.ete > 0) {
+                // Fallback: Calculate approximate time to next waypoint based on total ETE and distance ratio
+                const totalMinutes = data.ete / 60;
+                const wpDistance = data.distanceToWaypoint || 1;
+                const totalDistance = data.totalDistance || 1;
+                const wpMinutes = Math.floor(totalMinutes * (wpDistance / totalDistance));
+                const wpSeconds = Math.floor((totalMinutes * (wpDistance / totalDistance) * 60) % 60);
                 document.getElementById('wpEte').textContent = 'ETE: ' + wpMinutes + 'm ' + wpSeconds + 's';
             } else {
                 document.getElementById('wpEte').textContent = 'ETE: --';
@@ -1044,7 +1052,7 @@ function getMobileAppHTML() {
                     isDragging = true;
                     mapDragStart = e.latlng;
                     followUser = false;
-                    document.getElementById('followUserBtn').textContent = 'Follow Aircraft';
+                    updateFollowButton();
                 }
             });
             
@@ -1159,6 +1167,7 @@ function getMobileAppHTML() {
                     selectedAircraft = aircraft;
                     updateAircraftDetails(aircraft);
                     updateMap(lat, lon, heading);
+                    updateFollowButton();
                 });
                 
                 aircraftMarkers.push(marker);
@@ -1261,7 +1270,7 @@ function getMobileAppHTML() {
                     selectedAircraft = aircraft;
                     map.setView([aircraft.latitude, aircraft.longitude], 10);
                     followUser = false;
-                    document.getElementById('followUserBtn').textContent = 'Follow Aircraft';
+                    updateFollowButton();
                     updateAircraftDetails(aircraft);
                     updateMap(userLat, userLon, userHeading);
                     updateNearbyAircraftList();
@@ -1269,6 +1278,15 @@ function getMobileAppHTML() {
                 
                 list.appendChild(item);
             });
+        }
+
+        function updateFollowButton() {
+            const btn = document.getElementById('followUserBtn');
+            if (followUser) {
+                btn.textContent = 'Following';
+            } else {
+                btn.textContent = 'Follow Aircraft';
+            }
         }
 
         function toggleAircraftLabels() {
@@ -1280,8 +1298,8 @@ function getMobileAppHTML() {
         function centerOnUser() {
             followUser = true;
             mapZoom = 7;
-            document.getElementById('followUserBtn').textContent = 'Following';
-            selectedAircraft = null;
+            updateFollowButton();
+            // Don't deselect aircraft when following user
             updateMap(userLat, userLon, userHeading);
             updateNearbyAircraftList();
         }
