@@ -185,6 +185,7 @@ function getMobileAppHTML() {
             font-family: 'Segoe UI', Arial, sans-serif;
             background: #000000;
             color: white;
+            overflow-x: hidden;
         }
         .header {
             background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
@@ -291,6 +292,8 @@ function getMobileAppHTML() {
         .tab-content {
             display: none;
             padding: 15px;
+            height: calc(100vh - 180px);
+            overflow-y: auto;
         }
         .tab-content.active { display: block; }
         
@@ -384,16 +387,26 @@ function getMobileAppHTML() {
             border: 1px solid #333;
         }
         
+        /* Fixed Aircraft Panel Layout */
         .aircraft-panel {
             display: flex;
             flex-direction: column;
-            height: 300px;
+            height: 400px;
+            overflow: hidden;
+        }
+        
+        .panel-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
         }
         
         .panel-header {
             background: #1a1a1a;
             padding: 8px 15px;
             border-bottom: 1px solid #333;
+            flex-shrink: 0;
         }
         
         .panel-header h3 {
@@ -435,10 +448,11 @@ function getMobileAppHTML() {
         }
         
         .aircraft-details {
+            flex: 1;
+            overflow-y: auto;
             background: #0d0d0d;
             padding: 15px;
             border-top: 1px solid #333;
-            overflow-y: auto;
         }
         
         .no-aircraft {
@@ -643,18 +657,22 @@ function getMobileAppHTML() {
             </div>
             
             <div class='aircraft-panel'>
-                <div class='panel-header'>
-                    <h3>Nearby Aircraft</h3>
-                </div>
-                <div id='nearbyAircraftList' class='aircraft-list'>
-                    <div class='no-aircraft'>No nearby aircraft</div>
+                <div class='panel-section'>
+                    <div class='panel-header'>
+                        <h3>Nearby Aircraft</h3>
+                    </div>
+                    <div id='nearbyAircraftList' class='aircraft-list'>
+                        <div class='no-aircraft'>No nearby aircraft</div>
+                    </div>
                 </div>
                 
-                <div class='panel-header'>
-                    <h3>Aircraft Details</h3>
-                </div>
-                <div id='aircraftDetails' class='aircraft-details'>
-                    <p>Click on an aircraft to view details</p>
+                <div class='panel-section'>
+                    <div class='panel-header'>
+                        <h3>Aircraft Details</h3>
+                    </div>
+                    <div id='aircraftDetails' class='aircraft-details'>
+                        <p>Click on an aircraft to view details</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -899,6 +917,7 @@ function getMobileAppHTML() {
             document.getElementById('nextWaypoint').textContent = data.nextWaypoint || 'No Active Waypoint';
             document.getElementById('wpDistance').textContent = 'Distance: ' + (data.distanceToWaypoint ? data.distanceToWaypoint.toFixed(1) + ' nm' : '--');
             
+            // Fixed ETE for next waypoint - use waypointEte instead of total ETE
             if (data.waypointEte && data.waypointEte > 0) {
                 const wpMinutes = Math.floor(data.waypointEte / 60);
                 const wpSeconds = Math.floor(data.waypointEte % 60);
@@ -1041,6 +1060,23 @@ function getMobileAppHTML() {
                 mapDragStart = null;
             });
             
+            // Click anywhere on map to deselect aircraft
+            map.on('click', function(e) {
+                // Check if clicking on an aircraft marker
+                if (e.originalEvent.target.closest('.leaflet-marker-icon')) {
+                    return; // Let the aircraft click handler handle this
+                }
+                
+                // Clicked on empty map space - deselect aircraft
+                selectedAircraft = null;
+                updateMap(userLat, userLon, userHeading);
+                updateNearbyAircraftList();
+                
+                // Clear aircraft details
+                const detailsPanel = document.getElementById('aircraftDetails');
+                detailsPanel.innerHTML = '<p>Click on an aircraft to view details</p>';
+            });
+            
             // Update center coordinates when map is moved
             map.on('moveend', function() {
                 const center = map.getCenter();
@@ -1118,7 +1154,8 @@ function getMobileAppHTML() {
                 marker.bindPopup(popupContent);
                 
                 // Add click event to select aircraft
-                marker.on('click', function() {
+                marker.on('click', function(e) {
+                    L.DomEvent.stopPropagation(e); // Prevent map click event
                     selectedAircraft = aircraft;
                     updateAircraftDetails(aircraft);
                     updateMap(lat, lon, heading);
