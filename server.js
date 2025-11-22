@@ -737,32 +737,30 @@ function getMobileAppHTML() {
             }
         }
 
-        function updateAutopilotUI(data) {
-            // FIXED: Master button now shows ON in blue when active
+function updateAutopilotUI(data) {
             updateToggle('apMaster', data.master);
             updateToggle('apAlt', data.altitude);
             updateToggle('apHdg', data.heading);
             updateToggle('apVS', data.vs);
             updateToggle('apSpeed', data.speed);
             updateToggle('apApp', data.approach);
-            // FIXED: LOC button now shows ON in blue when active
-            updateToggle('apNav', data.nav);
+            updateToggle('apNav', data.nav); // LOC hold - will show ON when active
             updateToggle('apBackcourse', data.backcourse);
             updateToggle('autoThrottle', data.throttle);
             updateToggle('gear', data.gear, data.gear ? 'DOWN' : 'UP');
             
-            // FIXED: Parking brake now shows ON in blue when active
-            updateToggle('parkingBrake', data.parkingBrake, data.parkingBrake ? 'SET' : 'OFF');
+            // Parking Brake - shows blue ON when engaged
+            updateToggle('parkingBrake', data.parkingBrake, data.parkingBrake ? 'ON' : 'OFF');
             
             document.getElementById('flapsPos').textContent = Math.round(data.flaps) + '%';
             
-            // FIXED: Speedbrake now shows EXTENDED in blue when active
+            // Speedbrake - shows blue EXTENDED when deployed
             const spoilersBtn = document.getElementById('spoilers');
             const spoilersActive = data.spoilers > 10;
             spoilersBtn.className = 'toggle-btn ' + (spoilersActive ? 'on' : 'off');
             spoilersBtn.textContent = spoilersActive ? 'EXTENDED' : 'RETRACTED';
             
-            // FIXED: NAV/GPS button now shows GPS in blue when in GPS mode
+            // NAV/GPS toggle - shows blue GPS when in GPS mode
             const navBtn = document.getElementById('navMode');
             navBtn.textContent = data.navMode ? 'GPS' : 'NAV';
             navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
@@ -902,3 +900,4 @@ function getMobileAppHTML() {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
