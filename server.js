@@ -547,10 +547,6 @@ function getMobileAppHTML() {
                         <button class='toggle-btn off' id='apApp' onclick='toggleAP("ils")'>OFF</button>
                     </div>
                     
-                    <div class='control-row'>
-                        <span class='control-label'>ILS/Backcourse</span>
-                        <button class='toggle-btn off' id='apBackcourse' onclick='toggleAP("backcourse")'>OFF</button>
-                    </div>
                     
                     <div class='control-row'>
                         <span class='control-label'>Auto Throttle</span>
@@ -899,5 +895,6 @@ function updateAutopilotUI(data) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
