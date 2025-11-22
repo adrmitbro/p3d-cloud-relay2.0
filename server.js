@@ -993,11 +993,6 @@ case 'ai_traffic':
                     
                 case 'pc_offline':
                     updateStatus('offline');
-                    // Reset control access when PC goes offline
-                    hasControl = false;
-                    document.getElementById('controlLock').classList.remove('hidden');
-                    document.getElementById('controlPanel').classList.add('hidden');
-                    document.getElementById('controlPassword').value = '';
                     break;
             }
         }
@@ -1512,6 +1507,7 @@ function updateAutopilotUI(data) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
