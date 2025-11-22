@@ -1027,11 +1027,14 @@ function getMobileAppHTML() {
                 document.getElementById('ete').textContent = 'Total ETE: --';
             }
 
-// Pause state - REMOVE THE PULSING ANIMATION
+// ADD THIS DEBUG LINE
+console.log('Pause state received:', data.isPaused);
+
+// Pause state
 const btnPause = document.getElementById('btnPause');
 if (data.isPaused) {
     btnPause.textContent = '▶️ Resume';
-    btnPause.className = 'btn btn-warning';  // Removed 'paused' class that causes pulsing
+    btnPause.className = 'btn btn-warning';
 } else {
     btnPause.textContent = '⏸️ Pause';
     btnPause.className = 'btn btn-secondary';
@@ -1485,6 +1488,7 @@ function updateAutopilotUI(data) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
