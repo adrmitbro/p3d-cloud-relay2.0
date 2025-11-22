@@ -326,11 +326,90 @@ function getMobileAppHTML() {
             color: #167fac;
         }
         
-        #map {
+        .map-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: #0d0d0d;
+            border-bottom: 1px solid #333;
+            margin-bottom: 10px;
+        }
+        
+        .zoom-indicator {
+            color: #888;
+            font-size: 13px;
+        }
+        
+        .map-container {
             height: 400px;
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        #map {
+            height: 100%;
             border-radius: 12px;
             overflow: hidden;
             border: 1px solid #333;
+        }
+        
+        .aircraft-panel {
+            display: flex;
+            flex-direction: column;
+            height: 300px;
+        }
+        
+        .panel-header {
+            background: #1a1a1a;
+            padding: 8px 15px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .panel-header h3 {
+            margin: 0;
+            font-size: 14px;
+            color: #167fac;
+        }
+        
+        .aircraft-list {
+            flex: 1;
+            overflow-y: auto;
+            background: #0d0d0d;
+        }
+        
+        .aircraft-list-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 15px;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+        }
+        
+        .aircraft-list-item:hover {
+            background: #1a1a1a;
+        }
+        
+        .aircraft-callsign {
+            font-weight: bold;
+            color: #ccc;
+        }
+        
+        .aircraft-distance {
+            color: #888;
+        }
+        
+        .aircraft-details {
+            background: #0d0d0d;
+            padding: 15px;
+            border-top: 1px solid #333;
+            overflow-y: auto;
+        }
+        
+        .no-aircraft {
+            padding: 15px;
+            text-align: center;
+            color: #666;
         }
         
         .control-row {
@@ -468,8 +547,30 @@ function getMobileAppHTML() {
         </div>
 
         <div class='tab-content'>
-            <div class='card'>
+            <div class='map-controls'>
+                <button id='followUserBtn' class='btn btn-secondary' onclick='centerOnUser()'>Follow Aircraft</button>
+                <button id='toggleLabelsBtn' class='btn btn-secondary' onclick='toggleAircraftLabels()'>Hide Labels</button>
+                <span id='zoomLevel' class='zoom-indicator'>Zoom: 7</span>
+            </div>
+            
+            <div class='map-container'>
                 <div id='map'></div>
+            </div>
+            
+            <div class='aircraft-panel'>
+                <div class='panel-header'>
+                    <h3>Nearby Aircraft</h3>
+                </div>
+                <div id='nearbyAircraftList' class='aircraft-list'>
+                    <div class='no-aircraft'>No nearby aircraft</div>
+                </div>
+                
+                <div class='panel-header'>
+                    <h3>Aircraft Details</h3>
+                </div>
+                <div id='aircraftDetails' class='aircraft-details'>
+                    <p>Click on an aircraft to view details</p>
+                </div>
             </div>
         </div>
 
@@ -547,7 +648,6 @@ function getMobileAppHTML() {
                         <button class='toggle-btn off' id='apApp' onclick='toggleAP("ils")'>OFF</button>
                     </div>
                     
-                    
                     <div class='control-row'>
                         <span class='control-label'>Auto Throttle</span>
                         <button class='toggle-btn off' id='autoThrottle' onclick='toggleAP("throttle")'>OFF</button>
@@ -588,10 +688,22 @@ function getMobileAppHTML() {
     <script>
         let ws = null;
         let map = null;
-        let aircraftMarker = null;
+        let aircraftMarkers = [];
+        let aiAircraft = [];
+        let selectedAircraft = null;
+        let mapCenterLat = 0;
+        let mapCenterLon = 0;
+        let mapZoom = 7;
+        let followUser = true;
+        let mapDragStart = null;
+        let isDragging = false;
+        let showAircraftLabels = true;
         let uniqueId = null;
         let hasControl = false;
         let isPaused = false;
+        let userLat = 0;
+        let userLon = 0;
+        let userHeading = 0;
 
         function switchTab(index) {
             document.querySelectorAll('.tab').forEach((tab, i) => {
@@ -672,6 +784,14 @@ function getMobileAppHTML() {
                     updateAutopilotUI(data.data);
                     break;
                     
+                case 'ai_traffic':
+                    aiAircraft = data.data;
+                    updateNearbyAircraftList();
+                    if (map) {
+                        updateMap(userLat, userLon, userHeading);
+                    }
+                    break;
+                    
                 case 'pc_offline':
                     updateStatus('offline');
                     break;
@@ -718,7 +838,7 @@ function getMobileAppHTML() {
                 document.getElementById('ete').textContent = 'Total ETE: --';
             }
 
-            // Pause state - FIXED: Sync with sim state
+            // Pause state
             const btnPause = document.getElementById('btnPause');
             if (data.isPaused) {
                 btnPause.textContent = '▶️ PAUSED - Resume';
@@ -728,34 +848,33 @@ function getMobileAppHTML() {
                 btnPause.className = 'btn btn-secondary';
             }
 
+            // Update map if visible
             if (map && data.latitude && data.longitude) {
                 updateMap(data.latitude, data.longitude, data.heading);
             }
         }
 
-function updateAutopilotUI(data) {
+        function updateAutopilotUI(data) {
             updateToggle('apMaster', data.master);
             updateToggle('apAlt', data.altitude);
             updateToggle('apHdg', data.heading);
             updateToggle('apVS', data.vs);
             updateToggle('apSpeed', data.speed);
             updateToggle('apApp', data.approach);
-            updateToggle('apNav', data.nav); // LOC hold - will show ON when active
+            updateToggle('apNav', data.nav);
             updateToggle('autoThrottle', data.throttle);
             updateToggle('gear', data.gear, data.gear ? 'DOWN' : 'UP');
-            
-            // Parking Brake - shows blue ON when engaged
             updateToggle('parkingBrake', data.parkingBrake, data.parkingBrake ? 'ON' : 'OFF');
             
             document.getElementById('flapsPos').textContent = Math.round(data.flaps) + '%';
             
-            // Speedbrake - shows blue EXTENDED when deployed
+            // Speedbrake
             const spoilersBtn = document.getElementById('spoilers');
             const spoilersActive = data.spoilers > 10;
             spoilersBtn.className = 'toggle-btn ' + (spoilersActive ? 'on' : 'off');
             spoilersBtn.textContent = spoilersActive ? 'EXTENDED' : 'RETRACTED';
             
-            // NAV/GPS toggle - shows blue GPS when in GPS mode
+            // NAV/GPS toggle
             const navBtn = document.getElementById('navMode');
             navBtn.textContent = data.navMode ? 'GPS' : 'NAV';
             navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
@@ -769,38 +888,239 @@ function updateAutopilotUI(data) {
         }
 
         function initMap() {
-            map = L.map('map').setView([0, 0], 8);
+            map = L.map('map', {
+                center: [0, 0],
+                zoom: mapZoom,
+                zoomControl: false
+            });
+            
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
             }).addTo(map);
             
-            aircraftMarker = L.marker([0, 0], {
-                icon: createPlaneIcon(0)
+            // Add zoom control to bottom right
+            L.control.zoom({
+                position: 'bottomright'
             }).addTo(map);
-        }
-
-        function createPlaneIcon(heading) {
-            return L.divIcon({
-                html: '<div style="font-size:32px;transform:rotate(' + heading + 'deg);filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));">✈️</div>',
-                className: '',
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
+            
+            // Add map controls
+            map.on('mousedown', function(e) {
+                if (e.originalEvent.button === 0) { // Left click
+                    isDragging = true;
+                    mapDragStart = e.latlng;
+                    followUser = false;
+                    document.getElementById('followUserBtn').textContent = 'Follow Aircraft';
+                }
+            });
+            
+            map.on('mousemove', function(e) {
+                if (isDragging && mapDragStart) {
+                    map.panBy([mapDragStart.lat - e.latlng.lat, mapDragStart.lng - e.latlng.lng]);
+                    mapDragStart = e.latlng;
+                }
+            });
+            
+            map.on('mouseup', function() {
+                isDragging = false;
+                mapDragStart = null;
+            });
+            
+            // Update center coordinates when map is moved
+            map.on('moveend', function() {
+                const center = map.getCenter();
+                mapCenterLat = center.lat;
+                mapCenterLon = center.lng;
+                mapZoom = map.getZoom();
+                document.getElementById('zoomLevel').textContent = 'Zoom: ' + mapZoom;
             });
         }
 
         function updateMap(lat, lon, heading) {
             if (!map) return;
             
-            const icon = L.divIcon({
-                html: '<div style="font-size:32px;transform:rotate(' + heading + 'deg);filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));">✈️</div>',
+            // Update user position
+            userLat = lat;
+            userLon = lon;
+            userHeading = heading;
+            
+            if (followUser) {
+                mapCenterLat = lat;
+                mapCenterLon = lon;
+            }
+            
+            // Clear existing markers
+            if (aircraftMarkers) {
+                aircraftMarkers.forEach(marker => map.removeLayer(marker));
+                aircraftMarkers = [];
+            } else {
+                aircraftMarkers = [];
+            }
+            
+            // Add user aircraft marker
+            const userIcon = L.divIcon({
+                html: '<div style="font-size:24px;transform:rotate(' + heading + 'deg);filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8));">✈️</div>',
                 className: '',
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
             });
             
-            aircraftMarker.setLatLng([lat, lon]);
-            aircraftMarker.setIcon(icon);
-            map.setView([lat, lon], map.getZoom());
+            const userMarker = L.marker([lat, lon], { icon: userIcon }).addTo(map);
+            userMarker.bindPopup("You");
+            aircraftMarkers.push(userMarker);
+            
+            // Add AI aircraft markers
+            aiAircraft.forEach(aircraft => {
+                const iconType = (selectedAircraft && 
+                                ((selectedAircraft.atcId && selectedAircraft.atcId === aircraft.atcId) || 
+                                 (!selectedAircraft.atcId && selectedAircraft.title === aircraft.title))) 
+                                ? "selected" : "ai";
+                
+                const icon = L.divIcon({
+                    html: '<div style="font-size:16px;transform:rotate(' + aircraft.heading + 'deg);filter:drop-shadow(0 2px 4px rgba(0,0,0,0.8);' + 
+                          (iconType === "selected" ? "color:orange;" : "") + '">✈️</div>',
+                    className: '',
+                    iconSize: [16, 16],
+                    iconAnchor: [8, 8]
+                });
+                
+                const marker = L.marker([aircraft.latitude, aircraft.longitude], { icon: icon }).addTo(map);
+                
+                // Create popup content
+                let callsign = aircraft.atcId || "N/A";
+                let flightInfo = "";
+                if (aircraft.atcAirline && aircraft.atcFlightNumber) {
+                    flightInfo = aircraft.atcAirline + " " + aircraft.atcFlightNumber;
+                } else if (aircraft.atcAirline) {
+                    flightInfo = aircraft.atcAirline;
+                }
+                
+                let routeInfo = "";
+                if (aircraft.departureAirport && aircraft.destinationAirport) {
+                    routeInfo = aircraft.departureAirport + " → " + aircraft.destinationAirport;
+                } else if (aircraft.destinationAirport) {
+                    routeInfo = "To " + aircraft.destinationAirport;
+                }
+                
+                const popupContent = \`
+                    <div style="min-width:200px">
+                        <h4 style="margin:0 0 5px 0">\${callsign}</h4>
+                        \${flightInfo ? \`<p style="margin:0 0 5px 0">\${flightInfo}</p>\` : ""}
+                        <p style="margin:0 0 5px 0">Aircraft: \${aircraft.atcModel || aircraft.atcType || aircraft.title}</p>
+                        \${routeInfo ? \`<p style="margin:0 0 5px 0">Route: \${routeInfo}</p>\` : ""}
+                        <p style="margin:0 0 5px 0">Speed: \${Math.round(aircraft.groundSpeed)} kts</p>
+                        <p style="margin:0 0 5px 0">Altitude: \${Math.round(aircraft.altitude)} ft</p>
+                        <p style="margin:0">Distance: \${aircraft.distanceFromUser.toFixed(1)} nm</p>
+                    </div>
+                \`;
+                
+                marker.bindPopup(popupContent);
+                
+                // Add click event to select aircraft
+                marker.on('click', function() {
+                    selectedAircraft = aircraft;
+                    updateAircraftDetails(aircraft);
+                    updateMap(lat, lon, heading);
+                });
+                
+                aircraftMarkers.push(marker);
+                
+                // Add label if enabled
+                if (showAircraftLabels) {
+                    const label = L.divIcon({
+                        html: \`<div style="background:rgba(0,0,0,0.7);color:white;padding:2px 5px;border-radius:3px;font-size:11px;white-space:nowrap">
+                               \${aircraft.atcId || aircraft.title.substring(0, 10)}</div>\`,
+                        className: '',
+                        iconSize: [100, 20],
+                        iconAnchor: [50, -10]
+                    });
+                    
+                    const labelMarker = L.marker([aircraft.latitude, aircraft.longitude], { icon: label }).addTo(map);
+                    aircraftMarkers.push(labelMarker);
+                }
+            });
+            
+            // Update map view
+            if (followUser) {
+                map.setView([lat, lon], mapZoom);
+            }
+        }
+
+        function updateAircraftDetails(aircraft) {
+            const detailsPanel = document.getElementById('aircraftDetails');
+            if (!detailsPanel) return;
+            
+            let callsign = aircraft.atcId || "N/A";
+            let flightInfo = "";
+            if (aircraft.atcAirline && aircraft.atcFlightNumber) {
+                flightInfo = aircraft.atcAirline + " " + aircraft.atcFlightNumber;
+            } else if (aircraft.atcAirline) {
+                flightInfo = aircraft.atcAirline;
+            }
+            
+            let routeInfo = "";
+            if (aircraft.departureAirport && aircraft.destinationAirport) {
+                routeInfo = aircraft.departureAirport + " → " + aircraft.destinationAirport;
+            } else if (aircraft.destinationAirport) {
+                routeInfo = "To " + aircraft.destinationAirport;
+            }
+            
+            detailsPanel.innerHTML = \`
+                <h4 style="margin-top:0">\${callsign}</h4>
+                \${flightInfo ? \`<p><strong>Flight:</strong> \${flightInfo}</p>\` : ""}
+                <p><strong>Aircraft:</strong> \${aircraft.atcModel || aircraft.atcType || aircraft.title}</p>
+                \${routeInfo ? \`<p><strong>Route:</strong> \${routeInfo}</p>\` : ""}
+                <p><strong>Speed:</strong> \${Math.round(aircraft.groundSpeed)} kts</p>
+                <p><strong>Altitude:</strong> \${Math.round(aircraft.altitude)} ft</p>
+                <p><strong>Distance:</strong> \${aircraft.distanceFromUser.toFixed(1)} nm</p>
+            \`;
+        }
+
+        function updateNearbyAircraftList() {
+            const list = document.getElementById('nearbyAircraftList');
+            if (!list) return;
+            
+            list.innerHTML = '';
+            
+            if (aiAircraft.length === 0) {
+                list.innerHTML = '<div class="no-aircraft">No nearby aircraft</div>';
+                return;
+            }
+            
+            aiAircraft.slice(0, 10).forEach(aircraft => {
+                const callsign = aircraft.atcId || aircraft.title.substring(0, 15);
+                const item = document.createElement('div');
+                item.className = 'aircraft-list-item';
+                item.innerHTML = \`
+                    <div class="aircraft-callsign">\${callsign}</div>
+                    <div class="aircraft-distance">\${aircraft.distanceFromUser.toFixed(1)} nm</div>
+                \`;
+                
+                item.addEventListener('click', function() {
+                    selectedAircraft = aircraft;
+                    map.setView([aircraft.latitude, aircraft.longitude], 10);
+                    followUser = false;
+                    document.getElementById('followUserBtn').textContent = 'Follow Aircraft';
+                    updateAircraftDetails(aircraft);
+                    updateMap(userLat, userLon, userHeading);
+                });
+                
+                list.appendChild(item);
+            });
+        }
+
+        function toggleAircraftLabels() {
+            showAircraftLabels = !showAircraftLabels;
+            document.getElementById('toggleLabelsBtn').textContent = showAircraftLabels ? 'Hide Labels' : 'Show Labels';
+            updateMap(userLat, userLon, userHeading);
+        }
+
+        function centerOnUser() {
+            followUser = true;
+            mapZoom = 7;
+            document.getElementById('followUserBtn').textContent = 'Following';
+            selectedAircraft = null;
+            updateMap(userLat, userLon, userHeading);
         }
 
         function unlockControls() {
@@ -818,7 +1138,6 @@ function updateAutopilotUI(data) {
         }
 
         function toggleAP(system) {
-            // FIXED: Send the correct system name for LOC and ILS
             if (system === 'loc') {
                 ws.send(JSON.stringify({ type: 'autopilot_toggle', system: 'loc' }));
             } else if (system === 'ils') {
@@ -895,6 +1214,3 @@ function updateAutopilotUI(data) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
-
-
-
