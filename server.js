@@ -1011,7 +1011,7 @@ case 'ai_traffic':
 if (data.waypointEte && data.waypointEte > 0) {
     const wpHours = Math.floor(data.waypointEte / 3600);
     const wpMinutes = Math.floor((data.waypointEte % 3600) / 60);
-    document.getElementById('wpEte').textContent = 'ETE: ' + (wpHours > 0 ? wpHours + 'h ' + wpMinutes + 'm' : wpMinutes + 'm');
+    document.getElementById('wpEte').textContent = 'ETE: ' + (wpHours > 0 ? wpHours + 'h ' + wpMinutes + 'm' : wpMinutes + 'min');
 } else {
     document.getElementById('wpEte').textContent = 'ETE: --';
 }
@@ -1027,7 +1027,7 @@ if (data.waypointEte && data.waypointEte > 0) {
             if (data.ete && data.ete > 0) {
                 const hours = Math.floor(data.ete / 3600);
                 const minutes = Math.floor((data.ete % 3600) / 60);
-                document.getElementById('ete').textContent = 'Total ETE: ' + (hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'm');
+                document.getElementById('ete').textContent = 'Total ETE: ' + (hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'min');
             } else {
                 document.getElementById('ete').textContent = 'Total ETE: --';
             }
@@ -1498,6 +1498,7 @@ function updateAutopilotUI(data) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
