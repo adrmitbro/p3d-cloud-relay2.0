@@ -1,176 +1,4 @@
-// P3D Remote Cloud Relay - Enhanced Edition
-const express = require('express');
-const http = require('http');
-const WebSocket = require('ws');
-
-const app = express();
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
-
-const PORT = process.env.PORT || 3000;
-
-// Simple session storage: uniqueId -> { pcClient, mobileClients: Set(), password, guestPassword }
-const sessions = new Map();
-
-app.use(express.static('public'));
-
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok',
-    activeSessions: sessions.size
-  });
-});
-
-app.get('/', (req, res) => {
-  res.send(getMobileAppHTML());
-});
-
-wss.on('connection', (ws, req) => {
-  console.log('New connection');
-  
-  ws.on('message', (message) => {
-    try {
-      const data = JSON.parse(message);
-      
-      if (data.type === 'register_pc') {
-        // PC registering with unique ID
-        const uniqueId = data.uniqueId;
-        const password = data.password;
-        const guestPassword = data.guestPassword;
-        
-        ws.uniqueId = uniqueId;
-        ws.clientType = 'pc';
-        
-        if (!sessions.has(uniqueId)) {
-          sessions.set(uniqueId, {
-            pcClient: ws,
-            mobileClients: new Set(),
-            password: password,
-            guestPassword: guestPassword
-          });
-        } else {
-          const session = sessions.get(uniqueId);
-          session.pcClient = ws;
-          session.password = password;
-          session.guestPassword = guestPassword;
-        }
-        
-        ws.send(JSON.stringify({ type: 'registered', uniqueId }));
-        console.log(`PC registered: ${uniqueId}`);
-      }
-      
-      else if (data.type === 'connect_mobile') {
-        // Mobile connecting with unique ID
-        const uniqueId = data.uniqueId;
-        
-        if (!sessions.has(uniqueId)) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Invalid ID' }));
-          return;
-        }
-        
-        const session = sessions.get(uniqueId);
-        ws.uniqueId = uniqueId;
-        ws.clientType = 'mobile';
-        ws.hasControlAccess = false;
-        
-        session.mobileClients.add(ws);
-        
-        ws.send(JSON.stringify({ 
-          type: 'connected',
-          pcOnline: !!session.pcClient
-        }));
-        
-        console.log(`Mobile connected to: ${uniqueId}`);
-      }
-      
-      else if (data.type === 'request_control') {
-        // Mobile requesting control access
-        const password = data.password;
-        const session = sessions.get(ws.uniqueId);
-        
-        if (!session) {
-          ws.send(JSON.stringify({ type: 'auth_failed' }));
-          return;
-        }
-        
-        if (password === session.password || password === session.guestPassword) {
-          ws.hasControlAccess = true;
-          ws.send(JSON.stringify({ type: 'control_granted' }));
-        } else {
-          ws.send(JSON.stringify({ type: 'auth_failed' }));
-        }
-      }
-      
-      else {
-        // Route all other messages
-        const session = sessions.get(ws.uniqueId);
-        if (!session) return;
-        
-        if (ws.clientType === 'mobile' && session.pcClient) {
-          // Check if command requires control access
-          if (data.type.includes('autopilot') || 
-              data.type === 'pause_toggle' || 
-              data.type === 'save_game' ||
-              data.type === 'toggle_gear' ||
-              data.type === 'toggle_spoilers' ||
-              data.type === 'toggle_speedbrake' ||
-              data.type === 'toggle_parking_brake' ||
-              data.type === 'change_flaps' ||
-              data.type === 'throttle_control') {
-            if (!ws.hasControlAccess) {
-              ws.send(JSON.stringify({ 
-                type: 'control_required',
-                message: 'Enter password to access controls'
-              }));
-              return;
-            }
-          }
-          
-          // Forward to PC
-          if (session.pcClient.readyState === WebSocket.OPEN) {
-            session.pcClient.send(JSON.stringify(data));
-          }
-        }
-        else if (ws.clientType === 'pc') {
-          // Broadcast to all mobile clients
-          session.mobileClients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify(data));
-            }
-          });
-        }
-      }
-      
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  });
-
-  ws.on('close', () => {
-    if (ws.uniqueId && sessions.has(ws.uniqueId)) {
-      const session = sessions.get(ws.uniqueId);
-      
-      if (ws.clientType === 'pc') {
-        console.log(`PC disconnected: ${ws.uniqueId}`);
-        session.pcClient = null;
-        
-        // Notify mobile clients
-        session.mobileClients.forEach(client => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({ type: 'pc_offline' }));
-          }
-        });
-      }
-      else if (ws.clientType === 'mobile') {
-        session.mobileClients.delete(ws);
-        console.log(`Mobile disconnected from: ${ws.uniqueId}`);
-      }
-    }
-  });
-});
-
-function getMobileAppHTML() {
-  return `<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset='UTF-8'>
@@ -483,7 +311,7 @@ function getMobileAppHTML() {
             <div id='controlPanel' class='hidden'>
                 <div class='card'>
                     <div class='btn-group'>
-                        <button class='btn btn-secondary' id='btnPause' onclick='togglePause()'>⏸️ Pause</button>
+                        <button class='btn btn-primary' id='btnPause' onclick='togglePause()'>Pause</button>
                         <button class='btn btn-primary' onclick='saveGame()'>💾 Save Flight</button>
                     </div>
                 </div>
@@ -577,7 +405,7 @@ function getMobileAppHTML() {
                     
                     <div class='control-row'>
                         <span class='control-label'>Speedbrake</span>
-                        <button class='toggle-btn off' id='spoilers' onclick='toggleSpeedbrake()'>OFF</button>
+                        <button class='toggle-btn off' id='spoilers' onclick='toggleSpeedbrake()'>RETRACTED</button>
                     </div>
                     
                     <div class='control-row'>
@@ -706,7 +534,7 @@ function getMobileAppHTML() {
                 document.getElementById('wpEte').textContent = 'ETE: --';
             }
             
-            // Total distance to destination - FIXED
+            // Total distance to destination
             if (data.totalDistance && data.totalDistance > 0) {
                 document.getElementById('distance').textContent = data.totalDistance.toFixed(1);
             } else {
@@ -722,15 +550,14 @@ function getMobileAppHTML() {
                 document.getElementById('ete').textContent = 'Total ETE: --';
             }
 
-            // Pause state - FIXED
-            isPaused = data.isPaused;
+            // Pause state - FIXED: Sync with sim state
             const btnPause = document.getElementById('btnPause');
             if (data.isPaused) {
-                btnPause.textContent = '▶️ PAUSED - Resume';
+                btnPause.textContent = 'PAUSED';
                 btnPause.className = 'btn btn-warning paused';
             } else {
-                btnPause.textContent = '⏸️ Pause';
-                btnPause.className = 'btn btn-secondary';
+                btnPause.textContent = 'Pause';
+                btnPause.className = 'btn btn-primary';
             }
 
             if (map && data.latitude && data.longitude) {
@@ -753,13 +580,13 @@ function getMobileAppHTML() {
             
             document.getElementById('flapsPos').textContent = Math.round(data.flaps) + '%';
             
-            // Spoilers
+            // Speedbrake - FIXED: Show EXTENDED when active
             const spoilersBtn = document.getElementById('spoilers');
             const spoilersActive = data.spoilers > 10;
             spoilersBtn.className = 'toggle-btn ' + (spoilersActive ? 'on' : 'off');
-            spoilersBtn.textContent = spoilersActive ? 'DEPLOYED' : 'RETRACTED';
+            spoilersBtn.textContent = spoilersActive ? 'EXTENDED' : 'RETRACTED';
             
-            // NAV/GPS toggle - FIXED: inverted the logic
+            // NAV/GPS toggle
             const navBtn = document.getElementById('navMode');
             navBtn.textContent = data.navMode ? 'GPS' : 'NAV';
             navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
@@ -822,7 +649,6 @@ function getMobileAppHTML() {
         }
 
         function toggleAP(system) {
-            // FIXED: Send the correct system name for LOC and ILS
             if (system === 'loc') {
                 ws.send(JSON.stringify({ type: 'autopilot_toggle', system: 'loc' }));
             } else if (system === 'ils') {
@@ -893,9 +719,4 @@ function getMobileAppHTML() {
         };
     </script>
 </body>
-</html>`;
-}
-
-server.listen(PORT, () => {
-  console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
-});
+</html>
