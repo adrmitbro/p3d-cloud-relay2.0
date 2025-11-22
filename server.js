@@ -257,16 +257,6 @@ function getMobileAppHTML() {
         .btn-warning { background: #ff9800; color: #000; }
         .btn-danger { background: #f44336; color: white; }
         .btn:disabled { background: #333; opacity: 0.5; }
-        .btn.paused { 
-            background: #ff9800; 
-            color: #000;
-            animation: pulse 1.5s infinite; 
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(0.98); }
-        }
         
         .tabs {
             display: flex;
@@ -331,7 +321,6 @@ function getMobileAppHTML() {
             color: #167fac;
         }
         
-        /* Fixed Map Controls Layout */
         .map-controls {
             display: flex;
             flex-direction: column;
@@ -389,7 +378,6 @@ function getMobileAppHTML() {
             border: 1px solid #333;
         }
         
-        /* Fixed Aircraft Panel Layout */
         .aircraft-panel {
             display: flex;
             flex-direction: column;
@@ -508,13 +496,6 @@ function getMobileAppHTML() {
             gap: 10px;
         }
         
-        .throttle-controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
         .hidden { display: none !important; }
         
         .info-box {
@@ -530,15 +511,6 @@ function getMobileAppHTML() {
         h3 {
             color: #167fac;
             margin-bottom: 15px;
-        }
-        
-        .route-badge {
-            display: inline-block;
-            background: #2d2d2d;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            margin-top: 5px;
         }
         
         .detail-row {
@@ -563,7 +535,6 @@ function getMobileAppHTML() {
             font-weight: bold;
         }
         
-        /* Custom aircraft icon styles */
         .user-aircraft {
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
             z-index: 1000;
@@ -578,7 +549,11 @@ function getMobileAppHTML() {
             animation: pulse 1.5s infinite;
         }
 
-        /* Waypoint info row styling */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.98); }
+        }
+
         .waypoint-info-row {
             display: flex;
             justify-content: space-between;
@@ -802,7 +777,6 @@ function getMobileAppHTML() {
                     </div>
                 </div>
                 
-                <!-- ===== Exterior Lights Card ===== -->
                 <div class='card'>
                     <h3>Exterior Lights</h3>
                     
@@ -847,14 +821,13 @@ function getMobileAppHTML() {
                     </div>
                 </div>
                 
-                <!-- ===== Cabin & Interior Card ===== -->
                 <div class='card'>
                     <h3>Cabin & Interior</h3>
                     
                     <div class='control-row'>
                         <span class='control-label'>Panel Lights</span>
-                        <button class='toggle-btn off' id='lightPanel' onclick='toggleLight("panel")'>OFF</button>
-                    </div>
+                        <button class='toggle-btn off' id='lightPanel' onclick='toggleLight("panel")'>OFF</button
+                        </div>
                     
                     <div class='control-row'>
                         <span class='control-label'>No Smoking Sign</span>
@@ -890,10 +863,10 @@ function getMobileAppHTML() {
         let userLon = 0;
         let userHeading = 0;
         let userSpeed = 0;
-let userAltitude = 0;
-let userFlightPlan = '';
-let userNextWaypoint = '';
-let userDestination = '';
+        let userAltitude = 0;
+        let userNextWaypoint = '';
+        let userFlightPlanStart = '';
+        let userFlightPlanEnd = '';
 
         function switchTab(index) {
             document.querySelectorAll('.tab').forEach((tab, i) => {
@@ -995,19 +968,20 @@ let userDestination = '';
         }
 
         function updateFlightData(data) {
+            // ===== FIXED: Store user aircraft data globally =====
+            userSpeed = data.groundSpeed;
+            userAltitude = data.altitude;
+            userNextWaypoint = data.nextWaypoint || '';
+            
             document.getElementById('speed').textContent = Math.round(data.groundSpeed);
             document.getElementById('altitude').textContent = Math.round(data.altitude).toLocaleString();
             document.getElementById('heading').textContent = Math.round(data.heading) + '°';
             document.getElementById('vs').textContent = Math.round(data.verticalSpeed);
             
-            // Next waypoint info
             document.getElementById('nextWaypoint').textContent = data.nextWaypoint || 'No Active Waypoint';
             document.getElementById('wpDistance').textContent = 'Distance: ' + (data.distanceToWaypoint ? data.distanceToWaypoint.toFixed(1) + ' nm' : '--');
-            
-            // Add bearing information
             document.getElementById('wpBearing').textContent = 'Bearing: ' + (data.bearingToWaypoint ? Math.round(data.bearingToWaypoint) + '°' : '--°');
             
-            // Fixed ETE for next waypoint - use waypointEte instead of total ETE
             if (data.waypointEte && data.waypointEte > 0) {
                 const wpMinutes = Math.floor(data.waypointEte / 60);
                 const wpSeconds = Math.floor(data.waypointEte % 60);
@@ -1016,14 +990,12 @@ let userDestination = '';
                 document.getElementById('wpEte').textContent = 'ETE: --';
             }
             
-            // Total distance to destination
             if (data.totalDistance && data.totalDistance > 0) {
                 document.getElementById('distance').textContent = data.totalDistance.toFixed(1);
             } else {
                 document.getElementById('distance').textContent = '--';
             }
             
-            // Total ETE
             if (data.ete && data.ete > 0) {
                 const hours = Math.floor(data.ete / 3600);
                 const minutes = Math.floor((data.ete % 3600) / 60);
@@ -1032,64 +1004,58 @@ let userDestination = '';
                 document.getElementById('ete').textContent = 'Total ETE: --';
             }
 
-// ADD THIS DEBUG LINE
-console.log('Pause state received:', data.isPaused);
+            // ===== FIXED: Pause state update (no pulsing) =====
+            console.log('Pause state received:', data.isPaused);
+            const btnPause = document.getElementById('btnPause');
+            if (data.isPaused) {
+                btnPause.textContent = '▶️ Resume';
+                btnPause.className = 'btn btn-warning';
+            } else {
+                btnPause.textContent = '⏸️ Pause';
+                btnPause.className = 'btn btn-secondary';
+            }
 
-// Pause state
-const btnPause = document.getElementById('btnPause');
-if (data.isPaused) {
-    btnPause.textContent = '▶️ Resume';
-    btnPause.className = 'btn btn-warning';
-} else {
-    btnPause.textContent = '⏸️ Pause';
-    btnPause.className = 'btn btn-secondary';
-}
-
-            // Update map if visible
             if (map && data.latitude && data.longitude) {
                 updateMap(data.latitude, data.longitude, data.heading);
             }
         }
 
-function updateAutopilotUI(data) {
-    updateToggle('apMaster', data.master);
-    updateToggle('apAlt', data.altitude);
-    updateToggle('apHdg', data.heading);
-    updateToggle('apVS', data.vs);
-    updateToggle('apSpeed', data.speed);
-    updateToggle('apApp', data.approach);
-    updateToggle('apNav', data.nav);
-    updateToggle('autoThrottle', data.throttle);
-    updateToggle('gear', data.gear, data.gear ? 'DOWN' : 'UP');
-    updateToggle('parkingBrake', data.parkingBrake, data.parkingBrake ? 'ON' : 'OFF');
-    
-    document.getElementById('flapsPos').textContent = Math.round(data.flaps) + '%';
-    
-    // Speedbrake
-    const spoilersBtn = document.getElementById('spoilers');
-    const spoilersActive = data.spoilers > 10;
-    spoilersBtn.className = 'toggle-btn ' + (spoilersActive ? 'on' : 'off');
-    spoilersBtn.textContent = spoilersActive ? 'EXTENDED' : 'RETRACTED';
-    
-    // NAV/GPS toggle
-    const navBtn = document.getElementById('navMode');
-    navBtn.textContent = data.navMode ? 'GPS' : 'NAV';
-    navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
-    
-    // Update lights and cabin controls - REMOVED lightCabin line
-    updateToggle('lightStrobe', data.lightStrobe);
-    updateToggle('lightPanel', data.lightPanel);
-    updateToggle('lightLanding', data.lightLanding);
-    updateToggle('lightTaxi', data.lightTaxi);
-    updateToggle('lightBeacon', data.lightBeacon);
-    updateToggle('lightNav', data.lightNav);
-    updateToggle('lightLogo', data.lightLogo);
-    updateToggle('lightWing', data.lightWing);
-    updateToggle('lightRecognition', data.lightRecognition);
-    // REMOVED: updateToggle('lightCabin', data.lightCabin);
-    updateToggle('noSmokingSwitch', data.noSmokingSwitch);
-    updateToggle('seatbeltsSwitch', data.seatbeltsSwitch);
-}
+        function updateAutopilotUI(data) {
+            updateToggle('apMaster', data.master);
+            updateToggle('apAlt', data.altitude);
+            updateToggle('apHdg', data.heading);
+            updateToggle('apVS', data.vs);
+            updateToggle('apSpeed', data.speed);
+            updateToggle('apApp', data.approach);
+            updateToggle('apNav', data.nav);
+            updateToggle('autoThrottle', data.throttle);
+            updateToggle('gear', data.gear, data.gear ? 'DOWN' : 'UP');
+            updateToggle('parkingBrake', data.parkingBrake, data.parkingBrake ? 'ON' : 'OFF');
+            
+            document.getElementById('flapsPos').textContent = Math.round(data.flaps) + '%';
+            
+            const spoilersBtn = document.getElementById('spoilers');
+            const spoilersActive = data.spoilers > 10;
+            spoilersBtn.className = 'toggle-btn ' + (spoilersActive ? 'on' : 'off');
+            spoilersBtn.textContent = spoilersActive ? 'EXTENDED' : 'RETRACTED';
+            
+            const navBtn = document.getElementById('navMode');
+            navBtn.textContent = data.navMode ? 'GPS' : 'NAV';
+            navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
+            
+            // ===== FIXED: Removed lightCabin =====
+            updateToggle('lightStrobe', data.lightStrobe);
+            updateToggle('lightPanel', data.lightPanel);
+            updateToggle('lightLanding', data.lightLanding);
+            updateToggle('lightTaxi', data.lightTaxi);
+            updateToggle('lightBeacon', data.lightBeacon);
+            updateToggle('lightNav', data.lightNav);
+            updateToggle('lightLogo', data.lightLogo);
+            updateToggle('lightWing', data.lightWing);
+            updateToggle('lightRecognition', data.lightRecognition);
+            updateToggle('noSmokingSwitch', data.noSmokingSwitch);
+            updateToggle('seatbeltsSwitch', data.seatbeltsSwitch);
+        }
 
         function updateToggle(id, state, text) {
             const btn = document.getElementById(id);
@@ -1098,7 +1064,6 @@ function updateAutopilotUI(data) {
             btn.textContent = text || (state ? 'ON' : 'OFF');
         }
 
-        // Custom aircraft icon creation functions
         function createUserAircraftIcon(heading) {
             return L.divIcon({
                 html: \`<div class="user-aircraft" style="transform: rotate(\${heading}deg);">
@@ -1140,14 +1105,12 @@ function updateAutopilotUI(data) {
                 maxZoom: 18
             }).addTo(map);
             
-            // Add zoom control to bottom right
             L.control.zoom({
                 position: 'bottomright'
             }).addTo(map);
             
-            // Add map controls
             map.on('mousedown', function(e) {
-                if (e.originalEvent.button === 0) { // Left click
+                if (e.originalEvent.button === 0) {
                     isDragging = true;
                     mapDragStart = e.latlng;
                     followUser = false;
@@ -1167,24 +1130,19 @@ function updateAutopilotUI(data) {
                 mapDragStart = null;
             });
             
-            // Click anywhere on map to deselect aircraft
             map.on('click', function(e) {
-                // Check if clicking on an aircraft marker
                 if (e.originalEvent.target.closest('.leaflet-marker-icon')) {
-                    return; // Let the aircraft click handler handle this
+                    return;
                 }
                 
-                // Clicked on empty map space - deselect aircraft
                 selectedAircraft = null;
                 updateMap(userLat, userLon, userHeading);
                 updateNearbyAircraftList();
                 
-                // Clear aircraft details
                 const detailsPanel = document.getElementById('aircraftDetails');
                 detailsPanel.innerHTML = '<p>Click on an aircraft to view details</p>';
             });
             
-            // Update center coordinates when map is moved
             map.on('moveend', function() {
                 const center = map.getCenter();
                 mapCenterLat = center.lat;
@@ -1197,7 +1155,6 @@ function updateAutopilotUI(data) {
         function updateMap(lat, lon, heading) {
             if (!map) return;
             
-            // Update user position
             userLat = lat;
             userLon = lon;
             userHeading = heading;
@@ -1207,7 +1164,6 @@ function updateAutopilotUI(data) {
                 mapCenterLon = lon;
             }
             
-            // Clear existing markers
             if (aircraftMarkers) {
                 aircraftMarkers.forEach(marker => map.removeLayer(marker));
                 aircraftMarkers = [];
@@ -1215,72 +1171,30 @@ function updateAutopilotUI(data) {
                 aircraftMarkers = [];
             }
             
-            // Add user aircraft marker with custom yellow icon
-// Add user aircraft marker with custom yellow icon and popup
-const userMarker = L.marker([lat, lon], { icon: createUserAircraftIcon(heading) }).addTo(map);
-
-// Create detailed popup for user aircraft
-const userPopupContent = `
-    <div style="min-width:200px">
-        <h4 style="margin:0 0 5px 0; color: #FFD700;">Your Aircraft</h4>
-        <p style="margin:0 0 5px 0">Speed: ${Math.round(userSpeed)} kts</p>
-        <p style="margin:0 0 5px 0">Altitude: ${Math.round(userAltitude)} ft</p>
-        <p style="margin:0 0 5px 0">Heading: ${Math.round(userHeading)}°</p>
-        ${userFlightPlan ? `<p style="margin:5px 0 0 0; padding-top:5px; border-top:1px solid #444;">
-            <strong>Flight Plan:</strong><br>
-            ${userFlightPlan}
-        </p>` : ''}
-    </div>
-`;
-
-userMarker.bindPopup(userPopupContent);
-
-// Add click event to show user details in panel
-userMarker.on('click', function(e) {
-    L.DomEvent.stopPropagation(e);
-    showUserAircraftDetails();
-});
-
-function showUserAircraftDetails() {
-    const detailsPanel = document.getElementById('aircraftDetails');
-    if (!detailsPanel) return;
-    
-    selectedAircraft = null; // Deselect any AI aircraft
-    updateNearbyAircraftList();
-    
-    detailsPanel.innerHTML = `
-        <h4 style="margin-top:0; color: #FFD700;">Your Aircraft</h4>
-        <div class="detail-row">
-            <span class="detail-label">Speed:</span>
-            <span class="detail-value">${Math.round(userSpeed)} kts</span>
-        </div>
-        <div class="detail-row">
-            <span class="detail-label">Altitude:</span>
-            <span class="detail-value">${Math.round(userAltitude)} ft</span>
-        </div>
-        <div class="detail-row">
-            <span class="detail-label">Heading:</span>
-            <span class="detail-value">${Math.round(userHeading)}°</span>
-        </div>
-        ${userNextWaypoint ? `
-            <div style="margin-top:15px; padding-top:15px; border-top:1px solid #333;">
-                <h5 style="margin:0 0 10px 0; color: #167fac;">Active Flight Plan</h5>
-                <div class="detail-row">
-                    <span class="detail-label">Next Waypoint:</span>
-                    <span class="detail-value">${userNextWaypoint}</span>
-                </div>
-                ${userFlightPlan ? `<p style="margin-top:10px; color:#888; font-size:12px;">${userFlightPlan}</p>` : ''}
-            </div>
-        ` : '<p style="margin-top:15px; color:#666;">No active flight plan</p>'}
-    `;
-    
-    // Update map to show user is selected
-    updateMap(userLat, userLon, userHeading);
-}
-
-aircraftMarkers.push(userMarker);
+            // ===== FIXED: User aircraft marker with popup and click handler =====
+            const userMarker = L.marker([lat, lon], { icon: createUserAircraftIcon(heading) }).addTo(map);
             
-            // Add AI aircraft markers with custom white/red icons
+            const userPopupContent = \`
+                <div style="min-width:200px">
+                    <h4 style="margin:0 0 5px 0; color: #FFD700;">Your Aircraft</h4>
+                    <p style="margin:0 0 5px 0">Speed: \${Math.round(userSpeed)} kts</p>
+                    <p style="margin:0 0 5px 0">Altitude: \${Math.round(userAltitude)} ft</p>
+                    <p style="margin:0 0 5px 0">Heading: \${Math.round(userHeading)}°</p>
+                    \${userNextWaypoint && userNextWaypoint !== 'No Active Waypoint' ? \`<p style="margin:5px 0 0 0; padding-top:5px; border-top:1px solid #444;">
+                        <strong>Next Waypoint:</strong> \${userNextWaypoint}
+                    </p>\` : ''}
+                </div>
+            \`;
+            
+            userMarker.bindPopup(userPopupContent);
+            
+            userMarker.on('click', function(e) {
+                L.DomEvent.stopPropagation(e);
+                showUserAircraftDetails();
+            });
+            
+            aircraftMarkers.push(userMarker);
+            
             aiAircraft.forEach(aircraft => {
                 const isSelected = selectedAircraft && 
                                 ((selectedAircraft.atcId && selectedAircraft.atcId === aircraft.atcId) || 
@@ -1290,7 +1204,6 @@ aircraftMarkers.push(userMarker);
                     icon: createAIAircraftIcon(aircraft.heading, isSelected)
                 }).addTo(map);
                 
-                // Create popup content
                 let callsign = aircraft.atcId || "N/A";
                 let flightInfo = "";
                 if (aircraft.atcAirline && aircraft.atcFlightNumber) {
@@ -1320,9 +1233,8 @@ aircraftMarkers.push(userMarker);
                 
                 marker.bindPopup(popupContent);
                 
-                // Add click event to select aircraft
                 marker.on('click', function(e) {
-                    L.DomEvent.stopPropagation(e); // Prevent map click event
+                    L.DomEvent.stopPropagation(e);
                     selectedAircraft = aircraft;
                     updateAircraftDetails(aircraft);
                     updateMap(lat, lon, heading);
@@ -1330,7 +1242,6 @@ aircraftMarkers.push(userMarker);
                 
                 aircraftMarkers.push(marker);
                 
-                // Add label if enabled
                 if (showAircraftLabels) {
                     const label = L.divIcon({
                         html: \`<div style="background:rgba(0,0,0,0.7);color:white;padding:2px 5px;border-radius:3px;font-size:11px;white-space:nowrap">
@@ -1345,10 +1256,45 @@ aircraftMarkers.push(userMarker);
                 }
             });
             
-            // Update map view
             if (followUser) {
                 map.setView([lat, lon], mapZoom);
             }
+        }
+
+        // ===== FIXED: New function to show user aircraft details =====
+        function showUserAircraftDetails() {
+            const detailsPanel = document.getElementById('aircraftDetails');
+            if (!detailsPanel) return;
+            
+            selectedAircraft = null;
+            updateNearbyAircraftList();
+            
+            detailsPanel.innerHTML = \`
+                <h4 style="margin-top:0; color: #FFD700;">Your Aircraft</h4>
+                <div class="detail-row">
+                    <span class="detail-label">Speed:</span>
+                    <span class="detail-value">\${Math.round(userSpeed)} kts</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Altitude:</span>
+                    <span class="detail-value">\${Math.round(userAltitude)} ft</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Heading:</span>
+                    <span class="detail-value">\${Math.round(userHeading)}°</span>
+                </div>
+                \${userNextWaypoint && userNextWaypoint !== 'No Active Waypoint' ? \`
+                    <div style="margin-top:15px; padding-top:15px; border-top:1px solid #333;">
+                        <h5 style="margin:0 0 10px 0; color: #167fac;">Active Flight Plan</h5>
+                        <div class="detail-row">
+                            <span class="detail-label">Next Waypoint:</span>
+                            <span class="detail-value">\${userNextWaypoint}</span>
+                        </div>
+                    </div>
+                \` : '<p style="margin-top:15px; color:#666;">No active flight plan</p>'}
+            \`;
+            
+            updateMap(userLat, userLon, userHeading);
         }
 
         function updateAircraftDetails(aircraft) {
@@ -1529,7 +1475,6 @@ aircraftMarkers.push(userMarker);
             ws.send(JSON.stringify({ type: 'change_flaps', direction }));
         }
         
-        // ===== New functions for lights and cabin controls =====
         function toggleLight(lightType) {
             ws.send(JSON.stringify({ type: 'toggle_light', lightType: lightType }));
         }
@@ -1538,7 +1483,6 @@ aircraftMarkers.push(userMarker);
             ws.send(JSON.stringify({ type: 'toggle_cabin', cabinType: cabinType }));
         }
 
-        // Load saved ID
         window.onload = () => {
             const savedId = localStorage.getItem('p3d_unique_id');
             if (savedId) {
@@ -1553,8 +1497,3 @@ aircraftMarkers.push(userMarker);
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
-
-
-
-
-
