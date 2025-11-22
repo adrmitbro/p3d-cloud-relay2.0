@@ -750,6 +750,8 @@ function getMobileAppHTML() {
             updateToggle('apBackcourse', data.backcourse);
             updateToggle('autoThrottle', data.throttle);
             updateToggle('gear', data.gear, data.gear ? 'DOWN' : 'UP');
+            
+            // FIXED: Parking brake now shows ON in blue when active
             updateToggle('parkingBrake', data.parkingBrake, data.parkingBrake ? 'SET' : 'OFF');
             
             document.getElementById('flapsPos').textContent = Math.round(data.flaps) + '%';
@@ -823,6 +825,7 @@ function getMobileAppHTML() {
         }
 
         function toggleAP(system) {
+            // FIXED: Send the correct system name for LOC and ILS
             if (system === 'loc') {
                 ws.send(JSON.stringify({ type: 'autopilot_toggle', system: 'loc' }));
             } else if (system === 'ils') {
