@@ -804,7 +804,7 @@ function getMobileAppHTML() {
 
                 <!-- Compact Summary Section -->
                 <div class='card'>
-                    <h3 style='margin-bottom: 10px;'>Summary</h3>
+                    <h3 style='margin-bottom: 10px;'>AP Targets</h3>
                     <div class='summary-container'>
                         <div class='summary-main'>
                             <div class='summary-item'>
@@ -1904,4 +1904,3 @@ function getMobileAppHTML() {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
-
