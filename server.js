@@ -374,7 +374,7 @@ function getMobileAppHTML() {
             border: 1px solid #333;
         }
         
-        .map-container {
+.map-container {
             height: 400px;
             position: relative;
             margin-bottom: 15px;
@@ -385,6 +385,42 @@ function getMobileAppHTML() {
             border-radius: 12px;
             overflow: hidden;
             border: 1px solid #333;
+        }
+        
+        .instrument-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding-bottom: 20px;
+        }
+        
+        .instrument-row {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .instrument-container {
+            background: #000;
+            border: 2px solid #333;
+            border-radius: 12px;
+            padding: 10px;
+            position: relative;
+        }
+        
+        .instrument-label {
+            position: absolute;
+            top: 5px;
+            left: 10px;
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        
+        canvas.instrument {
+            display: block;
+            background: #000;
         }
         
         .aircraft-panel {
@@ -701,10 +737,28 @@ function getMobileAppHTML() {
             <button class='tab active' onclick='switchTab(0)'>Flight</button>
             <button class='tab' onclick='switchTab(1)'>Map</button>
             <button class='tab' onclick='switchTab(2)'>Autopilot</button>
+            <button class='tab' onclick='switchTab(3)'>Instruments</button>
         </div>
 
-        <div class='tab-content active'>
-            <div class='card'>
+<div class='tab-content'>
+            <div class='instrument-panel'>
+                <div class='instrument-row'>
+                    <div class='instrument-container'>
+                        <span class='instrument-label'>Primary Flight Display</span>
+                        <canvas id='pfdCanvas' class='instrument' width='300' height='300'></canvas>
+                    </div>
+                </div>
+                <div class='instrument-row'>
+                    <div class='instrument-container'>
+                        <span class='instrument-label'>Multi-Function Display</span>
+                        <canvas id='mfdCanvas' class='instrument' width='300' height='300'></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class='tab-content'>
+            <div id='controlLock' class='card'>
                 <div class='data-label'>Next Waypoint</div>
                 <div class='data-value' style='font-size: 18px;' id='nextWaypoint'>--</div>
                 <div class='waypoint-info-row'>
@@ -1025,8 +1079,12 @@ function getMobileAppHTML() {
         let userHeading = 0;
         let currentFlightData = {};
         let mapInitialized = false;
+        let pfdCanvas = null;
+        let pfdCtx = null;
+        let mfdCanvas = null;
+        let mfdCtx = null;
 
-        function switchTab(index) {
+function switchTab(index) {
             document.querySelectorAll('.tab').forEach((tab, i) => {
                 tab.classList.toggle('active', i === index);
             });
@@ -1036,6 +1094,10 @@ function getMobileAppHTML() {
             
             if (index === 1 && !map) {
                 setTimeout(initMap, 100);
+            }
+            
+            if (index === 2 && !pfdCanvas) {
+                setTimeout(initInstruments, 100);
             }
         }
 
@@ -1767,6 +1829,355 @@ function updateUserAircraftDetails() {
         function toggleCabin(cabinType) {
             ws.send(JSON.stringify({ type: 'toggle_cabin', cabinType: cabinType }));
         }
+function initInstruments() {
+            pfdCanvas = document.getElementById('pfdCanvas');
+            pfdCtx = pfdCanvas.getContext('2d');
+            mfdCanvas = document.getElementById('mfdCanvas');
+            mfdCtx = mfdCanvas.getContext('2d');
+            
+            // Start drawing loop
+            requestAnimationFrame(drawInstruments);
+        }
+        
+        function drawInstruments() {
+            if (pfdCtx && currentFlightData) {
+                drawPFD();
+            }
+            if (mfdCtx && currentFlightData) {
+                drawMFD();
+            }
+            requestAnimationFrame(drawInstruments);
+        }
+        
+        function drawPFD() {
+            const ctx = pfdCtx;
+            const width = pfdCanvas.width;
+            const height = pfdCanvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            
+            // Clear canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Get flight data
+            const pitch = currentFlightData.attitude?.pitch || 0;
+            const roll = currentFlightData.attitude?.roll || 0;
+            const altitude = currentFlightData.altitude || 0;
+            const speed = currentFlightData.groundSpeed || 0;
+            const heading = currentFlightData.heading || 0;
+            const vs = currentFlightData.verticalSpeed || 0;
+            
+            // Draw artificial horizon
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(-roll * Math.PI / 180);
+            
+            // Sky
+            ctx.fillStyle = '#1a5f8a';
+            ctx.fillRect(-width, -height - pitch * 3, width * 2, height * 2);
+            
+            // Ground
+            ctx.fillStyle = '#4a3520';
+            ctx.fillRect(-width, -pitch * 3, width * 2, height * 2);
+            
+            // Horizon line
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-width, -pitch * 3);
+            ctx.lineTo(width, -pitch * 3);
+            ctx.stroke();
+            
+            // Pitch ladder
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            for (let p = -90; p <= 90; p += 10) {
+                if (p === 0) continue;
+                const y = (pitch - p) * 3;
+                const lineWidth = p % 30 === 0 ? 80 : 40;
+                ctx.beginPath();
+                ctx.moveTo(-lineWidth / 2, y);
+                ctx.lineTo(lineWidth / 2, y);
+                ctx.stroke();
+                
+                // Pitch numbers
+                ctx.fillStyle = '#fff';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText(Math.abs(p), -lineWidth / 2 - 5, y + 4);
+                ctx.textAlign = 'left';
+                ctx.fillText(Math.abs(p), lineWidth / 2 + 5, y + 4);
+            }
+            
+            ctx.restore();
+            
+            // Fixed aircraft symbol
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(centerX - 60, centerY);
+            ctx.lineTo(centerX - 20, centerY);
+            ctx.moveTo(centerX + 20, centerY);
+            ctx.lineTo(centerX + 60, centerY);
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(centerX, centerY + 15);
+            ctx.stroke();
+            
+            // Roll indicator
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, 100, -Math.PI, 0, false);
+            ctx.stroke();
+            
+            // Roll markers
+            [-60, -45, -30, -20, -10, 0, 10, 20, 30, 45, 60].forEach(angle => {
+                const rad = angle * Math.PI / 180;
+                const x1 = Math.sin(rad) * 95;
+                const y1 = -Math.cos(rad) * 95;
+                const length = [0, -30, -45, 30, 45].includes(angle) ? 15 : 10;
+                const x2 = Math.sin(rad) * (95 - length);
+                const y2 = -Math.cos(rad) * (95 - length);
+                
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            });
+            
+            // Roll pointer
+            ctx.rotate(-roll * Math.PI / 180);
+            ctx.fillStyle = '#ffff00';
+            ctx.beginPath();
+            ctx.moveTo(0, -100);
+            ctx.lineTo(-8, -85);
+            ctx.lineTo(8, -85);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.restore();
+            
+            // Speed tape (left side)
+            ctx.fillStyle = '#0d0d0d';
+            ctx.fillRect(10, centerY - 100, 60, 200);
+            ctx.strokeStyle = '#333';
+            ctx.strokeRect(10, centerY - 100, 60, 200);
+            
+            ctx.fillStyle = '#167fac';
+            ctx.font = 'bold 18px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(Math.round(speed), 40, centerY + 6);
+            
+            // Altitude tape (right side)
+            ctx.fillStyle = '#0d0d0d';
+            ctx.fillRect(width - 70, centerY - 100, 60, 200);
+            ctx.strokeStyle = '#333';
+            ctx.strokeRect(width - 70, centerY - 100, 60, 200);
+            
+            ctx.fillStyle = '#167fac';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(Math.round(altitude), width - 40, centerY + 6);
+            
+            // Vertical speed indicator
+            const vsY = centerY - (vs / 20);
+            ctx.fillStyle = '#167fac';
+            ctx.beginPath();
+            ctx.moveTo(width - 15, centerY);
+            ctx.lineTo(width - 5, vsY);
+            ctx.lineTo(width - 25, vsY);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Heading tape (bottom)
+            ctx.fillStyle = '#0d0d0d';
+            ctx.fillRect(centerX - 100, height - 40, 200, 35);
+            ctx.strokeStyle = '#333';
+            ctx.strokeRect(centerX - 100, height - 40, 200, 35);
+            
+            ctx.fillStyle = '#167fac';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(Math.round(heading) + '°', centerX, height - 13);
+            
+            // Status text
+            ctx.fillStyle = '#01E00D';
+            ctx.font = '11px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(`SPD: ${Math.round(speed)} kts`, 15, 25);
+            ctx.fillText(`ALT: ${Math.round(altitude)} ft`, 15, 40);
+            ctx.fillText(`V/S: ${Math.round(vs)} fpm`, 15, 55);
+        }
+        
+        function drawMFD() {
+            const ctx = mfdCtx;
+            const width = mfdCanvas.width;
+            const height = mfdCanvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            
+            // Clear canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+            
+            const heading = currentFlightData.heading || 0;
+            const groundSpeed = currentFlightData.groundSpeed || 0;
+            const trueAirspeed = currentFlightData.airspeed || groundSpeed;
+            
+            // Draw compass rose
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(-heading * Math.PI / 180);
+            
+            // Compass circles
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(0, 0, 80, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(0, 0, 120, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Cardinal directions
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // N
+            ctx.fillText('N', 0, -130);
+            // E
+            ctx.fillText('E', 130, 0);
+            // S
+            ctx.fillText('S', 0, 130);
+            // W
+            ctx.fillText('W', -130, 0);
+            
+            // Heading marks every 30 degrees
+            for (let i = 0; i < 360; i += 30) {
+                const rad = i * Math.PI / 180;
+                const x1 = Math.sin(rad) * 110;
+                const y1 = -Math.cos(rad) * 110;
+                const x2 = Math.sin(rad) * 120;
+                const y2 = -Math.cos(rad) * 120;
+                
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+                
+                // Heading numbers
+                if (i % 30 === 0 && ![0, 90, 180, 270].includes(i)) {
+                    const x3 = Math.sin(rad) * 100;
+                    const y3 = -Math.cos(rad) * 100;
+                    ctx.fillStyle = '#888';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(i.toString().padStart(3, '0'), x3, y3);
+                }
+            }
+            
+            ctx.restore();
+            
+            // Fixed aircraft symbol
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(centerX - 15, centerY);
+            ctx.lineTo(centerX - 5, centerY - 8);
+            ctx.lineTo(centerX + 5, centerY - 8);
+            ctx.lineTo(centerX + 15, centerY);
+            ctx.lineTo(centerX + 5, centerY - 8);
+            ctx.lineTo(centerX, centerY - 20);
+            ctx.lineTo(centerX - 5, centerY - 8);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fillStyle = '#ffff00';
+            ctx.fill();
+            
+            // Heading bug (autopilot heading)
+            const apHeading = currentFlightData.apHeading || heading;
+            const bugAngle = (apHeading - heading) * Math.PI / 180;
+            const bugX = centerX + Math.sin(bugAngle) * 120;
+            const bugY = centerY - Math.cos(bugAngle) * 120;
+            
+            ctx.fillStyle = '#ff00ff';
+            ctx.beginPath();
+            ctx.moveTo(bugX, bugY - 10);
+            ctx.lineTo(bugX - 6, bugY);
+            ctx.lineTo(bugX + 6, bugY);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Info boxes
+            // Ground Speed
+            ctx.fillStyle = '#0d0d0d';
+            ctx.fillRect(10, 10, 80, 30);
+            ctx.strokeStyle = '#333';
+            ctx.strokeRect(10, 10, 80, 30);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('GS', 15, 22);
+            ctx.fillStyle = '#01E00D';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText(Math.round(groundSpeed) + ' kts', 15, 36);
+            
+            // True Airspeed
+            ctx.fillStyle = '#0d0d0d';
+            ctx.fillRect(10, 45, 80, 30);
+            ctx.strokeStyle = '#333';
+            ctx.strokeRect(10, 45, 80, 30);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 10px Arial';
+            ctx.fillText('TAS', 15, 57);
+            ctx.fillStyle = '#01E00D';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText(Math.round(trueAirspeed) + ' kts', 15, 71);
+            
+            // Next waypoint
+            const nextWp = currentFlightData.nextWaypoint || 'N/A';
+            ctx.fillStyle = '#0d0d0d';
+            ctx.fillRect(width - 90, 10, 80, 30);
+            ctx.strokeStyle = '#333';
+            ctx.strokeRect(width - 90, 10, 80, 30);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'right';
+            ctx.fillText('NEXT', width - 15, 22);
+            ctx.fillStyle = '#00ff00';
+            ctx.font = 'bold 12px Arial';
+            ctx.fillText(nextWp.substring(0, 6), width - 15, 36);
+            
+            // Distance to waypoint
+            const wpDist = currentFlightData.distanceToWaypoint || 0;
+            ctx.fillStyle = '#0d0d0d';
+            ctx.fillRect(width - 90, 45, 80, 30);
+            ctx.strokeStyle = '#333';
+            ctx.strokeRect(width - 90, 45, 80, 30);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 10px Arial';
+            ctx.fillText('DIST', width - 15, 57);
+            ctx.fillStyle = '#01E00D';
+            ctx.font = 'bold 12px Arial';
+            ctx.fillText(wpDist.toFixed(1) + ' nm', width - 15, 71);
+            
+            // Bottom info bar
+            ctx.fillStyle = '#0d0d0d';
+            ctx.fillRect(0, height - 40, width, 40);
+            ctx.strokeStyle = '#333';
+            ctx.strokeRect(0, height - 40, width, 40);
+            
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('HDG ' + Math.round(heading) + '°', centerX, height - 15);
+        }
 
         window.onload = () => {
             const savedId = localStorage.getItem('p3d_unique_id');
@@ -1782,4 +2193,5 @@ function updateUserAircraftDetails() {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
