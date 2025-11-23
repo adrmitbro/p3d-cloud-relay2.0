@@ -740,150 +740,154 @@ function getMobileAppHTML() {
     <button class='tab' onclick='switchTab(3)'>Autopilot</button>
 </div>
 
+<!-- Flight Tab -->
+<div class='tab-content active'>
+    <div class='card'>
+        <div class='data-label'>Next Waypoint</div>
+        <div class='data-value' style='font-size: 18px;' id='nextWaypoint'>--</div>
+        <div class='waypoint-info-row'>
+            <div class='waypoint-info-item' id='wpDistance'>Distance: --</div>
+            <div class='waypoint-info-item' id='wpBearing'>Bearing: --°</div>
+        </div>
+        <div class='waypoint-info-item' id='wpEte'>ETE: --</div>
+    </div>
+
+    <div class='card'>
+        <div class='data-label'>Total Distance to Destination</div>
+        <div class='data-value'><span id='distance'>--</span> nm</div>
+        <div style='margin-top: 8px; color: #888; font-size: 13px;' id='ete'>Total ETE: --</div>
+    </div>
+
+    <div class='card'>
+        <div class='data-grid'>
+            <div class='data-item'>
+                <div class='data-label'>Speed</div>
+                <div class='data-value' id='speed'>--</div>
+                <div style='font-size: 11px; color: #888;'>knots</div>
+            </div>
+            <div class='data-item'>
+                <div class='data-label'>Altitude</div>
+                <div class='data-value' id='altitude'>--</div>
+                <div style='font-size: 11px; color: #888;'>feet</div>
+            </div>
+            <div class='data-item'>
+                <div class='data-label'>Heading</div>
+                <div class='data-value' id='heading'>--</div>
+                <div style='font-size: 11px; color: #888;'>degrees</div>
+            </div>
+            <div class='data-item'>
+                <div class='data-label'>V/S</div>
+                <div class='data-value' id='vs'>--</div>
+                <div style='font-size: 11px; color: #888;'>fpm</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Map Tab -->
+<div class='tab-content'>
+    <div class='map-controls'>
+        <div class='map-controls-row'>
+            <div class='map-buttons'>
+                <button id='followUserBtn' class='btn btn-secondary' onclick='toggleFollowUser()'>Follow Aircraft</button>
+                <button id='toggleLabelsBtn' class='btn btn-secondary' onclick='toggleAircraftLabels()'>Hide Labels</button>
+            </div>
+            <span id='zoomLevel' class='zoom-indicator'>Zoom: 7</span>
+        </div>
+    </div>
+    
+    <div class='map-container'>
+        <div id='map'></div>
+    </div>
+    
+    <div class='aircraft-panel'>
+        <div class='panel-section'>
+            <div class='panel-header'>
+                <h3>Nearby Aircraft</h3>
+            </div>
+            <div id='nearbyAircraftList' class='aircraft-list'>
+                <div class='no-aircraft'>No nearby aircraft</div>
+            </div>
+        </div>
+        
+        <div class='panel-section'>
+            <div class='panel-header'>
+                <h3>Aircraft Details</h3>
+            </div>
+            <div id='aircraftDetails' class='aircraft-details'>
+                <p>Click on an aircraft to view details</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Instruments Tab -->
 <div class='tab-content'>
     <div class='instrument-panel'>
-                <div class='instrument-row'>
-                    <div class='instrument-container'>
-                        <span class='instrument-label'>Primary Flight Display</span>
-                        <canvas id='pfdCanvas' class='instrument' width='300' height='300'></canvas>
-                    </div>
-                </div>
-                <div class='instrument-row'>
-                    <div class='instrument-container'>
-                        <span class='instrument-label'>Multi-Function Display</span>
-                        <canvas id='mfdCanvas' class='instrument' width='300' height='300'></canvas>
-                    </div>
-                </div>
+        <div class='instrument-row'>
+            <div class='instrument-container'>
+                <span class='instrument-label'>Primary Flight Display</span>
+                <canvas id='pfdCanvas' class='instrument' width='300' height='300'></canvas>
+            </div>
+        </div>
+        <div class='instrument-row'>
+            <div class='instrument-container'>
+                <span class='instrument-label'>Multi-Function Display</span>
+                <canvas id='mfdCanvas' class='instrument' width='300' height='300'></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Autopilot Tab -->
+<div class='tab-content'>
+    <div id='controlLock' class='card'>
+        <div class='info-box'>🔒 Enter password to access controls</div>
+        <input type='password' id='controlPassword' placeholder='Password'>
+        <button class='btn btn-primary' onclick='unlockControls()'>Unlock Controls</button>
+    </div>
+    
+    <div id='controlPanel' class='hidden'>
+        <div class='card'>
+            <div class='btn-group'>
+                <button class='btn btn-secondary' id='btnPause' onclick='togglePause()'>⏸️ Pause</button>
+                <button class='btn btn-primary' onclick='saveGame()'>💾 Save Flight</button>
             </div>
         </div>
 
-        <div class='tab-content'>
-            <div id='controlLock' class='card'>
-                <div class='data-label'>Next Waypoint</div>
-                <div class='data-value' style='font-size: 18px;' id='nextWaypoint'>--</div>
-                <div class='waypoint-info-row'>
-                    <div class='waypoint-info-item' id='wpDistance'>Distance: --</div>
-                    <div class='waypoint-info-item' id='wpBearing'>Bearing: --°</div>
-                </div>
-                <div class='waypoint-info-item' id='wpEte'>ETE: --</div>
-            </div>
-
-            <div class='card'>
-                <div class='data-label'>Total Distance to Destination</div>
-                <div class='data-value'><span id='distance'>--</span> nm</div>
-                <div style='margin-top: 8px; color: #888; font-size: 13px;' id='ete'>Total ETE: --</div>
-            </div>
-
-            <div class='card'>
-                <div class='data-grid'>
-                    <div class='data-item'>
-                        <div class='data-label'>Speed</div>
-                        <div class='data-value' id='speed'>--</div>
-                        <div style='font-size: 11px; color: #888;'>knots</div>
+        <div class='card'>
+            <h3 style='margin-bottom: 10px;'>Summary</h3>
+            <div class='summary-container'>
+                <div class='summary-main'>
+                    <div class='summary-item'>
+                        <div class='summary-label'>SPD</div>
+                        <div class='summary-value' id='summarySpeed'>--</div>
                     </div>
-                    <div class='data-item'>
-                        <div class='data-label'>Altitude</div>
-                        <div class='data-value' id='altitude'>--</div>
-                        <div style='font-size: 11px; color: #888;'>feet</div>
+                    <div class='summary-item'>
+                        <div class='summary-label'>HDG</div>
+                        <div class='summary-value' id='summaryHeading'>--</div>
                     </div>
-                    <div class='data-item'>
-                        <div class='data-label'>Heading</div>
-                        <div class='data-value' id='heading'>--</div>
-                        <div style='font-size: 11px; color: #888;'>degrees</div>
+                    <div class='summary-item'>
+                        <div class='summary-label'>ALT</div>
+                        <div class='summary-value' id='summaryAltitude'>--</div>
                     </div>
-                    <div class='data-item'>
-                        <div class='data-label'>V/S</div>
-                        <div class='data-value' id='vs'>--</div>
-                        <div style='font-size: 11px; color: #888;'>fpm</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class='tab-content'>
-            <div class='map-controls'>
-                <div class='map-controls-row'>
-                    <div class='map-buttons'>
-                        <button id='followUserBtn' class='btn btn-secondary' onclick='toggleFollowUser()'>Follow Aircraft</button>
-                        <button id='toggleLabelsBtn' class='btn btn-secondary' onclick='toggleAircraftLabels()'>Hide Labels</button>
-                    </div>
-                    <span id='zoomLevel' class='zoom-indicator'>Zoom: 7</span>
-                </div>
-            </div>
-            
-            <div class='map-container'>
-                <div id='map'></div>
-            </div>
-            
-            <div class='aircraft-panel'>
-                <div class='panel-section'>
-                    <div class='panel-header'>
-                        <h3>Nearby Aircraft</h3>
-                    </div>
-                    <div id='nearbyAircraftList' class='aircraft-list'>
-                        <div class='no-aircraft'>No nearby aircraft</div>
+                    <div class='summary-item'>
+                        <div class='summary-label'>V/S</div>
+                        <div class='summary-value' id='summaryVS'>--</div>
                     </div>
                 </div>
                 
-                <div class='panel-section'>
-                    <div class='panel-header'>
-                        <h3>Aircraft Details</h3>
+                <div class='summary-secondary'>
+                    <div class='summary-secondary-item'>
+                        <span style='font-size: 10px; color: #888;'>FLAPS</span>
+                        <span style='font-size: 12px; font-weight: bold; color: #167fac;' id='summaryFlaps'>--%</span>
                     </div>
-                    <div id='aircraftDetails' class='aircraft-details'>
-                        <p>Click on an aircraft to view details</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class='tab-content'>
-            <div id='controlLock' class='card'>
-                <div class='info-box'>🔒 Enter password to access controls</div>
-                <input type='password' id='controlPassword' placeholder='Password'>
-                <button class='btn btn-primary' onclick='unlockControls()'>Unlock Controls</button>
-            </div>
-            
-            <div id='controlPanel' class='hidden'>
-                <div class='card'>
-                    <div class='btn-group'>
-                        <button class='btn btn-secondary' id='btnPause' onclick='togglePause()'>⏸️ Pause</button>
-                        <button class='btn btn-primary' onclick='saveGame()'>💾 Save Flight</button>
+                    <div class='summary-secondary-item'>
+                        <span style='font-size: 10px; color: #888;'>GEAR</span>
+                        <div id='summaryGear' class='arrow-up'></div>
                     </div>
                 </div>
-
-                <div class='card'>
-                    <h3 style='margin-bottom: 10px;'>Summary</h3>
-                    <div class='summary-container'>
-                        <div class='summary-main'>
-                            <div class='summary-item'>
-                                <div class='summary-label'>SPD</div>
-                                <div class='summary-value' id='summarySpeed'>--</div>
-                            </div>
-                            <div class='summary-item'>
-                                <div class='summary-label'>HDG</div>
-                                <div class='summary-value' id='summaryHeading'>--</div>
-                            </div>
-                            <div class='summary-item'>
-                                <div class='summary-label'>ALT</div>
-                                <div class='summary-value' id='summaryAltitude'>--</div>
-                            </div>
-                            <div class='summary-item'>
-                                <div class='summary-label'>V/S</div>
-                                <div class='summary-value' id='summaryVS'>--</div>
-                            </div>
-                        </div>
-                        
-                        <div class='summary-secondary'>
-                            <div class='summary-secondary-item'>
-                                <span style='font-size: 10px; color: #888;'>FLAPS</span>
-                                <span style='font-size: 12px; font-weight: bold; color: #167fac;' id='summaryFlaps'>--%</span>
-                            </div>
-                            <div class='summary-secondary-item'>
-                                <span style='font-size: 10px; color: #888;'>GEAR</span>
-                                <div id='summaryGear' class='arrow-up'></div>
-                            </div>
-                        </div>
-                        
+                
 <div class='status-badges-row'>
     <span class='status-badge' id='apMasterStatus'>AP</span>
     <span class='status-badge' id='apAltStatus'>ALT</span>
@@ -895,167 +899,166 @@ function getMobileAppHTML() {
     <span class='status-badge' id='apAppStatus'>APP</span>
     <span class='status-badge' id='autoThrottleStatus'>A/T</span>
 </div>
-                    </div>
-                </div>
-                
-                <div class='card'>
-                    <h3>Autopilot</h3>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Master</span>
-                        <button class='toggle-btn off' id='apMaster' onclick='toggleAP("master")'>OFF</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Altitude Hold</span>
-                        <button class='toggle-btn off' id='apAlt' onclick='toggleAP("altitude")'>OFF</button>
-                    </div>
-                    <div class='input-group'>
-                        <input type='number' id='targetAlt' placeholder='Target Altitude (ft)'>
-                        <button class='btn btn-primary' onclick='setAltitude()'>Set</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>V/S Hold</span>
-                        <button class='toggle-btn off' id='apVS' onclick='toggleAP("vs")'>OFF</button>
-                    </div>
-                    <div class='input-group'>
-                        <input type='number' id='targetVS' placeholder='Vertical Speed (fpm)'>
-                        <button class='btn btn-primary' onclick='setVS()'>Set</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Airspeed Hold</span>
-                        <button class='toggle-btn off' id='apSpeed' onclick='toggleAP("speed")'>OFF</button>
-                    </div>
-                    <div class='input-group'>
-                        <input type='number' id='targetSpeed' placeholder='Target Speed (kts)'>
-                        <button class='btn btn-primary' onclick='setSpeed()'>Set</button>
-                    </div>
-                    
-                    <div class='control-
-                    row'>
-                        <span class='control-label'>Heading Hold</span>
-                        <button class='toggle-btn off' id='apHdg' onclick='toggleAP("heading")'>OFF</button>
-                    </div>
-                    <div class='input-group'>
-                        <input type='number' id='targetHdg' placeholder='Heading (deg)'>
-                        <button class='btn btn-primary' onclick='setHeading()'>Set</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>NAV/GPS Mode</span>
-                        <button class='toggle-btn off' id='navMode' onclick='toggleNavMode()'>NAV</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>LOC Hold</span>
-                        <button class='toggle-btn off' id='apNav' onclick='toggleAP("loc")'>OFF</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Approach</span>
-                        <button class='toggle-btn off' id='apApp' onclick='toggleAP("ils")'>OFF</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Auto Throttle</span>
-                        <button class='toggle-btn off' id='autoThrottle' onclick='toggleAP("throttle")'>OFF</button>
-                    </div>
-                </div>
-                
-                <div class='card'>
-                    <h3>Aircraft</h3>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Landing Gear</span>
-                        <button class='toggle-btn off' id='gear' onclick='toggleGear()'>UP</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Flaps</span>
-                        <div>
-                            <button class='btn btn-secondary' style='width:auto; padding:8px 16px; margin:0 5px;' onclick='changeFlaps(-1)'>-</button>
-                            <span id='flapsPos' style='display:inline-block; width:60px; text-align:center;'>0%</span>
-                            <button class='btn btn-secondary' style='width:auto; padding:8px 16px; margin:0 5px;' onclick='changeFlaps(1)'>+</button>
-                        </div>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Speedbrake</span>
-                        <button class='toggle-btn off' id='spoilers' onclick='toggleSpeedbrake()'>RETRACTED</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Parking Brake</span>
-                        <button class='toggle-btn off' id='parkingBrake' onclick='toggleParkingBrake()'>OFF</button>
-                    </div>
-                </div>
-                
-                <div class='card'>
-                    <h3>Exterior Lights</h3>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Strobe Lights</span>
-                        <button class='toggle-btn off' id='lightStrobe' onclick='toggleLight("strobe")'>OFF</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Landing Lights</span>
-                        <button class='toggle-btn off' id='lightLanding' onclick='toggleLight("landing")'>OFF</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Taxi Lights</span>
-                        <button class='toggle-btn off' id='lightTaxi' onclick='toggleLight("taxi")'>OFF</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Beacon Lights</span>
-                        <button class='toggle-btn off' id='lightBeacon' onclick='toggleLight("beacon")'>OFF</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Nav Lights</span>
-                        <button class='toggle-btn off' id='lightNav' onclick='toggleLight("nav")'>OFF</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Logo Lights</span>
-                        <button class='toggle-btn off' id='lightLogo' onclick='toggleLight("logo")'>OFF</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Wing Lights</span>
-                        <button class='toggle-btn off' id='lightWing' onclick='toggleLight("wing")'>OFF</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Recognition Lights</span>
-                        <button class='toggle-btn off' id='lightRecognition' onclick='toggleLight("recognition")'>OFF</button>
-                    </div>
-                </div>
-                
-                <div class='card'>
-                    <h3>Cabin & Interior</h3>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Panel Lights</span>
-                        <button class='toggle-btn off' id='lightPanel' onclick='toggleLight("panel")'>OFF</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>No Smoking Sign</span>
-                        <button class='toggle-btn off' id='noSmokingSwitch' onclick='toggleCabin("nosmoking")'>OFF</button>
-                    </div>
-                    
-                    <div class='control-row'>
-                        <span class='control-label'>Seatbelts Sign</span>
-                        <button class='toggle-btn off' id='seatbeltsSwitch' onclick='toggleCabin("seatbelts")'>OFF</button>
-                    </div>
-                </div>
             </div>
         </div>
+        
+        <div class='card'>
+            <h3>Autopilot</h3>
+            
+            <div class='control-row'>
+                <span class='control-label'>Master</span>
+                <button class='toggle-btn off' id='apMaster' onclick='toggleAP("master")'>OFF</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>Altitude Hold</span>
+                <button class='toggle-btn off' id='apAlt' onclick='toggleAP("altitude")'>OFF</button>
+            </div>
+            <div class='input-group'>
+                <input type='number' id='targetAlt' placeholder='Target Altitude (ft)'>
+                <button class='btn btn-primary' onclick='setAltitude()'>Set</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>V/S Hold</span>
+                <button class='toggle-btn off' id='apVS' onclick='toggleAP("vs")'>OFF</button>
+            </div>
+            <div class='input-group'>
+                <input type='number' id='targetVS' placeholder='Vertical Speed (fpm)'>
+                <button class='btn btn-primary' onclick='setVS()'>Set</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>Airspeed Hold</span>
+                <button class='toggle-btn off' id='apSpeed' onclick='toggleAP("speed")'>OFF</button>
+            </div>
+            <div class='input-group'>
+                <input type='number' id='targetSpeed' placeholder='Target Speed (kts)'>
+                <button class='btn btn-primary' onclick='setSpeed()'>Set</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>Heading Hold</span>
+                <button class='toggle-btn off' id='apHdg' onclick='toggleAP("heading")'>OFF</button>
+            </div>
+            <div class='input-group'>
+                <input type='number' id='targetHdg' placeholder='Heading (deg)'>
+                <button class='btn btn-primary' onclick='setHeading()'>Set</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>NAV/GPS Mode</span>
+                <button class='toggle-btn off' id='navMode' onclick='toggleNavMode()'>NAV</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>LOC Hold</span>
+                <button class='toggle-btn off' id='apNav' onclick='toggleAP("loc")'>OFF</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>Approach</span>
+                <button class='toggle-btn off' id='apApp' onclick='toggleAP("ils")'>OFF</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>Auto Throttle</span>
+                <button class='toggle-btn off' id='autoThrottle' onclick='toggleAP("throttle")'>OFF</button>
+            </div>
+        </div>
+        
+        <div class='card'>
+            <h3>Aircraft</h3>
+            
+            <div class='control-row'>
+                <span class='control-label'>Landing Gear</span>
+                <button class='toggle-btn off' id='gear' onclick='toggleGear()'>UP</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>Flaps</span>
+                <div>
+                    <button class='btn btn-secondary' style='width:auto; padding:8px 16px; margin:0 5px;' onclick='changeFlaps(-1)'>-</button>
+                    <span id='flapsPos' style='display:inline-block; width:60px; text-align:center;'>0%</span>
+                    <button class='btn btn-secondary' style='width:auto; padding:8px 16px; margin:0 5px;' onclick='changeFlaps(1)'>+</button>
+                </div>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>Speedbrake</span>
+                <button class='toggle-btn off' id='spoilers' onclick='toggleSpeedbrake()'>RETRACTED</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>Parking Brake</span>
+                <button class='toggle-btn off' id='parkingBrake' onclick='toggleParkingBrake()'>OFF</button>
+            </div>
+        </div>
+        
+        <div class='card'>
+            <h3>Exterior Lights</h3>
+            
+            <div class='control-row'>
+                <span class='control-label'>Strobe Lights</span>
+                <button class='toggle-btn off' id='lightStrobe' onclick='toggleLight("strobe")'>OFF</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>Landing Lights</span>
+                <button class='toggle-btn off' id='lightLanding' onclick='toggleLight("landing")'>OFF</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>Taxi Lights</span>
+                <button class='toggle-btn off' id='lightTaxi' onclick='toggleLight("taxi")'>OFF</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>Beacon Lights</span>
+                <button class='toggle-btn off' id='lightBeacon' onclick='toggleLight("beacon")'>OFF</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>Nav Lights</span>
+                <button class='toggle-btn off' id='lightNav' onclick='toggleLight("nav")'>OFF</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>Logo Lights</span>
+                <button class='toggle-btn off' id='lightLogo' onclick='toggleLight("logo")'>OFF</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>Wing Lights</span>
+                <button class='toggle-btn off' id='lightWing' onclick='toggleLight("wing")'>OFF</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>Recognition Lights</span>
+                <button class='toggle-btn off' id='lightRecognition' onclick='toggleLight("recognition")'>OFF</button>
+            </div>
+        </div>
+        
+        <div class='card'>
+            <h3>Cabin & Interior</h3>
+            
+            <div class='control-row'>
+                <span class='control-label'>Panel Lights</span>
+                <button class='toggle-btn off' id='lightPanel' onclick='toggleLight("panel")'>OFF</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>No Smoking Sign</span>
+                <button class='toggle-btn off' id='noSmokingSwitch' onclick='toggleCabin("nosmoking")'>OFF</button>
+            </div>
+            
+            <div class='control-row'>
+                <span class='control-label'>Seatbelts Sign</span>
+                <button class='toggle-btn off' id='seatbeltsSwitch' onclick='toggleCabin("seatbelts")'>OFF</button>
+            </div>
+        </div>
+    </div>
+</div>
     </div>
 
     <script>
@@ -1861,8 +1864,8 @@ function initInstruments() {
             ctx.fillRect(0, 0, width, height);
             
             // Get flight data
-            const pitch = currentFlightData.attitude?.pitch || 0;
-            const roll = currentFlightData.attitude?.roll || 0;
+            const pitch = currentFlightData.pitch || 0;
+            const roll = currentFlightData.roll || 0;
             const altitude = currentFlightData.altitude || 0;
             const speed = currentFlightData.groundSpeed || 0;
             const heading = currentFlightData.heading || 0;
@@ -2193,8 +2196,3 @@ ctx.fillText('V/S: ' + Math.round(vs) + ' fpm', 15, 55);
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
-
-
-
-
-
