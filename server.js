@@ -1240,8 +1240,8 @@ function getMobileAppHTML() {
             // Create popup content for user aircraft
             const userPopupContent = \`
                 <div style="min-width:200px">
-                    <h4 style="margin:0 0 5px 0">Your Aircraft</h4>
-                    <p style="margin:0 0 5px 0">Aircraft: User Aircraft</p>
+                    <h4 style="margin:0 0 5px 0">\${currentFlightData.atcId || 'Your Aircraft'}</h4>
+                    <p style="margin:0 0 5px 0">Aircraft: \${currentFlightData.atcType || 'User Aircraft'}</p>
                     <p style="margin:0 0 5px 0">Speed: \${Math.round(currentFlightData.groundSpeed || 0)} kts</p>
                     <p style="margin:0 0 5px 0">Altitude: \${Math.round(currentFlightData.altitude || 0)} ft</p>
                     <p style="margin:0">Heading: \${Math.round(currentFlightData.heading || 0)}°</p>
@@ -1337,9 +1337,21 @@ function getMobileAppHTML() {
             const detailsPanel = document.getElementById('aircraftDetails');
             if (!detailsPanel) return;
             
+            let flightInfo = "";
+            if (currentFlightData.atcAirline && currentFlightData.atcFlightNumber) {
+                flightInfo = currentFlightData.atcAirline + " " + currentFlightData.atcFlightNumber;
+            }
+
+            let routeInfo = "";
+            if (currentFlightData.userDepartureAirport && currentFlightData.userDestinationAirport) {
+                routeInfo = currentFlightData.userDepartureAirport + " → " + currentFlightData.userDestinationAirport;
+            }
+            
             detailsPanel.innerHTML = \`
-                <h4 style="margin-top:0">Your Aircraft</h4>
-                <p><strong>Aircraft:</strong> User Aircraft</p>
+                <h4 style="margin-top:0">\${currentFlightData.atcId || 'Your Aircraft'}</h4>
+                \${flightInfo ? \`<p><strong>Flight:</strong> \${flightInfo}</p>\` : ""}
+                <p><strong>Aircraft:</strong> \${currentFlightData.atcType || 'User Aircraft'}</p>
+                \${routeInfo ? \`<p><strong>Route:</strong> \${routeInfo}</p>\` : ""}
                 <div class="detail-row">
                     <span class="detail-label">Speed:</span>
                     <span class="detail-value">\${Math.round(currentFlightData.groundSpeed || 0)} kts</span>
@@ -1423,8 +1435,10 @@ function getMobileAppHTML() {
                 userItem.classList.add('selected');
             }
             
+            const userCallsign = currentFlightData.atcId ? \`Your Aircraft (\${currentFlightData.atcId})\` : 'Your Aircraft';
+            
             userItem.innerHTML = \`
-                <div class="aircraft-callsign">Your Aircraft</div>
+                <div class="aircraft-callsign">\${userCallsign}</div>
                 <div class="aircraft-distance">0 nm</div>
             \`;
             
