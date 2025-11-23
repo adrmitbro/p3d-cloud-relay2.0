@@ -1032,6 +1032,26 @@ function getMobileAppHTML() {
         let currentFlightData = {};
         let mapInitialized = false; // Flag to track if map has been centered once
 
+        let flightPlanLine = null;
+let waypointMarkers = [];
+
+let showFlightPlan = true;
+
+function toggleFlightPlan() {
+    showFlightPlan = !showFlightPlan;
+    const btn = document.getElementById('toggleFlightPlanBtn');
+    
+    if (showFlightPlan) {
+        btn.textContent = 'Hide Flight Plan';
+        if (flightPlanLine) flightPlanLine.addTo(map);
+        waypointMarkers.forEach(marker => marker.addTo(map));
+    } else {
+        btn.textContent = 'Show Flight Plan';
+        if (flightPlanLine) map.removeLayer(flightPlanLine);
+        waypointMarkers.forEach(marker => map.removeLayer(marker));
+    }
+}
+
         function switchTab(index) {
             document.querySelectorAll('.tab').forEach((tab, i) => {
                 tab.classList.toggle('active', i === index);
@@ -1385,6 +1405,8 @@ function getMobileAppHTML() {
                     // Follow mode is now only toggled by button, not by dragging
                 }
             });
+
+            <button id='toggleFlightPlanBtn' class='btn btn-secondary' onclick='toggleFlightPlan()'>Show Flight Plan</button>
             
             map.on('mousemove', function(e) {
                 if (isDragging && mapDragStart) {
@@ -1636,6 +1658,7 @@ function updateFlightPlan(data) {
         function updateAircraftDetails(aircraft) {
             const detailsPanel = document.getElementById('aircraftDetails');
             if (!detailsPanel) return;
+
             
             let callsign = aircraft.atcId || "N/A";
             let flightInfo = "";
@@ -1965,5 +1988,6 @@ function updateFlightPlan(data) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
