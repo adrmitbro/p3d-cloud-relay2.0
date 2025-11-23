@@ -1227,21 +1227,19 @@ function updateAutopilotUI(data) {
                 aircraftMarkers = [];
             }
             
-            // Add user aircraft marker with custom yellow icon
-            const userMarker = L.marker([lat, lon], { icon: createUserAircraftIcon(heading) }).addTo(map);
-            userMarker.bindPopup("You");
-            aircraftMarkers.push(userMarker);
+// Add user aircraft marker with custom yellow icon
+const userMarker = L.marker([lat, lon], { icon: createUserAircraftIcon(heading) }).addTo(map);
 
-            // Create user aircraft popup with detailed info
-const userPopupContent = `
+// Create user aircraft popup with detailed info
+const userPopupContent = \`
     <div style="min-width:200px">
         <h4 style="margin:0 0 5px 0; color: #FFD700;">Your Aircraft</h4>
-        <p style="margin:0 0 5px 0">Speed: ${Math.round(userSpeed || 0)} kts</p>
-        <p style="margin:0 0 5px 0">Altitude: ${Math.round(userAltitude || 0)} ft</p>
-        <p style="margin:0 0 5px 0">Heading: ${Math.round(heading)}°</p>
-        <p style="margin:0">Coordinates: ${lat.toFixed(4)}, ${lon.toFixed(4)}</p>
+        <p style="margin:0 0 5px 0">Speed: \${Math.round(userSpeed || 0)} kts</p>
+        <p style="margin:0 0 5px 0">Altitude: \${Math.round(userAltitude || 0)} ft</p>
+        <p style="margin:0 0 5px 0">Heading: \${Math.round(heading)}°</p>
+        <p style="margin:0">Coordinates: \${lat.toFixed(4)}, \${lon.toFixed(4)}</p>
     </div>
-`;
+\`;
 
 userMarker.bindPopup(userPopupContent);
 
@@ -1252,29 +1250,29 @@ userMarker.on('click', function(e) {
     
     // Update details panel with user aircraft info
     const detailsPanel = document.getElementById('aircraftDetails');
-    detailsPanel.innerHTML = `
+    detailsPanel.innerHTML = \`
         <h4 style="margin-top:0; color: #FFD700;">Your Aircraft</h4>
         <div class="detail-row">
             <span class="detail-label">Speed:</span>
-            <span class="detail-value">${Math.round(userSpeed || 0)} kts</span>
+            <span class="detail-value">\${Math.round(userSpeed || 0)} kts</span>
         </div>
         <div class="detail-row">
             <span class="detail-label">Altitude:</span>
-            <span class="detail-value">${Math.round(userAltitude || 0)} ft</span>
+            <span class="detail-value">\${Math.round(userAltitude || 0)} ft</span>
         </div>
         <div class="detail-row">
             <span class="detail-label">Heading:</span>
-            <span class="detail-value">${Math.round(heading)}°</span>
+            <span class="detail-value">\${Math.round(heading)}°</span>
         </div>
         <div class="detail-row">
             <span class="detail-label">Latitude:</span>
-            <span class="detail-value">${lat.toFixed(6)}</span>
+            <span class="detail-value">\${lat.toFixed(6)}</span>
         </div>
         <div class="detail-row">
             <span class="detail-label">Longitude:</span>
-            <span class="detail-value">${lon.toFixed(6)}</span>
+            <span class="detail-value">\${lon.toFixed(6)}</span>
         </div>
-    `;
+    \`;
     
     updateMap(lat, lon, heading); // Refresh to update selection state
     updateNearbyAircraftList();
@@ -1643,6 +1641,7 @@ function closeSaveProgress(success, filename) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
