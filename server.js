@@ -733,11 +733,11 @@ function getMobileAppHTML() {
     </div>
 
     <div id='mainApp' class='hidden'>
-        <div class='tabs'>
+<div class='tabs'>
             <button class='tab active' onclick='switchTab(0)'>Flight</button>
             <button class='tab' onclick='switchTab(1)'>Map</button>
-            <button class='tab' onclick='switchTab(2)'>Autopilot</button>
-            <button class='tab' onclick='switchTab(3)'>Instruments</button>
+            <button class='tab' onclick='switchTab(2)'>Instruments</button>
+            <button class='tab' onclick='switchTab(3)'>Autopilot</button>
         </div>
 
 <div class='tab-content'>
@@ -2193,5 +2193,6 @@ function initInstruments() {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
