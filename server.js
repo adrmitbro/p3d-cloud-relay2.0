@@ -890,6 +890,7 @@ function getMobileAppHTML() {
         let userLon = 0;
         let userHeading = 0;
         let currentFlightData = {};
+        let mapInitialized = false; // Flag to track if map has been centered once
 
         function switchTab(index) {
             document.querySelectorAll('.tab').forEach((tab, i) => {
@@ -1219,6 +1220,12 @@ function getMobileAppHTML() {
             userLat = lat;
             userLon = lon;
             userHeading = heading;
+
+            // Center map on user aircraft on first update, but do not lock it
+            if (!mapInitialized) {
+                map.setView([lat, lon], mapZoom);
+                mapInitialized = true;
+            }
             
             // Update map view if following user
             if (followUser) {
