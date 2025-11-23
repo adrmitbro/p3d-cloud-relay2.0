@@ -215,7 +215,7 @@ function getMobileAppHTML() {
         .status.offline { background: #f44336; color: white; }
 .status.paused { 
     background: #800000; 
-    color: #fff;  /* Changed from #000 to #fff */
+    color: #fff;
     display: none;
 }
         .status.paused.visible { display: inline-block; }
@@ -262,7 +262,7 @@ function getMobileAppHTML() {
         .btn-primary:active { background: #1a8fd4; }
         .btn-secondary { background: #2d2d2d; color: white; border: 1px solid #444; }
         .btn-secondary:active { background: #3d3d3d; }
-        .btn-warning { background: #800000; color: #fff; }  /* Changed from #000 to #fff */
+        .btn-warning { background: #800000; color: #fff; }
         .btn-danger { background: #f44336; color: white; }
         .btn:disabled { background: #333; opacity: 0.5; }
 
@@ -575,6 +575,15 @@ function getMobileAppHTML() {
 
         .ai-aircraft.selected {
             animation: pulse 1.5s infinite;
+        }
+
+        .user-aircraft.selected {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
 
         /* Waypoint info row styling */
@@ -934,20 +943,20 @@ function getMobileAppHTML() {
         }
 
         function handleMessage(data) {
-switch(data.type) {
+            switch(data.type) {
                 case 'connected':
                     document.getElementById('loginScreen').classList.add('hidden');
                     document.getElementById('mainApp').classList.remove('hidden');
                     updateStatus(data.pcOnline ? 'connected' : 'offline');
                     break;
 
-                        case 'save_complete':
-            closeSaveProgress(true, data.filename);
-            break;
-            
-        case 'save_error':
-            closeSaveProgress(false, '');
-            break;    
+                case 'save_complete':
+                    closeSaveProgress(true, data.filename);
+                    break;
+                    
+                case 'save_error':
+                    closeSaveProgress(false, '');
+                    break;    
                 case 'error':
                     alert(data.message);
                     break;
@@ -964,7 +973,6 @@ switch(data.type) {
                     
                 case 'control_required':
                     if (document.getElementById('controlLock').classList.contains('hidden')) {
-                        // Show password prompt without closing app
                         document.getElementById('controlLock').classList.remove('hidden');
                         document.getElementById('controlPanel').classList.add('hidden');
                         document.getElementById('controlPassword').value = '';
@@ -974,14 +982,13 @@ switch(data.type) {
                     
                 case 'flight_data':
                     updateFlightData(data.data);
-                    console.log('Pause state received:', data.data.isPaused); // DEBUG
                     break;
                     
                 case 'autopilot_state':
                     updateAutopilotUI(data.data);
                     break;
                     
-case 'ai_traffic':
+                case 'ai_traffic':
                     aiAircraft = data.data;
                     updateNearbyAircraftList();
                     if (map) {
@@ -1007,30 +1014,24 @@ case 'ai_traffic':
             document.getElementById('heading').textContent = Math.round(data.heading) + '°';
             document.getElementById('vs').textContent = Math.round(data.verticalSpeed);
             
-            // Next waypoint info
             document.getElementById('nextWaypoint').textContent = data.nextWaypoint || 'No Active Waypoint';
             document.getElementById('wpDistance').textContent = 'Distance: ' + (data.distanceToWaypoint ? data.distanceToWaypoint.toFixed(1) + ' nm' : '--');
-            
-            // Add bearing information
             document.getElementById('wpBearing').textContent = 'Bearing: ' + (data.bearingToWaypoint ? Math.round(data.bearingToWaypoint) + '°' : '--°');
             
-// Fixed ETE for next waypoint - use waypointEte instead of total ETE
-if (data.waypointEte && data.waypointEte > 0) {
-    const wpHours = Math.floor(data.waypointEte / 3600);
-    const wpMinutes = Math.floor((data.waypointEte % 3600) / 60);
-    document.getElementById('wpEte').textContent = 'ETE: ' + (wpHours > 0 ? wpHours + 'h ' + wpMinutes + 'm' : wpMinutes + 'min');
-} else {
-    document.getElementById('wpEte').textContent = 'ETE: --';
-}
+            if (data.waypointEte && data.waypointEte > 0) {
+                const wpHours = Math.floor(data.waypointEte / 3600);
+                const wpMinutes = Math.floor((data.waypointEte % 3600) / 60);
+                document.getElementById('wpEte').textContent = 'ETE: ' + (wpHours > 0 ? wpHours + 'h ' + wpMinutes + 'm' : wpMinutes + 'min');
+            } else {
+                document.getElementById('wpEte').textContent = 'ETE: --';
+            }
             
-            // Total distance to destination
             if (data.totalDistance && data.totalDistance > 0) {
                 document.getElementById('distance').textContent = data.totalDistance.toFixed(1);
             } else {
                 document.getElementById('distance').textContent = '--';
             }
             
-            // Total ETE
             if (data.ete && data.ete > 0) {
                 const hours = Math.floor(data.ete / 3600);
                 const minutes = Math.floor((data.ete % 3600) / 60);
@@ -1039,7 +1040,6 @@ if (data.waypointEte && data.waypointEte > 0) {
                 document.getElementById('ete').textContent = 'Total ETE: --';
             }
 
-            // Pause state - update badge visibility
             const pauseBadge = document.getElementById('pauseBadge');
             if (data.isPaused) {
                 pauseBadge.classList.add('visible');
@@ -1047,7 +1047,6 @@ if (data.waypointEte && data.waypointEte > 0) {
                 pauseBadge.classList.remove('visible');
             }
 
-            // Pause button
             const btnPause = document.getElementById('btnPause');
             if (data.isPaused) {
                 btnPause.textContent = '▶️ Resume';
@@ -1057,51 +1056,46 @@ if (data.waypointEte && data.waypointEte > 0) {
                 btnPause.className = 'btn btn-secondary';
             }
 
-            // Update map if visible
             if (map && data.latitude && data.longitude) {
                 updateMap(data.latitude, data.longitude, data.heading);
             }
         }
 
-function updateAutopilotUI(data) {
-    updateToggle('apMaster', data.master);
-    updateToggle('apAlt', data.altitude);
-    updateToggle('apHdg', data.heading);
-    updateToggle('apVS', data.vs);
-    updateToggle('apSpeed', data.speed);
-    updateToggle('apApp', data.approach);
-    updateToggle('apNav', data.nav);
-    updateToggle('autoThrottle', data.throttle);
-    updateToggle('gear', data.gear, data.gear ? 'DOWN' : 'UP');
-    updateToggle('parkingBrake', data.parkingBrake, data.parkingBrake ? 'ON' : 'OFF');
-    
-    document.getElementById('flapsPos').textContent = Math.round(data.flaps) + '%';
-    
-    // Speedbrake
-    const spoilersBtn = document.getElementById('spoilers');
-    const spoilersActive = data.spoilers > 10;
-    spoilersBtn.className = 'toggle-btn ' + (spoilersActive ? 'on' : 'off');
-    spoilersBtn.textContent = spoilersActive ? 'EXTENDED' : 'RETRACTED';
-    
-    // NAV/GPS toggle
-    const navBtn = document.getElementById('navMode');
-    navBtn.textContent = data.navMode ? 'GPS' : 'NAV';
-    navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
-    
-    // Update lights and cabin controls - REMOVED lightCabin line
-    updateToggle('lightStrobe', data.lightStrobe);
-    updateToggle('lightPanel', data.lightPanel);
-    updateToggle('lightLanding', data.lightLanding);
-    updateToggle('lightTaxi', data.lightTaxi);
-    updateToggle('lightBeacon', data.lightBeacon);
-    updateToggle('lightNav', data.lightNav);
-    updateToggle('lightLogo', data.lightLogo);
-    updateToggle('lightWing', data.lightWing);
-    updateToggle('lightRecognition', data.lightRecognition);
-    // REMOVED: updateToggle('lightCabin', data.lightCabin);
-    updateToggle('noSmokingSwitch', data.noSmokingSwitch);
-    updateToggle('seatbeltsSwitch', data.seatbeltsSwitch);
-}
+        function updateAutopilotUI(data) {
+            updateToggle('apMaster', data.master);
+            updateToggle('apAlt', data.altitude);
+            updateToggle('apHdg', data.heading);
+            updateToggle('apVS', data.vs);
+            updateToggle('apSpeed', data.speed);
+            updateToggle('apApp', data.approach);
+            updateToggle('apNav', data.nav);
+            updateToggle('autoThrottle', data.throttle);
+            updateToggle('gear', data.gear, data.gear ? 'DOWN' : 'UP');
+            updateToggle('parkingBrake', data.parkingBrake, data.parkingBrake ? 'ON' : 'OFF');
+            
+            document.getElementById('flapsPos').textContent = Math.round(data.flaps) + '%';
+            
+            const spoilersBtn = document.getElementById('spoilers');
+            const spoilersActive = data.spoilers > 10;
+            spoilersBtn.className = 'toggle-btn ' + (spoilersActive ? 'on' : 'off');
+            spoilersBtn.textContent = spoilersActive ? 'EXTENDED' : 'RETRACTED';
+            
+            const navBtn = document.getElementById('navMode');
+            navBtn.textContent = data.navMode ? 'GPS' : 'NAV';
+            navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
+            
+            updateToggle('lightStrobe', data.lightStrobe);
+            updateToggle('lightPanel', data.lightPanel);
+            updateToggle('lightLanding', data.lightLanding);
+            updateToggle('lightTaxi', data.lightTaxi);
+            updateToggle('lightBeacon', data.lightBeacon);
+            updateToggle('lightNav', data.lightNav);
+            updateToggle('lightLogo', data.lightLogo);
+            updateToggle('lightWing', data.lightWing);
+            updateToggle('lightRecognition', data.lightRecognition);
+            updateToggle('noSmokingSwitch', data.noSmokingSwitch);
+            updateToggle('seatbeltsSwitch', data.seatbeltsSwitch);
+        }
 
         function updateToggle(id, state, text) {
             const btn = document.getElementById(id);
@@ -1110,17 +1104,19 @@ function updateAutopilotUI(data) {
             btn.textContent = text || (state ? 'ON' : 'OFF');
         }
 
-        // Custom aircraft icon creation functions
-        function createUserAircraftIcon(heading) {
+        function createUserAircraftIcon(heading, isSelected) {
+            const color = isSelected ? "#FF0000" : "#FFD700";
+            const size = isSelected ? 28 : 24;
+            
             return L.divIcon({
-                html: \`<div class="user-aircraft" style="transform: rotate(\${heading}deg);">
-                         <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                           <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="#FFD700" stroke="#000" stroke-width="0.5"/>
+                html: \`<div class="user-aircraft \${isSelected ? 'selected' : ''}" style="transform: rotate(\${heading}deg);">
+                         <svg width="\${size}" height="\${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                           <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="\${color}" stroke="#000" stroke-width="0.5"/>
                          </svg>
                        </div>\`,
                 className: '',
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
+                iconSize: [size, size],
+                iconAnchor: [size/2, size/2]
             });
         }
 
@@ -1152,14 +1148,12 @@ function updateAutopilotUI(data) {
                 maxZoom: 18
             }).addTo(map);
             
-            // Add zoom control to bottom right
             L.control.zoom({
                 position: 'bottomright'
             }).addTo(map);
             
-            // Add map controls
             map.on('mousedown', function(e) {
-                if (e.originalEvent.button === 0) { // Left click
+                if (e.originalEvent.button === 0) {
                     isDragging = true;
                     mapDragStart = e.latlng;
                     followUser = false;
@@ -1179,24 +1173,19 @@ function updateAutopilotUI(data) {
                 mapDragStart = null;
             });
             
-            // Click anywhere on map to deselect aircraft
             map.on('click', function(e) {
-                // Check if clicking on an aircraft marker
                 if (e.originalEvent.target.closest('.leaflet-marker-icon')) {
-                    return; // Let the aircraft click handler handle this
+                    return;
                 }
                 
-                // Clicked on empty map space - deselect aircraft
                 selectedAircraft = null;
                 updateMap(userLat, userLon, userHeading);
                 updateNearbyAircraftList();
                 
-                // Clear aircraft details
                 const detailsPanel = document.getElementById('aircraftDetails');
                 detailsPanel.innerHTML = '<p>Click on an aircraft to view details</p>';
             });
             
-            // Update center coordinates when map is moved
             map.on('moveend', function() {
                 const center = map.getCenter();
                 mapCenterLat = center.lat;
@@ -1209,7 +1198,6 @@ function updateAutopilotUI(data) {
         function updateMap(lat, lon, heading) {
             if (!map) return;
             
-            // Update user position
             userLat = lat;
             userLon = lon;
             userHeading = heading;
@@ -1219,7 +1207,6 @@ function updateAutopilotUI(data) {
                 mapCenterLon = lon;
             }
             
-            // Clear existing markers
             if (aircraftMarkers) {
                 aircraftMarkers.forEach(marker => map.removeLayer(marker));
                 aircraftMarkers = [];
@@ -1227,14 +1214,35 @@ function updateAutopilotUI(data) {
                 aircraftMarkers = [];
             }
             
-            // Add user aircraft marker with custom yellow icon
-            const userMarker = L.marker([lat, lon], { icon: createUserAircraftIcon(heading) }).addTo(map);
-            userMarker.bindPopup("You");
+            const isUserSelected = selectedAircraft && selectedAircraft.isUser;
+            
+            const userMarker = L.marker([lat, lon], { 
+                icon: createUserAircraftIcon(heading, isUserSelected) 
+            }).addTo(map);
+            
+            const userPopupContent = \`
+                <div style="min-width:200px">
+                    <h4 style="margin:0 0 5px 0">Your Aircraft</h4>
+                    <p style="margin:0 0 5px 0">Speed: \${Math.round(document.getElementById('speed').textContent || 0)} kts</p>
+                    <p style="margin:0 0 5px 0">Altitude: \${Math.round(document.getElementById('altitude').textContent.replace(/,/g, '') || 0)} ft</p>
+                    <p style="margin:0">Heading: \${document.getElementById('heading').textContent || '0°'}</p>
+                </div>
+            \`;
+            
+            userMarker.bindPopup(userPopupContent);
+            
+            userMarker.on('click', function(e) {
+                L.DomEvent.stopPropagation(e);
+                selectedAircraft = { isUser: true };
+                updateUserAircraftDetails();
+                updateMap(lat, lon, heading);
+                updateNearbyAircraftList();
+            });
+            
             aircraftMarkers.push(userMarker);
             
-            // Add AI aircraft markers with custom white/red icons
             aiAircraft.forEach(aircraft => {
-                const isSelected = selectedAircraft && 
+                const isSelected = selectedAircraft && !selectedAircraft.isUser &&
                                 ((selectedAircraft.atcId && selectedAircraft.atcId === aircraft.atcId) || 
                                  (!selectedAircraft.atcId && selectedAircraft.title === aircraft.title));
                 
@@ -1242,7 +1250,6 @@ function updateAutopilotUI(data) {
                     icon: createAIAircraftIcon(aircraft.heading, isSelected)
                 }).addTo(map);
                 
-                // Create popup content
                 let callsign = aircraft.atcId || "N/A";
                 let flightInfo = "";
                 if (aircraft.atcAirline && aircraft.atcFlightNumber) {
@@ -1272,18 +1279,16 @@ function updateAutopilotUI(data) {
                 
                 marker.bindPopup(popupContent);
                 
-// Add click event to show user aircraft details
-userMarker.on('click', function(e) {
-    L.DomEvent.stopPropagation(e);
-    selectedAircraft = null; // Clear AI selection
-    showUserAircraftDetails();
-    // Don't call updateMap here - it will recreate all markers
-    updateNearbyAircraftList();  // ← CHANGED TO THIS
-});
+                marker.on('click', function(e) {
+                    L.DomEvent.stopPropagation(e);
+                    selectedAircraft = aircraft;
+                    updateAircraftDetails(aircraft);
+                    updateMap(lat, lon, heading);
+                    updateNearbyAircraftList();
+                });
                 
                 aircraftMarkers.push(marker);
                 
-                // Add label if enabled
                 if (showAircraftLabels) {
                     const label = L.divIcon({
                         html: \`<div style="background:rgba(0,0,0,0.7);color:white;padding:2px 5px;border-radius:3px;font-size:11px;white-space:nowrap">
@@ -1298,10 +1303,44 @@ userMarker.on('click', function(e) {
                 }
             });
             
-            // Update map view
             if (followUser) {
                 map.setView([lat, lon], mapZoom);
             }
+        }
+
+        function updateUserAircraftDetails() {
+            const detailsPanel = document.getElementById('aircraftDetails');
+            if (!detailsPanel) return;
+            
+            const speed = document.getElementById('speed').textContent || '0';
+            const altitude = document.getElementById('altitude').textContent.replace(/,/g, '') || '0';
+            const heading = document.getElementById('heading').textContent || '0°';
+            const vs = document.getElementById('vs').textContent || '0';
+            const nextWaypoint = document.getElementById('nextWaypoint').textContent || 'N/A';
+            
+            detailsPanel.innerHTML = \`
+                <h4 style="margin-top:0; color: #FFD700;">Your Aircraft</h4>
+                <div class="detail-row">
+                    <span class="detail-label">Speed:</span>
+                    <span class="detail-value">\${speed} kts</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Altitude:</span>
+                    <span class="detail-value">\${altitude} ft</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Heading:</span>
+                    <span class="detail-value">\${heading}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Vertical Speed:</span>
+                    <span class="detail-value">\${vs} fpm</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Next Waypoint:</span>
+                    <span class="detail-value">\${nextWaypoint}</span>
+                </div>
+            \`;
         }
 
         function updateAircraftDetails(aircraft) {
@@ -1366,7 +1405,7 @@ userMarker.on('click', function(e) {
                 const callsign = aircraft.atcId || aircraft.title.substring(0, 15);
                 const item = document.createElement('div');
                 item.className = 'aircraft-list-item';
-                if (selectedAircraft && 
+                if (selectedAircraft && !selectedAircraft.isUser &&
                     ((selectedAircraft.atcId && selectedAircraft.atcId === aircraft.atcId) || 
                      (!selectedAircraft.atcId && selectedAircraft.title === aircraft.title))) {
                     item.classList.add('selected');
@@ -1402,6 +1441,10 @@ userMarker.on('click', function(e) {
             mapZoom = 7;
             document.getElementById('followUserBtn').textContent = 'Following';
             selectedAircraft = null;
+            
+            const detailsPanel = document.getElementById('aircraftDetails');
+            detailsPanel.innerHTML = '<p>Click on an aircraft to view details</p>';
+            
             updateMap(userLat, userLon, userHeading);
             updateNearbyAircraftList();
         }
@@ -1415,98 +1458,95 @@ userMarker.on('click', function(e) {
             ws.send(JSON.stringify({ type: 'pause_toggle' }));
         }
 
-function saveGame() {
-    // Disable the save button
-    const saveBtn = document.querySelector('button[onclick="saveGame()"]');
-    if (saveBtn) {
-        saveBtn.disabled = true;
-        saveBtn.textContent = '💾 Saving...';
-    }
-    
-    ws.send(JSON.stringify({ type: 'save_game' }));
-    
-    // Show progress popup
-    showSaveProgress();
-    
-    // Keep button disabled for 60 seconds
-    let countdown = 60;
-    const disableInterval = setInterval(() => {
-        countdown--;
-        if (saveBtn) {
-            saveBtn.textContent = '💾 Wait ' + countdown + 's';
-        }
-        
-        if (countdown <= 0) {
-            clearInterval(disableInterval);
+        function saveGame() {
+            const saveBtn = document.querySelector('button[onclick="saveGame()"]');
             if (saveBtn) {
-                saveBtn.disabled = false;
-                saveBtn.textContent = '💾 Save Flight';
+                saveBtn.disabled = true;
+                saveBtn.textContent = '💾 Saving...';
             }
+            
+            ws.send(JSON.stringify({ type: 'save_game' }));
+            
+            showSaveProgress();
+            
+            let countdown = 60;
+            const disableInterval = setInterval(() => {
+                countdown--;
+                if (saveBtn) {
+                    saveBtn.textContent = '💾 Wait ' + countdown + 's';
+                }
+                
+                if (countdown <= 0) {
+                    clearInterval(disableInterval);
+                    if (saveBtn) {
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = '💾 Save Flight';
+                    }
+                }
+            }, 1000);
         }
-    }, 1000);
-}
 
-function showSaveProgress() {
-    const overlay = document.createElement('div');
-    overlay.id = 'saveProgressOverlay';
-    overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000;';
-    
-    overlay.innerHTML = \`
-        <div style="background: #1a1a1a; padding: 30px; border-radius: 15px; text-align: center; border: 2px solid #167fac;">
-            <div style="font-size: 40px; margin-bottom: 15px;">💾</div>
-            <h3 style="margin: 0 0 10px 0; color: #167fac;">Saving Flight...</h3>
-            <div style="color: #888; font-size: 14px;">Please wait</div>
-            <div style="margin-top: 20px;">
-                <div style="width: 200px; height: 4px; background: #333; border-radius: 2px; overflow: hidden;">
-                    <div id="saveProgressBar" style="width: 0%; height: 100%; background: #167fac; transition: width 0.3s;"></div>
+        function showSaveProgress() {
+            const overlay = document.createElement('div');
+            overlay.id = 'saveProgressOverlay';
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000;';
+            
+            overlay.innerHTML = \`
+                <div style="background: #1a1a1a; padding: 30px; border-radius: 15px; text-align: center; border: 2px solid #167fac;">
+                    <div style="font-size: 40px; margin-bottom: 15px;">💾</div>
+                    <h3 style="margin: 0 0 10px 0; color: #167fac;">Saving Flight...</h3>
+                    <div style="color: #888; font-size: 14px;">Please wait</div>
+                    <div style="margin-top: 20px;">
+                        <div style="width: 200px; height: 4px; background: #333; border-radius: 2px; overflow: hidden;">
+                            <div id="saveProgressBar" style="width: 0%; height: 100%; background: #167fac; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    \`;
-    
-    document.body.appendChild(overlay);
-    
-    let progress = 0;
-    const progressBar = document.getElementById('saveProgressBar');
-    const interval = setInterval(() => {
-        progress += 10;
-        if (progress <= 90) {
-            progressBar.style.width = progress + '%';
+            \`;
+            
+            document.body.appendChild(overlay);
+            
+            let progress = 0;
+            const progressBar = document.getElementById('saveProgressBar');
+            const interval = setInterval(() => {
+                progress += 10;
+                if (progress <= 90) {
+                    progressBar.style.width = progress + '%';
+                }
+            }, 200);
+            
+            overlay.dataset.intervalId = interval;
         }
-    }, 200);
-    
-    overlay.dataset.intervalId = interval;
-}
 
-function closeSaveProgress(success, filename) {
-    const overlay = document.getElementById('saveProgressOverlay');
-    if (!overlay) return;
-    
-    const intervalId = overlay.dataset.intervalId;
-    if (intervalId) {
-        clearInterval(parseInt(intervalId));
-    }
-    
-    const progressBar = document.getElementById('saveProgressBar');
-    if (progressBar) {
-        progressBar.style.width = '100%';
-    }
-    
-    const content = overlay.querySelector('div > div');
-    if (success) {
-        content.innerHTML = '<div style="font-size: 40px; margin-bottom: 15px;">✅</div>' +
-                           '<h3 style="margin: 0 0 10px 0; color: #4CAF50;">Flight Saved!</h3>' +
-                           '<div style="color: #ccc; font-size: 14px;">' + filename + '</div>';
-    } else {
-        content.innerHTML = '<div style="font-size: 40px; margin-bottom: 15px;">❌</div>' +
-                           '<h3 style="margin: 0 0 10px 0; color: #f44336;">Save Failed</h3>' +
-                           '<div style="color: #ccc; font-size: 14px;">Please try again</div>';
-    }
-    
-    setTimeout(() => {
-        overlay.remove();
-    }, 2000);
-}
+        function closeSaveProgress(success, filename) {
+            const overlay = document.getElementById('saveProgressOverlay');
+            if (!overlay) return;
+            
+            const intervalId = overlay.dataset.intervalId;
+            if (intervalId) {
+                clearInterval(parseInt(intervalId));
+            }
+            
+            const progressBar = document.getElementById('saveProgressBar');
+            if (progressBar) {
+                progressBar.style.width = '100%';
+            }
+            
+            const content = overlay.querySelector('div > div');
+            if (success) {
+                content.innerHTML = '<div style="font-size: 40px; margin-bottom: 15px;">✅</div>' +
+                                   '<h3 style="margin: 0 0 10px 0; color: #4CAF50;">Flight Saved!</h3>' +
+                                   '<div style="color: #ccc; font-size: 14px;">' + filename + '</div>';
+            } else {
+                content.innerHTML = '<div style="font-size: 40px; margin-bottom: 15px;">❌</div>' +
+                                   '<h3 style="margin: 0 0 10px 0; color: #f44336;">Save Failed</h3>' +
+                                   '<div style="color: #ccc; font-size: 14px;">Please try again</div>';
+            }
+            
+            setTimeout(() => {
+                overlay.remove();
+            }, 2000);
+        }
 
         function toggleAP(system) {
             if (system === 'loc') {
@@ -1570,7 +1610,6 @@ function closeSaveProgress(success, filename) {
             ws.send(JSON.stringify({ type: 'change_flaps', direction }));
         }
         
-        // ===== New functions for lights and cabin controls =====
         function toggleLight(lightType) {
             ws.send(JSON.stringify({ type: 'toggle_light', lightType: lightType }));
         }
@@ -1579,7 +1618,6 @@ function closeSaveProgress(success, filename) {
             ws.send(JSON.stringify({ type: 'toggle_cabin', cabinType: cabinType }));
         }
 
-        // Load saved ID
         window.onload = () => {
             const savedId = localStorage.getItem('p3d_unique_id');
             if (savedId) {
@@ -1588,28 +1626,8 @@ function closeSaveProgress(success, filename) {
         };
     </script>
 </body>
-</html>`;
-}
+</html>`;}
 
 server.listen(PORT, () => {
-  console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
+  console.log(\`P3D Remote Cloud Relay running on port \${PORT}\`);
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
