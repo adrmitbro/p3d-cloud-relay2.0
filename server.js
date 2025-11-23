@@ -1969,7 +1969,7 @@ function initInstruments() {
             ctx.strokeStyle = '#333';
             ctx.strokeRect(10, centerY - 100, 60, 200);
             
-            ctx.fillStyle = '#167fac';
+            ctx.fillStyle = '#FFFFFF';
             ctx.font = 'bold 18px Arial';
             ctx.textAlign = 'center';
             ctx.fillText(Math.round(speed), 40, centerY + 6);
@@ -1980,7 +1980,7 @@ function initInstruments() {
             ctx.strokeStyle = '#333';
             ctx.strokeRect(width - 70, centerY - 100, 60, 200);
             
-            ctx.fillStyle = '#167fac';
+            ctx.fillStyle = '#82f363';
             ctx.font = 'bold 16px Arial';
             ctx.textAlign = 'center';
             ctx.fillText(Math.round(altitude), width - 40, centerY + 6);
@@ -2001,7 +2001,7 @@ function initInstruments() {
             ctx.strokeStyle = '#333';
             ctx.strokeRect(centerX - 100, height - 40, 200, 35);
             
-            ctx.fillStyle = '#167fac';
+            ctx.fillStyle = '#FFFFFF';
             ctx.font = 'bold 20px Arial';
             ctx.textAlign = 'center';
             ctx.fillText(Math.round(heading) + '°', centerX, height - 13);
@@ -2196,5 +2196,6 @@ ctx.fillText('V/S: ' + Math.round(vs) + ' fpm', 15, 55);
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
