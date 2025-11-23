@@ -781,7 +781,7 @@ function getMobileAppHTML() {
 
                 <!-- Compact Summary Section -->
                 <div class='card'>
-                    <h3>Flight Status</h3>
+                    <h3>Autopilot Targets</h3>
                     <div class='summary-row'>
                         <div class='summary-item'>
                             <div class='summary-label'>SPD</div>
@@ -1216,18 +1216,27 @@ function getMobileAppHTML() {
             updateToggle('noSmokingSwitch', data.noSmokingSwitch);
             updateToggle('seatbeltsSwitch', data.seatbeltsSwitch);
             
-            // Update the summary section with the autopilot data
+            // Update the summary section with autopilot target values
             updateFlightSummary(data);
             updateAutopilotStatus(data);
         }
 
-        // Add this function to update the summary section
+        // Add this function to update summary section with autopilot targets
         function updateFlightSummary(data) {
-            // Use the displayed speed from autopilot state, not ground speed
-            document.getElementById('summarySpeed').textContent = data.displayedSpeed || Math.round(data.groundSpeed);
-            document.getElementById('summaryHeading').textContent = Math.round(data.heading) + '°';
-            document.getElementById('summaryAltitude').textContent = Math.round(data.altitude).toLocaleString();
-            document.getElementById('summaryVS').textContent = Math.round(data.verticalSpeed);
+            // Use autopilot target values, not current aircraft values
+            // Speed: (A:Autopilot airspeed hold var,knots)
+            document.getElementById('summarySpeed').textContent = data.apSpeed || '--';
+            
+            // Heading: (A:Autopilot heading lock dir, degrees)
+            document.getElementById('summaryHeading').textContent = (data.apHeading !== undefined ? Math.round(data.apHeading) + '°' : '--°');
+            
+            // Altitude: (A:Autopilot altitude lock var,feet)
+            document.getElementById('summaryAltitude').textContent = data.apAltitude !== undefined ? Math.round(data.apAltitude).toLocaleString() : '--';
+            
+            // V/S: (A:Autopilot Vertical Hold Var, feet per minute)
+            document.getElementById('summaryVS').textContent = data.apVerticalSpeed !== undefined ? Math.round(data.apVerticalSpeed) : '--';
+            
+            // Flaps and gear remain as actual aircraft state
             document.getElementById('summaryFlaps').textContent = Math.round(data.flaps) + '%';
             
             // Update gear with arrow icons
@@ -1239,7 +1248,7 @@ function getMobileAppHTML() {
             }
         }
 
-        // Add this function to update the autopilot status badges
+        // Add this function to update autopilot status badges
         function updateAutopilotStatus(data) {
             // Update status badges
             updateStatusBadge('apMasterStatus', data.master);
