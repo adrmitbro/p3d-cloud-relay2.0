@@ -1272,13 +1272,14 @@ function updateAutopilotUI(data) {
                 
                 marker.bindPopup(popupContent);
                 
-                // Add click event to select aircraft
-                marker.on('click', function(e) {
-                    L.DomEvent.stopPropagation(e); // Prevent map click event
-                    selectedAircraft = aircraft;
-                    updateAircraftDetails(aircraft);
-                    updateMap(lat, lon, heading);
-                });
+// Add click event to show user aircraft details
+userMarker.on('click', function(e) {
+    L.DomEvent.stopPropagation(e);
+    selectedAircraft = null; // Clear AI selection
+    showUserAircraftDetails();
+    // Don't call updateMap here - it will recreate all markers
+    updateNearbyAircraftList();  // ← CHANGED TO THIS
+});
                 
                 aircraftMarkers.push(marker);
                 
@@ -1593,6 +1594,7 @@ function closeSaveProgress(success, filename) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
