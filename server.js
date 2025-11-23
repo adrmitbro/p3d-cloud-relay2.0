@@ -1131,6 +1131,19 @@ function getMobileAppHTML() {
                         updateMap(userLat, userLon, userHeading);
                     }
                     break;
+
+                    case "flight_plan_data":
+  // Broadcast flight plan data to all mobile clients
+  session.mobileClients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(data));
+    }
+  });
+  break;
+
+  case 'flight_plan_data':
+    updateFlightPlan(data.data);
+    break;
                     
                 case 'pc_offline':
                     updateStatus('offline');
@@ -1535,6 +1548,55 @@ function getMobileAppHTML() {
             });
         }
 
+let flightPlanLine = null;
+let waypointMarkers = [];
+
+function updateFlightPlan(data) {
+    if (!map) return;
+    
+    // Remove existing flight plan line and waypoint markers
+    if (flightPlanLine) {
+        map.removeLayer(flightPlanLine);
+    }
+    waypointMarkers.forEach(marker => map.removeLayer(marker));
+    waypointMarkers = [];
+    
+    if (!data.hasActivePlan || !data.waypoints || data.waypoints.length < 2) {
+        return; // No active flight plan
+    }
+    
+    // Create line coordinates
+    const lineCoords = data.waypoints.map(wp => [wp.latitude, wp.longitude]);
+    
+    // Draw flight plan line (magenta/purple color like real GPS)
+    flightPlanLine = L.polyline(lineCoords, {
+        color: '#FF00FF',
+        weight: 3,
+        opacity: 0.7,
+        dashArray: '10, 5'
+    }).addTo(map);
+    
+    // Add waypoint markers
+    data.waypoints.forEach((wp, index) => {
+        if (wp.waypointId === 'CURRENT') return; // Skip current position marker
+        
+        const waypointIcon = L.divIcon({
+            html: `<div style="background: #FF00FF; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: bold; border: 1px solid white;">
+                      ${wp.waypointId}
+                   </div>`,
+            className: '',
+            iconSize: [50, 20],
+            iconAnchor: [25, 10]
+        });
+        
+        const marker = L.marker([wp.latitude, wp.longitude], { icon: waypointIcon }).addTo(map);
+        
+        marker.bindPopup(`<strong>${wp.waypointId}</strong><br>Waypoint ${index + 1}`);
+        
+        waypointMarkers.push(marker);
+    });
+}
+
         function updateUserAircraftDetails() {
             const detailsPanel = document.getElementById('aircraftDetails');
             if (!detailsPanel) return;
@@ -1904,3 +1966,4 @@ function getMobileAppHTML() {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
