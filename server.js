@@ -1402,7 +1402,7 @@ function getMobileAppHTML() {
             userMarker.on('click', function(e) {
                 L.DomEvent.stopPropagation(e);
                 selectedAircraft = { isUser: true };
-                updateUserAircraftDetails();
+                update();
                 updateMap(lat, lon, heading);
                 updateNearbyAircraftList();
             });
@@ -1465,10 +1465,8 @@ function updateUserAircraftDetails() {
     const detailsPanel = document.getElementById('aircraftDetails');
     if (!detailsPanel) return;
     
-    // Use ATC ID as the main identifier, fallback to "Your Aircraft"
     const callsign = currentFlightData.atcId || "Your Aircraft";
     
-    // Build flight info line (Airline + Flight Number)
     let flightInfo = "";
     if (currentFlightData.atcAirline && currentFlightData.atcFlightNumber) {
         flightInfo = currentFlightData.atcAirline + " " + currentFlightData.atcFlightNumber;
@@ -1476,45 +1474,40 @@ function updateUserAircraftDetails() {
         flightInfo = currentFlightData.atcAirline;
     }
     
-    // Aircraft model
     const aircraftModel = currentFlightData.atcModel || currentFlightData.atcType || "User Aircraft";
     
-    // Route
     const routeInfo = (currentFlightData.flightPlanOrigin && currentFlightData.flightPlanDestination) 
         ? currentFlightData.flightPlanOrigin + " → " + currentFlightData.flightPlanDestination 
         : "";
     
-    // Build the HTML with proper structure
-    let html = \`<h4 style="margin-top:0">\${callsign}</h4>\`;
+    let html = '<h4 style="margin-top:0">' + callsign + '</h4>';
     
     if (flightInfo) {
-        html += \`<p><strong>Flight:</strong> \${flightInfo}</p>\`;
+        html += '<p><strong>Flight:</strong> ' + flightInfo + '</p>';
     }
     
-    html += \`<p><strong>Aircraft:</strong> \${aircraftModel}</p>\`;
+    html += '<p><strong>Aircraft:</strong> ' + aircraftModel + '</p>';
     
     if (routeInfo) {
-        html += \`<p><strong>Route:</strong> \${routeInfo}</p>\`;
+        html += '<p><strong>Route:</strong> ' + routeInfo + '</p>';
     }
     
-    html += \`
-        <div class="detail-row">
-            <span class="detail-label">Departure:</span>
-            <span class="detail-value">\${currentFlightData.flightPlanOrigin || 'N/A'}</span>
-        </div>
-        <div class="detail-row">
-            <span class="detail-label">Destination:</span>
-            <span class="detail-value">\${currentFlightData.flightPlanDestination || 'N/A'}</span>
-        </div>
-        <div class="detail-row">
-            <span class="detail-label">Speed:</span>
-            <span class="detail-value">\${Math.round(currentFlightData.groundSpeed || 0)} kts</span>
-        </div>
-        <div class="detail-row">
-            <span class="detail-label">Altitude:</span>
-            <span class="detail-value">\${Math.round(currentFlightData.altitude || 0)} ft</span>
-        </div>
-    \`;
+    html += '<div class="detail-row">' +
+            '<span class="detail-label">Departure:</span>' +
+            '<span class="detail-value">' + (currentFlightData.flightPlanOrigin || 'N/A') + '</span>' +
+            '</div>' +
+            '<div class="detail-row">' +
+            '<span class="detail-label">Destination:</span>' +
+            '<span class="detail-value">' + (currentFlightData.flightPlanDestination || 'N/A') + '</span>' +
+            '</div>' +
+            '<div class="detail-row">' +
+            '<span class="detail-label">Speed:</span>' +
+            '<span class="detail-value">' + Math.round(currentFlightData.groundSpeed || 0) + ' kts</span>' +
+            '</div>' +
+            '<div class="detail-row">' +
+            '<span class="detail-label">Altitude:</span>' +
+            '<span class="detail-value">' + Math.round(currentFlightData.altitude || 0) + ' ft</span>' +
+            '</div>';
     
     detailsPanel.innerHTML = html;
 }
@@ -1783,4 +1776,5 @@ function updateUserAircraftDetails() {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
