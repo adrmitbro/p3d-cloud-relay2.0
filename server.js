@@ -331,14 +331,25 @@ function getMobileAppHTML() {
         }
         
 .map-controls {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 8px;
     background: #0d0d0d;
     border-bottom: 1px solid #333;
     margin-bottom: 10px;
     border-radius: 8px;
     padding: 10px;
+}
+
+.map-controls-top-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+}
+
+.map-controls-bottom-row {
+    display: flex;
+    justify-content: center;
 }
 
 .map-controls .btn {
@@ -353,11 +364,12 @@ function getMobileAppHTML() {
     color: #888;
     font-size: 11px;
     background: #1a1a1a;
-    padding: 10px 8px;
+    padding: 8px 12px;  /* changed from 10px 8px */
     border-radius: 6px;
     border: 1px solid #333;
     text-align: center;
     white-space: nowrap;
+    min-width: 80px;  /* added this */
 }
         
         .map-controls-row {
@@ -560,9 +572,9 @@ function getMobileAppHTML() {
 
 .status-badge {
     display: inline-block;
-    padding: 3px 6px;
+    padding: 3px 5px;  /* reduced from 6px */
     border-radius: 8px;
-    font-size: 10px;
+    font-size: 9px;  /* reduced from 10px */
     font-weight: bold;
     background: #333;
     color: #888;
@@ -766,14 +778,16 @@ function getMobileAppHTML() {
             </div>
         </div>
 
-        <div class='tab-content'>
 <div class='map-controls'>
-    <button id='followUserBtn' class='btn btn-secondary' onclick='toggleFollowUser()'>Follow Aircraft</button>
-    <button id='toggleLabelsBtn' class='btn btn-secondary' onclick='toggleAircraftLabels()'>Hide Labels</button>
-    <button id='toggleFlightPlanBtn' class='btn btn-secondary' onclick='toggleFlightPlan()'>Show Flight Plan</button>
-    <span id='zoomLevel' class='zoom-indicator'>Zoom: 7</span>
+    <div class='map-controls-top-row'>
+        <button id='followUserBtn' class='btn btn-secondary' onclick='toggleFollowUser()'>Follow Aircraft</button>
+        <button id='toggleLabelsBtn' class='btn btn-secondary' onclick='toggleAircraftLabels()'>Hide Labels</button>
+        <button id='toggleFlightPlanBtn' class='btn btn-secondary' onclick='toggleFlightPlan()'>Show Flight Plan</button>
+    </div>
+    <div class='map-controls-bottom-row'>
+        <span id='zoomLevel' class='zoom-indicator'>Zoom: 7</span>
+    </div>
 </div>
-            </div>
             
             <div class='map-container'>
                 <div id='map'></div>
@@ -1301,14 +1315,19 @@ function updateAutopilotStatus(data) {
     updateStatusBadge('apAppStatus', data.approach);
     updateStatusBadge('autoThrottleStatus', data.throttle);
     
-    // GPS/NAV status - always show one as active
+    // GPS/NAV status - always show as active with current mode
     const navGpsBadge = document.getElementById('apNavGpsStatus');
-    if (data.navMode) {
-        navGpsBadge.classList.add('active');
-        navGpsBadge.textContent = 'GPS';
+    navGpsBadge.classList.add('active');
+    navGpsBadge.textContent = data.navMode ? 'GPS' : 'NAV';
+}
+
+function updateStatusBadge(id, isActive) {
+    const badge = document.getElementById(id);
+    if (!badge) return;
+    if (isActive) {
+        badge.classList.add('active');
     } else {
-        navGpsBadge.classList.add('active');
-        navGpsBadge.textContent = 'NAV';
+        badge.classList.remove('active');
     }
 }
 
@@ -1877,6 +1896,7 @@ function updateFlightPlanLine() {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
