@@ -554,6 +554,61 @@ function getMobileAppHTML() {
     background: #167fac;
     color: #fff;
 }
+
+/* Compact Summary Styles */
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 5px;
+}
+
+.summary-item {
+    text-align: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.summary-label {
+    font-size: 10px;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.summary-value {
+    font-size: 16px;
+    font-weight: bold;
+    color: #167fac;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.status-badges-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+}
+
+.arrow-up {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 12px solid #167fac;
+    margin: 5px auto;
+}
+
+.arrow-down {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 12px solid #167fac;
+    margin: 5px auto;
+}
         
         .detail-row {
             display: flex;
@@ -724,57 +779,47 @@ function getMobileAppHTML() {
                     </div>
                 </div>
 
-                // Add this after the save button in the autopilot tab
-<div class='card'>
-    <h3>Autopilot Status</h3>
-    <div class='data-grid'>
-        <div class='data-item'>
-            <div class='data-label'>Speed</div>
-            <div class='data-value' id='summarySpeed'>--</div>
-            <div style='font-size: 11px; color: #888;'>knots</div>
-        </div>
-        <div class='data-item'>
-            <div class='data-label'>Heading</div>
-            <div class='data-value' id='summaryHeading'>--</div>
-            <div style='font-size: 11px; color: #888;'>degrees</div>
-        </div>
-        <div class='data-item'>
-            <div class='data-label'>Altitude</div>
-            <div class='data-value' id='summaryAltitude'>--</div>
-            <div style='font-size: 11px; color: #888;'>feet</div>
-        </div>
-        <div class='data-item'>
-            <div class='data-label'>V/S</div>
-            <div class='data-value' id='summaryVS'>--</div>
-            <div style='font-size: 11px; color: #888;'>fpm</div>
-        </div>
-    </div>
-    
-    <div style='display: flex; justify-content: space-between; margin-top: 10px;'>
-        <div style='text-align: center; flex: 1;'>
-            <div class='data-label'>Gear</div>
-            <div class='toggle-btn' id='summaryGear' style='margin: 5px auto;'>--</div>
-        </div>
-        <div style='text-align: center; flex: 1;'>
-            <div class='data-label'>Flaps</div>
-            <div id='summaryFlaps' style='font-size: 18px; font-weight: bold; color: #167fac; margin: 5px auto;'>--%</div>
-        </div>
-    </div>
-    
-    <div style='margin-top: 15px;'>
-        <div class='data-label'>Active Systems</div>
-        <div style='display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px;'>
-            <span class='status-badge' id='apMasterStatus'>AP</span>
-            <span class='status-badge' id='apAltStatus'>ALT</span>
-            <span class='status-badge' id='apHdgStatus'>HDG</span>
-            <span class='status-badge' id='apVSStatus'>V/S</span>
-            <span class='status-badge' id='apSpeedStatus'>SPD</span>
-            <span class='status-badge' id='apNavStatus'>NAV</span>
-            <span class='status-badge' id='apAppStatus'>APP</span>
-            <span class='status-badge' id='autoThrottleStatus'>A/T</span>
-        </div>
-    </div>
-</div>
+                <!-- Compact Summary Section -->
+                <div class='card'>
+                    <h3>Flight Status</h3>
+                    <div class='summary-row'>
+                        <div class='summary-item'>
+                            <div class='summary-label'>SPD</div>
+                            <div class='summary-value' id='summarySpeed'>--</div>
+                        </div>
+                        <div class='summary-item'>
+                            <div class='summary-label'>HDG</div>
+                            <div class='summary-value' id='summaryHeading'>--°</div>
+                        </div>
+                        <div class='summary-item'>
+                            <div class='summary-label'>ALT</div>
+                            <div class='summary-value' id='summaryAltitude'>--</div>
+                        </div>
+                        <div class='summary-item'>
+                            <div class='summary-label'>V/S</div>
+                            <div class='summary-value' id='summaryVS'>--</div>
+                        </div>
+                        <div class='summary-item'>
+                            <div class='summary-label'>FLAPS</div>
+                            <div class='summary-value' id='summaryFlaps'>--%</div>
+                        </div>
+                        <div class='summary-item'>
+                            <div class='summary-label'>GEAR</div>
+                            <div id='summaryGear' class='arrow-up'></div>
+                        </div>
+                    </div>
+                    
+                    <div class='status-badges-row'>
+                        <span class='status-badge' id='apMasterStatus'>AP</span>
+                        <span class='status-badge' id='apAltStatus'>ALT</span>
+                        <span class='status-badge' id='apHdgStatus'>HDG</span>
+                        <span class='status-badge' id='apVSStatus'>V/S</span>
+                        <span class='status-badge' id='apSpeedStatus'>SPD</span>
+                        <span class='status-badge' id='apNavStatus'>NAV</span>
+                        <span class='status-badge' id='apAppStatus'>APP</span>
+                        <span class='status-badge' id='autoThrottleStatus'>A/T</span>
+                    </div>
+                </div>
                 
                 <div class='card'>
                     <h3>Autopilot</h3>
@@ -1170,68 +1215,53 @@ function getMobileAppHTML() {
             updateToggle('lightRecognition', data.lightRecognition);
             updateToggle('noSmokingSwitch', data.noSmokingSwitch);
             updateToggle('seatbeltsSwitch', data.seatbeltsSwitch);
+            
+            // Update the summary section with the autopilot data
+            updateFlightSummary(data);
+            updateAutopilotStatus(data);
         }
 
-// Add this function to update the summary section
-function updateFlightSummary(data) {
-    // Update flight data values
-    document.getElementById('summarySpeed').textContent = Math.round(data.groundSpeed);
-    document.getElementById('summaryHeading').textContent = Math.round(data.heading);
-    document.getElementById('summaryAltitude').textContent = Math.round(data.altitude).toLocaleString();
-    document.getElementById('summaryVS').textContent = Math.round(data.verticalSpeed);
-    
-    // Update gear status
-    const gearBtn = document.getElementById('summaryGear');
-    if (data.gear) {
-        gearBtn.className = 'toggle-btn on';
-        gearBtn.textContent = 'DOWN';
-    } else {
-        gearBtn.className = 'toggle-btn off';
-        gearBtn.textContent = 'UP';
-    }
-    
-    // Update flaps position
-    document.getElementById('summaryFlaps').textContent = Math.round(data.flaps) + '%';
-}
+        // Add this function to update the summary section
+        function updateFlightSummary(data) {
+            // Use the displayed speed from autopilot state, not ground speed
+            document.getElementById('summarySpeed').textContent = data.displayedSpeed || Math.round(data.groundSpeed);
+            document.getElementById('summaryHeading').textContent = Math.round(data.heading) + '°';
+            document.getElementById('summaryAltitude').textContent = Math.round(data.altitude).toLocaleString();
+            document.getElementById('summaryVS').textContent = Math.round(data.verticalSpeed);
+            document.getElementById('summaryFlaps').textContent = Math.round(data.flaps) + '%';
+            
+            // Update gear with arrow icons
+            const gearElement = document.getElementById('summaryGear');
+            if (data.gear) {
+                gearElement.className = 'arrow-down';
+            } else {
+                gearElement.className = 'arrow-up';
+            }
+        }
 
-// Add this function to update the autopilot status badges
-function updateAutopilotStatus(data) {
-    // Update status badges
-    updateStatusBadge('apMasterStatus', data.master);
-    updateStatusBadge('apAltStatus', data.altitude);
-    updateStatusBadge('apHdgStatus', data.heading);
-    updateStatusBadge('apVSStatus', data.vs);
-    updateStatusBadge('apSpeedStatus', data.speed);
-    updateStatusBadge('apNavStatus', data.nav);
-    updateStatusBadge('apAppStatus', data.approach);
-    updateStatusBadge('autoThrottleStatus', data.throttle);
-}
+        // Add this function to update the autopilot status badges
+        function updateAutopilotStatus(data) {
+            // Update status badges
+            updateStatusBadge('apMasterStatus', data.master);
+            updateStatusBadge('apAltStatus', data.altitude);
+            updateStatusBadge('apHdgStatus', data.heading);
+            updateStatusBadge('apVSStatus', data.vs);
+            updateStatusBadge('apSpeedStatus', data.speed);
+            updateStatusBadge('apNavStatus', data.nav);
+            updateStatusBadge('apAppStatus', data.approach);
+            updateStatusBadge('autoThrottleStatus', data.throttle);
+        }
 
-// Helper function to update a single status badge
-function updateStatusBadge(id, isActive) {
-    const badge = document.getElementById(id);
-    if (isActive) {
-        badge.classList.add('active');
-    } else {
-        badge.classList.remove('active');
-    }
-}
+        // Helper function to update a single status badge
+        function updateStatusBadge(id, isActive) {
+            const badge = document.getElementById(id);
+            if (isActive) {
+                badge.classList.add('active');
+            } else {
+                badge.classList.remove('active');
+            }
+        }
 
-// Update the updateFlightData function to also update the summary
-function updateFlightData(data) {
-    // ... existing code ...
-    
-    // Update the summary section
-    updateFlightSummary(data);
-}
-
-// Update the updateAutopilotUI function to also update the status badges
-function updateAutopilotUI(data) {
-    // ... existing code ...
-    
-    // Update the autopilot status badges
-    updateAutopilotStatus(data);
-}
         function updateToggle(id, state, text) {
             const btn = document.getElementById(id);
             if (!btn) return;
@@ -1833,4 +1863,3 @@ function updateAutopilotUI(data) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
-
