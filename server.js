@@ -1461,21 +1461,63 @@ function getMobileAppHTML() {
             });
         }
 
-        function updateUserAircraftDetails() {
-            const detailsPanel = document.getElementById('aircraftDetails');
-            if (!detailsPanel) return;
-            
-            const callsign = currentFlightData.atcId || "Your Aircraft";
-            const flightInfo = (currentFlightData.atcAirline && currentFlightData.atcFlightNumber) 
-                ? currentFlightData.atcAirline + " " + currentFlightData.atcFlightNumber 
-                : currentFlightData.atcAirline || "";
-            const aircraftModel = currentFlightData.atcModel || currentFlightData.atcType || "User Aircraft";
-            const routeInfo = (currentFlightData.flightPlanOrigin && currentFlightData.flightPlanDestination) 
-                ? currentFlightData.flightPlanOrigin + " → " + currentFlightData.flightPlanDestination 
-                : "";
-            
-            detailsPanel.innerHTML = \`<h4 style="margin-top:0">\${callsign}</h4>\${flightInfo ? \`<p><strong>Flight:</strong> \${flightInfo}</p>\` : ""}<p><strong>Aircraft:</strong> \${aircraftModel}</p>\${routeInfo ? \`<p><strong>Route:</strong> \${routeInfo}</p>\` : ""}<div class="detail-row"><span class="detail-label">Departure:</span><span class="detail-value">\${currentFlightData.flightPlanOrigin || 'N/A'}</span></div><div class="detail-row"><span class="detail-label">Destination:</span><span class="detail-value">\${currentFlightData.flightPlanDestination || 'N/A'}</span></div><div class="detail-row"><span class="detail-label">Speed:</span><span class="detail-value">\${Math.round(currentFlightData.groundSpeed || 0)} kts</span></div><div class="detail-row"><span class="detail-label">Altitude:</span><span class="detail-value">\${Math.round(currentFlightData.altitude || 0)} ft</span></div>\`;
-        }
+function updateUserAircraftDetails() {
+    const detailsPanel = document.getElementById('aircraftDetails');
+    if (!detailsPanel) return;
+    
+    // Use ATC ID as the main identifier, fallback to "Your Aircraft"
+    const callsign = currentFlightData.atcId || "Your Aircraft";
+    
+    // Build flight info line (Airline + Flight Number)
+    let flightInfo = "";
+    if (currentFlightData.atcAirline && currentFlightData.atcFlightNumber) {
+        flightInfo = currentFlightData.atcAirline + " " + currentFlightData.atcFlightNumber;
+    } else if (currentFlightData.atcAirline) {
+        flightInfo = currentFlightData.atcAirline;
+    }
+    
+    // Aircraft model
+    const aircraftModel = currentFlightData.atcModel || currentFlightData.atcType || "User Aircraft";
+    
+    // Route
+    const routeInfo = (currentFlightData.flightPlanOrigin && currentFlightData.flightPlanDestination) 
+        ? currentFlightData.flightPlanOrigin + " → " + currentFlightData.flightPlanDestination 
+        : "";
+    
+    // Build the HTML with proper structure
+    let html = \`<h4 style="margin-top:0">\${callsign}</h4>\`;
+    
+    if (flightInfo) {
+        html += \`<p><strong>Flight:</strong> \${flightInfo}</p>\`;
+    }
+    
+    html += \`<p><strong>Aircraft:</strong> \${aircraftModel}</p>\`;
+    
+    if (routeInfo) {
+        html += \`<p><strong>Route:</strong> \${routeInfo}</p>\`;
+    }
+    
+    html += \`
+        <div class="detail-row">
+            <span class="detail-label">Departure:</span>
+            <span class="detail-value">\${currentFlightData.flightPlanOrigin || 'N/A'}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Destination:</span>
+            <span class="detail-value">\${currentFlightData.flightPlanDestination || 'N/A'}</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Speed:</span>
+            <span class="detail-value">\${Math.round(currentFlightData.groundSpeed || 0)} kts</span>
+        </div>
+        <div class="detail-row">
+            <span class="detail-label">Altitude:</span>
+            <span class="detail-value">\${Math.round(currentFlightData.altitude || 0)} ft</span>
+        </div>
+    \`;
+    
+    detailsPanel.innerHTML = html;
+}
 
         function updateAircraftDetails(aircraft) {
             const detailsPanel = document.getElementById('aircraftDetails');
@@ -1741,3 +1783,4 @@ function getMobileAppHTML() {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
