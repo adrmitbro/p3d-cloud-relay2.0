@@ -2007,9 +2007,9 @@ function initInstruments() {
             ctx.fillStyle = '#01E00D';
             ctx.font = '11px Arial';
             ctx.textAlign = 'left';
-            ctx.fillText(`SPD: ${Math.round(speed)} kts`, 15, 25);
-            ctx.fillText(`ALT: ${Math.round(altitude)} ft`, 15, 40);
-            ctx.fillText(`V/S: ${Math.round(vs)} fpm`, 15, 55);
+ctx.fillText('SPD: ' + Math.round(speed) + ' kts', 15, 25);
+ctx.fillText('ALT: ' + Math.round(altitude) + ' ft', 15, 40);
+ctx.fillText('V/S: ' + Math.round(vs) + ' fpm', 15, 55);
         }
         
         function drawMFD() {
@@ -2193,6 +2193,7 @@ function initInstruments() {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
