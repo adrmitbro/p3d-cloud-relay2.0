@@ -330,15 +330,35 @@ function getMobileAppHTML() {
             color: #167fac;
         }
         
-        .map-controls {
-            display: flex;
-            flex-direction: column;
-            background: #0d0d0d;
-            border-bottom: 1px solid #333;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            padding: 10px;
-        }
+.map-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 8px;
+    background: #0d0d0d;
+    border-bottom: 1px solid #333;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.map-controls .btn {
+    width: 100%;
+    padding: 10px 8px;
+    font-size: 11px;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.zoom-indicator {
+    color: #888;
+    font-size: 11px;
+    background: #1a1a1a;
+    padding: 10px 8px;
+    border-radius: 6px;
+    border: 1px solid #333;
+    text-align: center;
+    white-space: nowrap;
+}
         
         .map-controls-row {
             display: flex;
@@ -747,13 +767,10 @@ function getMobileAppHTML() {
         </div>
 
         <div class='tab-content'>
-            <div class='map-controls'>
-<div class='map-controls-row'>
-    <div class='map-buttons'>
-        <button id='followUserBtn' class='btn btn-secondary' onclick='toggleFollowUser()'>Follow Aircraft</button>
-        <button id='toggleLabelsBtn' class='btn btn-secondary' onclick='toggleAircraftLabels()'>Hide Labels</button>
-        <button id='toggleFlightPlanBtn' class='btn btn-secondary' onclick='toggleFlightPlan()'>Show Flight Plan</button>
-    </div>
+<div class='map-controls'>
+    <button id='followUserBtn' class='btn btn-secondary' onclick='toggleFollowUser()'>Follow Aircraft</button>
+    <button id='toggleLabelsBtn' class='btn btn-secondary' onclick='toggleAircraftLabels()'>Hide Labels</button>
+    <button id='toggleFlightPlanBtn' class='btn btn-secondary' onclick='toggleFlightPlan()'>Show Flight Plan</button>
     <span id='zoomLevel' class='zoom-indicator'>Zoom: 7</span>
 </div>
             </div>
@@ -831,16 +848,17 @@ function getMobileAppHTML() {
                             </div>
                         </div>
                         
-                        <div class='status-badges-row'>
-                            <span class='status-badge' id='apMasterStatus'>AP</span>
-                            <span class='status-badge' id='apAltStatus'>ALT</span>
-                            <span class='status-badge' id='apHdgStatus'>HDG</span>
-                            <span class='status-badge' id='apVSStatus'>V/S</span>
-                            <span class='status-badge' id='apSpeedStatus'>SPD</span>
-                            <span class='status-badge' id='apNavStatus'>NAV</span>
-                            <span class='status-badge' id='apAppStatus'>APP</span>
-                            <span class='status-badge' id='autoThrottleStatus'>A/T</span>
-                        </div>
+<div class='status-badges-row'>
+    <span class='status-badge' id='apMasterStatus'>AP</span>
+    <span class='status-badge' id='apAltStatus'>ALT</span>
+    <span class='status-badge' id='apHdgStatus'>HDG</span>
+    <span class='status-badge' id='apVSStatus'>V/S</span>
+    <span class='status-badge' id='apSpeedStatus'>SPD</span>
+    <span class='status-badge active' id='apNavGpsStatus'>GPS</span>
+    <span class='status-badge' id='apLocStatus'>LOC</span>
+    <span class='status-badge' id='apAppStatus'>APP</span>
+    <span class='status-badge' id='autoThrottleStatus'>A/T</span>
+</div>
                     </div>
                 </div>
                 
@@ -1026,8 +1044,9 @@ function getMobileAppHTML() {
         let userHeading = 0;
         let currentFlightData = {};
         let mapInitialized = false;
-        let flightPlanPolyline = null;
-        let flightPlanWaypoints = [];
+let flightPlanPolyline = null;
+let flightPlanWaypoints = [];
+let flightPlanDestination = null;
 
 function switchTab(index) {
     document.querySelectorAll('.tab').forEach((tab, i) => {
@@ -1133,9 +1152,16 @@ function switchTab(index) {
                     }
                     break;
 
-                    case 'flight_plan_waypoints':
+case 'flight_plan_waypoints':
     flightPlanWaypoints = data.waypoints.map(wp => [wp.lat, wp.lon]);
     updateFlightPlanLine();
+    break;
+                    
+case 'flight_plan_destination':
+    if (data.hasDestination && data.destinationLat && data.destinationLon) {
+        flightPlanDestination = [data.destinationLat, data.destinationLon];
+        updateFlightPlanLine();
+    }
     break;
                     
                 case 'pc_offline':
@@ -1265,25 +1291,26 @@ function switchTab(index) {
             }
         }
 
-        function updateAutopilotStatus(data) {
-            updateStatusBadge('apMasterStatus', data.master);
-            updateStatusBadge('apAltStatus', data.altitude);
-            updateStatusBadge('apHdgStatus', data.heading);
-            updateStatusBadge('apVSStatus', data.vs);
-            updateStatusBadge('apSpeedStatus', data.speed);
-            updateStatusBadge('apNavStatus', data.nav);
-            updateStatusBadge('apAppStatus', data.approach);
-            updateStatusBadge('autoThrottleStatus', data.throttle);
-        }
-
-        function updateStatusBadge(id, isActive) {
-            const badge = document.getElementById(id);
-            if (isActive) {
-                badge.classList.add('active');
-            } else {
-                badge.classList.remove('active');
-            }
-        }
+function updateAutopilotStatus(data) {
+    updateStatusBadge('apMasterStatus', data.master);
+    updateStatusBadge('apAltStatus', data.altitude);
+    updateStatusBadge('apHdgStatus', data.heading);
+    updateStatusBadge('apVSStatus', data.vs);
+    updateStatusBadge('apSpeedStatus', data.speed);
+    updateStatusBadge('apLocStatus', data.nav);
+    updateStatusBadge('apAppStatus', data.approach);
+    updateStatusBadge('autoThrottleStatus', data.throttle);
+    
+    // GPS/NAV status - always show one as active
+    const navGpsBadge = document.getElementById('apNavGpsStatus');
+    if (data.navMode) {
+        navGpsBadge.classList.add('active');
+        navGpsBadge.textContent = 'GPS';
+    } else {
+        navGpsBadge.classList.add('active');
+        navGpsBadge.textContent = 'NAV';
+    }
+}
 
         function updateToggle(id, state, text) {
             const btn = document.getElementById(id);
@@ -1798,12 +1825,41 @@ function updateFlightPlanLine() {
     }
     
     // Draw new line if we have waypoints AND toggle is on
-    if (showFlightPlan && flightPlanWaypoints.length > 1) {
-        flightPlanPolyline = L.polyline(flightPlanWaypoints, {
-            color: '#00ED00',
-            weight: 3,
-            opacity: 0.7
-        }).addTo(map);
+    if (showFlightPlan && flightPlanWaypoints.length > 0) {
+        let points = [...flightPlanWaypoints];
+        
+        // Add destination if we have it
+        if (flightPlanDestination) {
+            points.push(flightPlanDestination);
+        }
+        
+        if (points.length > 1) {
+            // Create curved/smoothed line using quadratic bezier curves between points
+            let smoothedPoints = [];
+            
+            // Add first point
+            smoothedPoints.push(points[0]);
+            
+            // Create curved segments between each pair of points
+            for (let i = 0; i < points.length - 1; i++) {
+                let p0 = points[i];
+                let p1 = points[i + 1];
+                
+                // Calculate intermediate points for smooth curve
+                for (let t = 0.1; t <= 1; t += 0.1) {
+                    let lat = p0[0] + (p1[0] - p0[0]) * t;
+                    let lon = p0[1] + (p1[1] - p0[1]) * t;
+                    smoothedPoints.push([lat, lon]);
+                }
+            }
+            
+            flightPlanPolyline = L.polyline(smoothedPoints, {
+                color: '#00ED00',
+                weight: 3,
+                opacity: 0.7,
+                smoothFactor: 1.5
+            }).addTo(map);
+        }
     }
 }
 
@@ -1821,6 +1877,7 @@ function updateFlightPlanLine() {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
