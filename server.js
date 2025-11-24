@@ -1845,15 +1845,18 @@ function initInstruments() {
             requestAnimationFrame(drawInstruments);
         }
         
-        function drawInstruments() {
-            if (pfdCtx && currentFlightData) {
-                drawPFD();
-            }
-            if (mfdCtx && currentFlightData) {
-                drawMFD();
-            }
-            requestAnimationFrame(drawInstruments);
-        }
+function drawInstruments() {
+    if (pfdCtx && currentFlightData) {
+        drawPFD();
+    }
+    if (mfdCtx && currentFlightData) {
+        drawMFD();
+    }
+    if (eicasCtx && currentFlightData) {
+        drawEICAS();
+    }
+    requestAnimationFrame(drawInstruments);
+}
         
 function drawPFD() {
     const ctx = pfdCtx;
@@ -2425,6 +2428,170 @@ function drawPFD() {
             ctx.fillText('HDG ' + Math.round(heading) + '°', centerX, height - 15);
         }
 
+        function drawEICAS() {
+    const ctx = eicasCtx;
+    const width = eicasCanvas.width;
+    const height = eicasCanvas.height;
+    
+    // Clear canvas
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Get autopilot data for engine info
+    const apData = window.lastAutopilotState || {};
+    const throttlePercent = apData.throttlePercent || 0;
+    
+    // Simulate engine parameters based on throttle
+    const n1 = Math.min(100, throttlePercent * 1.1);
+    const n2 = Math.min(100, throttlePercent * 0.95);
+    const egt = Math.min(900, throttlePercent * 8.5 + 100);
+    const fuelFlow = Math.max(0, throttlePercent * 25);
+    
+    // Draw title
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('ENGINE', width / 2, 20);
+    
+    // Engine 1 and Engine 2 columns
+    const engine1X = width * 0.3;
+    const engine2X = width * 0.7;
+    const startY = 40;
+    
+    // Engine labels
+    ctx.font = 'bold 12px Arial';
+    ctx.fillStyle = '#888';
+    ctx.fillText('1', engine1X, startY);
+    ctx.fillText('2', engine2X, startY);
+    
+    // N1 Display
+    ctx.font = 'bold 10px Arial';
+    ctx.fillStyle = '#888';
+    ctx.textAlign = 'center';
+    ctx.fillText('N1', 40, startY + 30);
+    
+    ctx.font = 'bold 20px Arial';
+    ctx.fillStyle = n1 > 95 ? '#ff0000' : '#00ff00';
+    ctx.fillText(n1.toFixed(1), engine1X, startY + 30);
+    ctx.fillText(n1.toFixed(1), engine2X, startY + 30);
+    
+    ctx.font = 'bold 10px Arial';
+    ctx.fillStyle = '#888';
+    ctx.fillText('%', engine1X + 35, startY + 30);
+    ctx.fillText('%', engine2X + 35, startY + 30);
+    
+    // N1 Arc Gauges
+    drawArcGauge(ctx, engine1X, startY + 55, 35, n1, 100, n1 > 95 ? '#ff0000' : '#00ff00');
+    drawArcGauge(ctx, engine2X, startY + 55, 35, n1, 100, n1 > 95 ? '#ff0000' : '#00ff00');
+    
+    // N2 Display
+    ctx.font = 'bold 10px Arial';
+    ctx.fillStyle = '#888';
+    ctx.textAlign = 'center';
+    ctx.fillText('N2', 40, startY + 100);
+    
+    ctx.font = 'bold 16px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(n2.toFixed(1), engine1X, startY + 100);
+    ctx.fillText(n2.toFixed(1), engine2X, startY + 100);
+    
+    // EGT Display
+    ctx.font = 'bold 10px Arial';
+    ctx.fillStyle = '#888';
+    ctx.fillText('EGT', 40, startY + 130);
+    
+    ctx.font = 'bold 16px Arial';
+    ctx.fillStyle = egt > 800 ? '#ff8800' : '#fff';
+    ctx.fillText(Math.round(egt), engine1X, startY + 130);
+    ctx.fillText(Math.round(egt), engine2X, startY + 130);
+    
+    ctx.font = 'bold 9px Arial';
+    ctx.fillStyle = '#888';
+    ctx.fillText('°C', engine1X + 25, startY + 130);
+    ctx.fillText('°C', engine2X + 25, startY + 130);
+    
+    // Fuel Flow
+    ctx.font = 'bold 10px Arial';
+    ctx.fillStyle = '#888';
+    ctx.fillText('FF', 40, startY + 160);
+    
+    ctx.font = 'bold 14px Arial';
+    ctx.fillStyle = '#00ff00';
+    ctx.fillText(Math.round(fuelFlow), engine1X, startY + 160);
+    ctx.fillText(Math.round(fuelFlow), engine2X, startY + 160);
+    
+    ctx.font = 'bold 9px Arial';
+    ctx.fillStyle = '#888';
+    ctx.fillText('kg/h', engine1X + 25, startY + 160);
+    ctx.fillText('kg/h', engine2X + 25, startY + 160);
+    
+    // Fuel quantity display at bottom
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(10, height - 50, width - 20, 40);
+    
+    ctx.font = 'bold 10px Arial';
+    ctx.fillStyle = '#888';
+    ctx.textAlign = 'left';
+    ctx.fillText('FUEL', 20, height - 35);
+    
+    // Simulate fuel quantity (you'd get this from flight data)
+    const fuelPercent = 75; // Default 75%
+    const fuelKg = Math.round(fuelPercent * 100);
+    
+    ctx.font = 'bold 16px Arial';
+    ctx.fillStyle = fuelPercent < 20 ? '#ff8800' : '#00ff00';
+    ctx.textAlign = 'center';
+    ctx.fillText(fuelKg + ' kg', width / 2, height - 20);
+    
+    // Fuel bar
+    const barWidth = width - 100;
+    const barX = 50;
+    const barY = height - 32;
+    
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(barX, barY, barWidth, 8);
+    
+    ctx.fillStyle = fuelPercent < 20 ? '#ff8800' : '#00ff00';
+    ctx.fillRect(barX, barY, (barWidth * fuelPercent) / 100, 8);
+    
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, barWidth, 8);
+}
+
+function drawArcGauge(ctx, x, y, radius, value, max, color) {
+    // Background arc
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, Math.PI * 0.75, Math.PI * 2.25);
+    ctx.stroke();
+    
+    // Value arc
+    const angle = (value / max) * (Math.PI * 1.5);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, Math.PI * 0.75, Math.PI * 0.75 + angle);
+    ctx.stroke();
+    
+    // Redline at 95%
+    if (max === 100) {
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        const redlineAngle = Math.PI * 0.75 + (0.95 * Math.PI * 1.5);
+        const rx1 = x + Math.cos(redlineAngle) * (radius - 8);
+        const ry1 = y + Math.sin(redlineAngle) * (radius - 8);
+        const rx2 = x + Math.cos(redlineAngle) * (radius + 8);
+        const ry2 = y + Math.sin(redlineAngle) * (radius + 8);
+        ctx.moveTo(rx1, ry1);
+        ctx.lineTo(rx2, ry2);
+        ctx.stroke();
+    }
+}
+
         window.onload = () => {
             const savedId = localStorage.getItem('p3d_unique_id');
             if (savedId) {
@@ -2439,6 +2606,7 @@ function drawPFD() {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
