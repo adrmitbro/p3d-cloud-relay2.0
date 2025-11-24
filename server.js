@@ -836,6 +836,12 @@ function getMobileAppHTML() {
                 <canvas id='mfdCanvas' class='instrument' width='300' height='300'></canvas>
             </div>
         </div>
+        <div class='instrument-row'>
+            <div class='instrument-container' style='width: 100%; max-width: 320px;'>
+                <span class='instrument-label'>Engine Indication & Crew Alerting</span>
+                <canvas id='eicasCanvas' class='instrument' width='300' height='250'></canvas>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -2559,6 +2565,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
