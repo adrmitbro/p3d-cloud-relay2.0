@@ -2632,28 +2632,28 @@ function drawSystemsPage(ctx, width, height, apData) {
     
     const leftX = 75;
     const rightX = 225;
-    let yPos = 35;
+    let yPos = 30;
     
     // Hydraulics Section
     ctx.fillStyle = '#167fac';
     ctx.font = 'bold 10px Arial';
     ctx.textAlign = 'left';
     ctx.fillText('HYDRAULICS', 10, yPos);
-    yPos += 15;
+    yPos += 12;
     
     const hydA = apData.hydraulicA !== undefined ? apData.hydraulicA : 3000;
     const hydB = apData.hydraulicB !== undefined ? apData.hydraulicB : 3000;
     
     drawSystemBar(ctx, 10, yPos, 130, 'A', hydA, 3000, hydA > 2500 ? '#00ff00' : '#ff8800');
-    yPos += 20;
+    yPos += 18;
     drawSystemBar(ctx, 10, yPos, 130, 'B', hydB, 3000, hydB > 2500 ? '#00ff00' : '#ff8800');
-    yPos += 25;
+    yPos += 20;
     
     // APU Section
     ctx.fillStyle = '#167fac';
     ctx.font = 'bold 10px Arial';
     ctx.fillText('APU', 10, yPos);
-    yPos += 15;
+    yPos += 12;
     
     const apuRunning = apData.apuRunning !== undefined ? apData.apuRunning : false;
     const apuN1 = apData.apuN1 !== undefined ? apData.apuN1 : 0;
@@ -2663,24 +2663,25 @@ function drawSystemsPage(ctx, width, height, apData) {
     ctx.fillStyle = '#888';
     ctx.fillText('Status:', 15, yPos);
     ctx.fillStyle = apuRunning ? '#00ff00' : '#888';
-    ctx.fillText(apuRunning ? 'RUNNING' : 'OFF', 55, yPos);
-    yPos += 15;
+    ctx.fillText(apuRunning ? 'RUN' : 'OFF', 50, yPos);
     
     if (apuRunning) {
         ctx.fillStyle = '#888';
-        ctx.fillText('N1:', 15, yPos);
+        ctx.fillText('N1:', 85, yPos);
         ctx.fillStyle = '#00ff00';
-        ctx.fillText(apuN1.toFixed(1) + '%', 55, yPos);
-        yPos += 15;
-        
+        ctx.fillText(apuN1.toFixed(1) + '%', 105, yPos);
+    }
+    yPos += 12;
+    
+    if (apuRunning) {
         ctx.fillStyle = '#888';
         ctx.fillText('EGT:', 15, yPos);
         ctx.fillStyle = apuEgt > 600 ? '#ff8800' : '#00ff00';
-        ctx.fillText(Math.round(apuEgt) + '°C', 55, yPos);
+        ctx.fillText(Math.round(apuEgt) + '°C', 50, yPos);
     }
     
     // Fuel Distribution (right side)
-    yPos = 35;
+    yPos = 30;
     ctx.fillStyle = '#167fac';
     ctx.font = 'bold 10px Arial';
     ctx.textAlign = 'left';
@@ -2966,6 +2967,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
