@@ -712,35 +712,6 @@ function getMobileAppHTML() {
             color: #888;
             font-size: 13px;
         }
-
-        /* EICAS Navigation */
-        .eicas-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 5px;
-            padding: 0 5px;
-        }
-        
-        .eicas-page-btn {
-            background: #333;
-            border: none;
-            color: #fff;
-            padding: 3px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 10px;
-        }
-        
-        .eicas-page-btn:active {
-            background: #167fac;
-        }
-        
-        .eicas-page-title {
-            font-size: 11px;
-            color: #167fac;
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
@@ -867,11 +838,6 @@ function getMobileAppHTML() {
         </div>
         <div class='instrument-row'>
             <div class='instrument-container' style='width: 100%; max-width: 320px;'>
-                <div class='eicas-nav'>
-                    <button class='eicas-page-btn' onclick='eicasPrevPage()'>◀</button>
-                    <span class='eicas-page-title' id='eicasPageTitle'>ENGINES</span>
-                    <button class='eicas-page-btn' onclick='eicasNextPage()'>▶</button>
-                </div>
                 <span class='instrument-label'>Engine Indication & Crew Alerting</span>
                 <canvas id='eicasCanvas' class='instrument' width='300' height='250'></canvas>
             </div>
@@ -1128,8 +1094,6 @@ let mfdCanvas = null;
 let mfdCtx = null;
 let eicasCanvas = null;
 let eicasCtx = null;
-let eicasPage = 0; // 0: Engines, 1: Systems, 2: Flight Controls
-let engineCount = 2; // Default to 2 engines, will be updated from data
 
 function switchTab(index) {
             document.querySelectorAll('.tab').forEach((tab, i) => {
@@ -1302,11 +1266,6 @@ function switchTab(index) {
 function updateAutopilotUI(data) {
     // Store autopilot state globally for PFD access
     window.lastAutopilotState = data;
-    
-    // Update engine count if available
-    if (data.engineCount && data.engineCount !== engineCount) {
-        engineCount = data.engineCount;
-    }
     
     updateToggle('apMaster', data.master);
             updateToggle('apAlt', data.altitude);
@@ -1884,23 +1843,6 @@ function updateUserAircraftDetails() {
         function toggleCabin(cabinType) {
             ws.send(JSON.stringify({ type: 'toggle_cabin', cabinType: cabinType }));
         }
-
-        // EICAS Navigation
-        function eicasPrevPage() {
-            eicasPage = (eicasPage - 1 + 3) % 3;
-            updateEICASPageTitle();
-        }
-
-        function eicasNextPage() {
-            eicasPage = (eicasPage + 1) % 3;
-            updateEICASPageTitle();
-        }
-
-        function updateEICASPageTitle() {
-            const titles = ['ENGINES', 'SYSTEMS', 'FLIGHT CONTROLS'];
-            document.getElementById('eicasPageTitle').textContent = titles[eicasPage];
-        }
-
 function initInstruments() {
     pfdCanvas = document.getElementById('pfdCanvas');
     pfdCtx = pfdCanvas.getContext('2d');
@@ -2505,94 +2447,65 @@ function drawPFD() {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, width, height);
     
-    // Get real engine data
-    const apData = window.lastAutopilotState || {};
+// Get real engine data
+const apData = window.lastAutopilotState || {};
+const n1_1 = apData.engine1N1 || 0;
+const n1_2 = apData.engine2N1 || 0;
+const n2_1 = apData.engine1N2 || 0;
+const n2_2 = apData.engine2N2 || 0;
+const egt_1 = apData.engine1EGT || 0;
+const egt_2 = apData.engine2EGT || 0;
+const ff_1 = apData.engine1FuelFlow || 0;
+const ff_2 = apData.engine2FuelFlow || 0;
+const fuelTotal = apData.fuelTotalQuantity || 0;
     
-    // Draw based on current page
-    switch(eicasPage) {
-        case 0: // Engine page
-            drawEICASEnginePage(ctx, width, height, apData);
-            break;
-        case 1: // Systems page
-            drawEICASSystemsPage(ctx, width, height, apData);
-            break;
-        case 2: // Flight Controls page
-            drawEICASFlightControlsPage(ctx, width, height, apData);
-            break;
-    }
-}
-
-function drawEICASEnginePage(ctx, width, height, apData) {
     // Draw title
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('ENGINE', width / 2, 20);
     
-    // Determine engine count and adjust layout
-    const engineCount = apData.engineCount || 2;
-    const columns = engineCount <= 2 ? 2 : 4;
-    const columnWidth = width / columns;
+    // Engine 1 and Engine 2 columns
+    const engine1X = width * 0.3;
+    const engine2X = width * 0.7;
     const startY = 40;
     
     // Engine labels
     ctx.font = 'bold 12px Arial';
     ctx.fillStyle = '#888';
+    ctx.fillText('1', engine1X, startY);
+    ctx.fillText('2', engine2X, startY);
     
-    for (let i = 1; i <= engineCount; i++) {
-        const column = (i - 1) % columns;
-        const x = column * columnWidth + columnWidth / 2;
-        ctx.fillText(i.toString(), x, startY);
-    }
-    
-    // Draw engine parameters for each engine
-    for (let i = 1; i <= engineCount; i++) {
-        const column = (i - 1) % columns;
-        const x = column * columnWidth + columnWidth / 2;
-        
-        // Get engine data
-        const n1 = apData['engine' + i + 'N1'] || 0;
-        const n2 = apData['engine' + i + 'N2'] || 0;
-const egt = apData['engine' + i + 'EGT'] || 0;
-const ff = apData['engine' + i + 'FuelFlow'] || 0;
-const oilTemp = apData['engine' + i + 'OilTemp'] || 0;
-const oilPressure = apData['engine' + i + 'OilPressure'] || 0;
-        
-        // N1 Display
-        ctx.fillStyle = n1 > 95 ? '#ff0000' : '#00ff00';
-        ctx.font = 'bold 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(n1.toFixed(1), x, startY + 25);
-        
-        // N1 Arc Gauge
-        drawArcGauge(ctx, x, startY + 45, 25, n1, 100, n1 > 95 ? '#ff0000' : '#00ff00');
-        
-        // N2 Display
-        ctx.fillStyle = '#fff';
-        ctx.fillText(n2.toFixed(1), x, startY + 80);
-        
-        // EGT Display
-        ctx.fillStyle = egt > 800 ? '#ff8800' : '#fff';
-        ctx.fillText(Math.round(egt), x, startY + 100);
-        
-        // Fuel Flow
-        ctx.fillStyle = '#fff';
-        ctx.fillText(Math.round(ff), x, startY + 120);
-        
-        // Oil Temp
-        ctx.fillStyle = oilTemp > 90 ? '#ff8800' : '#fff';
-        ctx.fillText(Math.round(oilTemp), x, startY + 140);
-        
-        // Oil Pressure
-        ctx.fillStyle = oilPressure < 20 ? '#ff0000' : '#fff';
-        ctx.fillText(Math.round(oilPressure), x, startY + 160);
-    }
-    
-    // Fuel quantity - calculate percentage
-    const fuelTotal = apData.fuelTotalQuantity || 0;
-    const fuelMaxGallons = 10000; // Adjust based on your aircraft
-    const fuelPercent = Math.min(100, (fuelTotal / fuelMaxGallons) * 100);
-    const fuelKg = Math.round(fuelTotal * 0.8); // Rough conversion
+// N1 Display - Engine 1
+ctx.fillStyle = n1_1 > 95 ? '#ff0000' : '#00ff00';
+ctx.fillText(n1_1.toFixed(1), engine1X, startY + 30);
+
+// N1 Display - Engine 2
+ctx.fillStyle = n1_2 > 95 ? '#ff0000' : '#00ff00';
+ctx.fillText(n1_2.toFixed(1), engine2X, startY + 30);
+
+// N1 Arc Gauges
+drawArcGauge(ctx, engine1X, startY + 55, 35, n1_1, 100, n1_1 > 95 ? '#ff0000' : '#00ff00');
+drawArcGauge(ctx, engine2X, startY + 55, 35, n1_2, 100, n1_2 > 95 ? '#ff0000' : '#00ff00');
+
+// N2 Display
+ctx.fillText(n2_1.toFixed(1), engine1X, startY + 100);
+ctx.fillText(n2_2.toFixed(1), engine2X, startY + 100);
+
+// EGT Display
+ctx.fillStyle = egt_1 > 800 ? '#ff8800' : '#fff';
+ctx.fillText(Math.round(egt_1), engine1X, startY + 130);
+ctx.fillStyle = egt_2 > 800 ? '#ff8800' : '#fff';
+ctx.fillText(Math.round(egt_2), engine2X, startY + 130);
+
+// Fuel Flow
+ctx.fillText(Math.round(ff_1), engine1X, startY + 160);
+ctx.fillText(Math.round(ff_2), engine2X, startY + 160);
+
+// Fuel quantity - calculate percentage
+const fuelMaxGallons = 10000; // Adjust based on your aircraft
+const fuelPercent = Math.min(100, (fuelTotal / fuelMaxGallons) * 100);
+const fuelKg = Math.round(fuelTotal * 0.8); // Rough conversion
     
     // Fuel bar
     const barWidth = width - 100;
@@ -2608,297 +2521,57 @@ const oilPressure = apData['engine' + i + 'OilPressure'] || 0;
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 1;
     ctx.strokeRect(barX, barY, barWidth, 8);
-    
-    // Fuel text
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 10px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText('FUEL: ' + fuelKg + ' kg (' + Math.round(fuelPercent) + '%)', barX, barY - 5);
-}
-
-function drawEICASSystemsPage(ctx, width, height, apData) {
-    // Draw title
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('SYSTEMS', width / 2, 20);
-    
-    // Hydraulic systems
-    ctx.font = 'bold 12px Arial';
-    ctx.fillStyle = '#888';
-    ctx.textAlign = 'left';
-    ctx.fillText('HYDRAULICS', 20, 45);
-    
-    // Draw hydraulic system status for each system
-    const hydraulicSystems = ['A', 'B', 'C'];
-    const hydraulicX = 30;
-    const hydraulicY = 65;
-    const hydraulicWidth = width - 60;
-    const hydraulicHeight = 15;
-    
-    hydraulicSystems.forEach((system, index) => {
-        const y = hydraulicY + index * 25;
-        
-        // System label
-        ctx.fillStyle = '#888';
-        ctx.fillText('System ' + system, hydraulicX, y);
-        
-        // System pressure bar
-        const pressure = apData['hydraulic' + system + 'Pressure'] || 0;
-        const pressurePercent = Math.min(100, (pressure / 3000) * 100); // Assuming 3000 PSI max
-        
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(hydraulicX + 70, y - 10, hydraulicWidth - 70, hydraulicHeight);
-        
-        ctx.fillStyle = pressurePercent < 50 ? '#ff0000' : '#00ff00';
-        ctx.fillRect(hydraulicX + 70, y - 10, ((hydraulicWidth - 70) * pressurePercent) / 100, hydraulicHeight);
-        
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(hydraulicX + 70, y - 10, hydraulicWidth - 70, hydraulicHeight);
-        
-        // Pressure text
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 10px Arial';
-        ctx.textAlign = 'right';
-        ctx.fillText(Math.round(pressure) + ' PSI', width - 20, y);
-    });
-    
-    // APU status
-    ctx.font = 'bold 12px Arial';
-    ctx.fillStyle = '#888';
-    ctx.textAlign = 'left';
-    ctx.fillText('APU', 20, 155);
-    
-    // APU status indicator
-    const apuStatus = apData.apuStatus || 'OFF';
-    const apuOn = apuStatus === 'ON' || apuStatus === 'STARTING';
-    
-    ctx.fillStyle = apuOn ? '#00ff00' : '#333';
-    ctx.fillRect(70, 145, 30, 15);
-    
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(70, 145, 30, 15);
-    
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 10px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(apuStatus, 85, 156);
-    
-    // APU temperature
-    const apuTemp = apData.apuTemperature || 0;
-    ctx.fillStyle = apuTemp > 600 ? '#ff8800' : '#fff';
-    ctx.textAlign = 'left';
-    ctx.fillText('Temp: ' + Math.round(apuTemp) + '°C', 110, 156);
-    
-    // APU fuel flow
-    const apuFuelFlow = apData.apuFuelFlow || 0;
-    ctx.fillStyle = '#fff';
-    ctx.fillText('FF: ' + Math.round(apuFuelFlow) + ' lb/h', 180, 156);
-    
-    // Fuel distribution
-    ctx.font = 'bold 12px Arial';
-    ctx.fillStyle = '#888';
-    ctx.textAlign = 'left';
-    ctx.fillText('FUEL DISTRIBUTION', 20, 185);
-    
-    // Fuel tanks
-    const tanks = ['LEFT', 'CENTER', 'RIGHT'];
-    const tankX = 30;
-    const tankY = 205;
-    const tankWidth = (width - 60) / 3 - 10;
-    const tankHeight = 30;
-    
-    tanks.forEach((tank, index) => {
-        const x = tankX + index * (tankWidth + 10);
-        
-        // Tank label
-        ctx.fillStyle = '#888';
-        ctx.font = 'bold 10px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(tank, x + tankWidth / 2, tankY - 5);
-        
-        // Tank outline
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x, tankY, tankWidth, tankHeight);
-        
-        // Fuel level
-        const fuelLevel = apData[`fuel${tank}Level`] || 0;
-        const fuelPercent = Math.min(100, (fuelLevel / 1000) * 100); // Assuming 1000 units max
-        
-        ctx.fillStyle = fuelPercent < 20 ? '#ff8800' : '#00ff00';
-        ctx.fillRect(x, tankY + tankHeight - (tankHeight * fuelPercent) / 100, tankWidth, (tankHeight * fuelPercent) / 100);
-        
-        // Fuel amount text
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 9px Arial';
-        ctx.fillText(Math.round(fuelLevel) + ' lbs', x + tankWidth / 2, tankY + tankHeight / 2 + 3);
-    });
-}
-
-function drawEICASFlightControlsPage(ctx, width, height, apData) {
-    // Draw title
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('FLIGHT CONTROLS', width / 2, 20);
-    
-    // Draw aircraft diagram
-    const centerX = width / 2;
-    const centerY = height / 2 + 10;
-    const aircraftWidth = width * 0.8;
-    const aircraftHeight = height * 0.5;
-    
-    // Fuselage
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(centerX - aircraftWidth / 6, centerY - aircraftHeight / 2, aircraftWidth / 3, aircraftHeight);
-    
-    // Wings
-    ctx.fillRect(centerX - aircraftWidth / 2, centerY - aircraftHeight / 8, aircraftWidth, aircraftHeight / 4);
-    
-    // Tail
-    ctx.beginPath();
-    ctx.moveTo(centerX - aircraftWidth / 6, centerY - aircraftHeight / 2);
-ctx.lineTo(centerX, centerY - aircraftHeight * 0.7);
-ctx.lineTo(centerX + aircraftWidth / 6, centerY - aircraftHeight / 2);
-ctx.closePath();
-ctx.fill();
-
-// Control surfaces
-const controlSurfaces = [
-{ name: 'AILERON LEFT', x: centerX - aircraftWidth / 2 + 20, y: centerY, width: 30, height: 8, data: 'aileronLeft' },
-{ name: 'AILERON RIGHT', x: centerX + aircraftWidth / 2 - 50, y: centerY, width: 30, height: 8, data: 'aileronRight' },
-{ name: 'ELEVATOR LEFT', x: centerX - aircraftWidth / 6 - 15, y: centerY - aircraftHeight / 2 - 20, width: 8, height: 20, data: 'elevatorLeft' },
-{ name: 'ELEVATOR RIGHT', x: centerX + aircraftWidth / 6 + 7, y: centerY - aircraftHeight / 2 - 20, width: 8, height: 20, data: 'elevatorRight' },
-{ name: 'RUDDER', x: centerX - 4, y: centerY - aircraftHeight * 0.7 - 15, width: 8, height: 15, data: 'rudder' },
-{ name: 'FLAPS LEFT', x: centerX - aircraftWidth / 2 + 60, y: centerY + aircraftHeight / 8, width: 40, height: 6, data: 'flapsLeft' },
-{ name: 'FLAPS RIGHT', x: centerX + aircraftWidth / 2 - 100, y: centerY + aircraftHeight / 8, width: 40, height: 6, data: 'flapsRight' },
-{ name: 'SPOILERS LEFT', x: centerX - aircraftWidth / 2 + 20, y: centerY - aircraftHeight / 8, width: 60, height: 5, data: 'spoilersLeft' },
-{ name: 'SPOILERS RIGHT', x: centerX + aircraftWidth / 2 - 80, y: centerY - aircraftHeight / 8, width: 60, height: 5, data: 'spoilersRight' }
-];
-
-// Draw control surfaces with their positions
-controlSurfaces.forEach(surface => {
-const position = apData[surface.data] || 0; // -100 to 100 range
-const absPosition = Math.abs(position);
-const isDeployed = absPosition > 5;
-
-// Draw control surface
-ctx.fillStyle = isDeployed ? '#ff8800' : '#333';
-ctx.fillRect(surface.x, surface.y, surface.width, surface.height);
-
-// Draw border
-ctx.strokeStyle = '#555';
-ctx.lineWidth = 1;
-ctx.strokeRect(surface.x, surface.y, surface.width, surface.height);
-
-// Draw position indicator
-if (isDeployed) {
-ctx.fillStyle = '#fff';
-ctx.font = '8px Arial';
-ctx.textAlign = 'center';
-
-let indicatorText = '';
-if (surface.name.includes('AILERON')) {
-indicatorText = position > 0 ? 'UP' : 'DOWN';
-} else if (surface.name.includes('ELEVATOR')) {
-indicatorText = position > 0 ? 'UP' : 'DOWN';
-} else if (surface.name.includes('RUDDER')) {
-indicatorText = position > 0 ? 'RIGHT' : 'LEFT';
-} else if (surface.name.includes('FLAPS')) {
-indicatorText = Math.round(absPosition) + '%';
-} else if (surface.name.includes('SPOILERS')) {
-indicatorText = Math.round(absPosition) + '%';
-}
-
-ctx.fillText(indicatorText, surface.x + surface.width / 2, surface.y - 5);
-}
-});
-
-// Trim indicators
-const trimIndicators = [
-{ name: 'AILERON TRIM', x: centerX, y: centerY + 30, data: 'aileronTrim' },
-{ name: 'ELEVATOR TRIM', x: centerX, y: centerY + 45, data: 'elevatorTrim' },
-{ name: 'RUDDER TRIM', x: centerX, y: centerY + 60, data: 'rudderTrim' }
-];
-
-trimIndicators.forEach(indicator => {
-const trim = apData[indicator.data] || 0; // -100 to 100 range
-const trimPercent = (trim + 100) / 200; // Convert to 0-1 range
-
-// Draw trim indicator background
-ctx.fillStyle = '#1a1a1a';
-ctx.fillRect(indicator.x - 50, indicator.y - 5, 100, 10);
-
-// Draw trim indicator
-ctx.fillStyle = '#00ff00';
-ctx.fillRect(indicator.x - 50 + (trimPercent * 100) - 5, indicator.y - 5, 10, 10);
-
-// Draw border
-ctx.strokeStyle = '#333';
-ctx.lineWidth = 1;
-ctx.strokeRect(indicator.x - 50, indicator.y - 5, 100, 10);
-
-// Draw label
-ctx.fillStyle = '#888';
-ctx.font = '9px Arial';
-ctx.textAlign = 'left';
-ctx.fillText(indicator.name, indicator.x - 50, indicator.y - 8);
-
-// Draw value
-ctx.fillStyle = '#fff';
-ctx.textAlign = 'right';
-ctx.fillText(Math.round(trim), indicator.x + 50, indicator.y + 2);
-});
 }
 
 function drawArcGauge(ctx, x, y, radius, value, max, color) {
-// Background arc
-ctx.strokeStyle = '#1a1a1a';
-ctx.lineWidth = 6;
-ctx.beginPath();
-ctx.arc(x, y, radius, Math.PI * 0.75, Math.PI * 2.25);
-ctx.stroke();
-
-// Value arc
-const angle = (value / max) * (Math.PI * 1.5);
-ctx.strokeStyle = color;
-ctx.lineWidth = 6;
-ctx.beginPath();
-ctx.arc(x, y, radius, Math.PI * 0.75, Math.PI * 0.75 + angle);
-ctx.stroke();
-
-// Redline at 95%
-if (max === 100) {
-ctx.strokeStyle = '#ff0000';
-ctx.lineWidth = 2;
-ctx.beginPath();
-const redlineAngle = Math.PI * 0.75 + (0.95 * Math.PI * 1.5);
-const rx1 = x + Math.cos(redlineAngle) * (radius - 8);
-const ry1 = y + Math.sin(redlineAngle) * (radius - 8);
-const rx2 = x + Math.cos(redlineAngle) * (radius + 8);
-const ry2 = y + Math.sin(redlineAngle) * (radius + 8);
-ctx.moveTo(rx1, ry1);
-ctx.lineTo(rx2, ry2);
-ctx.stroke();
+    // Background arc
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, Math.PI * 0.75, Math.PI * 2.25);
+    ctx.stroke();
+    
+    // Value arc
+    const angle = (value / max) * (Math.PI * 1.5);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, Math.PI * 0.75, Math.PI * 0.75 + angle);
+    ctx.stroke();
+    
+    // Redline at 95%
+    if (max === 100) {
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        const redlineAngle = Math.PI * 0.75 + (0.95 * Math.PI * 1.5);
+        const rx1 = x + Math.cos(redlineAngle) * (radius - 8);
+        const ry1 = y + Math.sin(redlineAngle) * (radius - 8);
+        const rx2 = x + Math.cos(redlineAngle) * (radius + 8);
+        const ry2 = y + Math.sin(redlineAngle) * (radius + 8);
+        ctx.moveTo(rx1, ry1);
+        ctx.lineTo(rx2, ry2);
+        ctx.stroke();
+    }
 }
-}
 
-window.onload = () => {
-const savedId = localStorage.getItem('p3d_unique_id');
-if (savedId) {
-document.getElementById('uniqueId').value = savedId;
-}
-};
-</script></body>
+        window.onload = () => {
+            const savedId = localStorage.getItem('p3d_unique_id');
+            if (savedId) {
+                document.getElementById('uniqueId').value = savedId;
+            }
+        };
+    </script>
+</body>
 </html>`;
 }
 
 server.listen(PORT, () => {
-console.log(P3D Remote Cloud Relay running on port ${PORT});
+  console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
+
+
 
 
 
