@@ -1094,6 +1094,8 @@ let mfdCanvas = null;
 let mfdCtx = null;
 let eicasCanvas = null;
 let eicasCtx = null;
+let eicasPage = 0;
+const eicasMaxPages = 3;
 
 function switchTab(index) {
             document.querySelectorAll('.tab').forEach((tab, i) => {
@@ -1264,7 +1266,6 @@ function switchTab(index) {
         }
 
 function updateAutopilotUI(data) {
-    // Store autopilot state globally for PFD access
     window.lastAutopilotState = data;
     
     updateToggle('apMaster', data.master);
@@ -1338,7 +1339,6 @@ function updateAutopilotStatus(data) {
     updateStatusBadge('apAppStatus', data.approach);
     updateStatusBadge('autoThrottleStatus', data.throttle);
     
-    // Update NAV/GPS status - always active, just shows which mode
     const navGpsStatus = document.getElementById('apNavGpsStatus');
     navGpsStatus.classList.add('active');
     navGpsStatus.textContent = data.navMode ? 'GPS' : 'NAV';
@@ -1365,7 +1365,7 @@ function updateAutopilotStatus(data) {
             const size = isSelected ? 26 : 24;
             
             return L.divIcon({
-                html: \`<div class="user-aircraft \${isSelected ? 'selected' : ''}" style="transform: rotate(\${heading}deg);"><svg width="\${size}" height="\${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="\${color}" stroke="#000" stroke-width="0.5"/></svg></div>\`,
+                html: '<div class="user-aircraft ' + (isSelected ? 'selected' : '') + '" style="transform: rotate(' + heading + 'deg);"><svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="' + color + '" stroke="#000" stroke-width="0.5"/></svg></div>',
                 className: '',
                 iconSize: [size, size],
                 iconAnchor: [size/2, size/2]
@@ -1377,7 +1377,7 @@ function updateAutopilotStatus(data) {
             const size = isSelected ? 18 : 16;
             
             return L.divIcon({
-                html: \`<div class="ai-aircraft \${isSelected ? 'selected' : ''}" style="transform: rotate(\${heading}deg);"><svg width="\${size}" height="\${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="\${color}" stroke="#000" stroke-width="0.5"/></svg></div>\`,
+                html: '<div class="ai-aircraft ' + (isSelected ? 'selected' : '') + '" style="transform: rotate(' + heading + 'deg);"><svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="' + color + '" stroke="#000" stroke-width="0.5"/></svg></div>',
                 className: '',
                 iconSize: [size, size],
                 iconAnchor: [size/2, size/2]
@@ -1477,7 +1477,7 @@ function updateAutopilotStatus(data) {
                 : "";
             const userAircraftModel = currentFlightData.atcModel || currentFlightData.atcType || "User Aircraft";
 
-            const userPopupContent = \`<div style="min-width:200px"><h4 style="margin:0 0 5px 0">\${userCallsign}</h4>\${userFlightInfo ? \`<p style="margin:0 0 5px 0">\${userFlightInfo}</p>\` : ""}<p style="margin:0 0 5px 0">Aircraft: \${userAircraftModel}</p><p style="margin:0 0 5px 0">Speed: \${Math.round(currentFlightData.groundSpeed || 0)} kts</p><p style="margin:0 0 5px 0">Altitude: \${Math.round(currentFlightData.altitude || 0)} ft</p><p style="margin:0">Heading: \${Math.round(currentFlightData.heading || 0)}°</p></div>\`;
+            const userPopupContent = '<div style="min-width:200px"><h4 style="margin:0 0 5px 0">' + userCallsign + '</h4>' + (userFlightInfo ? '<p style="margin:0 0 5px 0">' + userFlightInfo + '</p>' : "") + '<p style="margin:0 0 5px 0">Aircraft: ' + userAircraftModel + '</p><p style="margin:0 0 5px 0">Speed: ' + Math.round(currentFlightData.groundSpeed || 0) + ' kts</p><p style="margin:0 0 5px 0">Altitude: ' + Math.round(currentFlightData.altitude || 0) + ' ft</p><p style="margin:0">Heading: ' + Math.round(currentFlightData.heading || 0) + '°</p></div>';
 
             userMarker.bindPopup(userPopupContent);
 
@@ -1515,7 +1515,7 @@ userMarker.on('click', function(e) {
                     routeInfo = "To " + aircraft.destinationAirport;
                 }
                 
-                const popupContent = \`<div style="min-width:200px"><h4 style="margin:0 0 5px 0">\${callsign}</h4>\${flightInfo ? \`<p style="margin:0 0 5px 0">\${flightInfo}</p>\` : ""}<p style="margin:0 0 5px 0">Aircraft: \${aircraft.atcModel || aircraft.atcType || aircraft.title}</p>\${routeInfo ? \`<p style="margin:0 0 5px 0">Route: \${routeInfo}</p>\` : ""}<p style="margin:0 0 5px 0">Speed: \${Math.round(aircraft.groundSpeed)} kts</p><p style="margin:0 0 5px 0">Altitude: \${Math.round(aircraft.altitude)} ft</p><p style="margin:0">Distance: \${aircraft.distanceFromUser.toFixed(1)} nm</p></div>\`;
+                const popupContent = '<div style="min-width:200px"><h4 style="margin:0 0 5px 0">' + callsign + '</h4>' + (flightInfo ? '<p style="margin:0 0 5px 0">' + flightInfo + '</p>' : "") + '<p style="margin:0 0 5px 0">Aircraft: ' + (aircraft.atcModel || aircraft.atcType || aircraft.title) + '</p>' + (routeInfo ? '<p style="margin:0 0 5px 0">Route: ' + routeInfo + '</p>' : "") + '<p style="margin:0 0 5px 0">Speed: ' + Math.round(aircraft.groundSpeed) + ' kts</p><p style="margin:0 0 5px 0">Altitude: ' + Math.round(aircraft.altitude) + ' ft</p><p style="margin:0">Distance: ' + aircraft.distanceFromUser.toFixed(1) + ' nm</p></div>';
                 
                 marker.bindPopup(popupContent);
                 
@@ -1531,7 +1531,7 @@ userMarker.on('click', function(e) {
                 
                 if (showAircraftLabels) {
                     const label = L.divIcon({
-                        html: \`<div style="background:rgba(0,0,0,0.7);color:white;padding:2px 5px;border-radius:3px;font-size:11px;white-space:nowrap">\${aircraft.atcId || aircraft.title.substring(0, 10)}</div>\`,
+                        html: '<div style="background:rgba(0,0,0,0.7);color:white;padding:2px 5px;border-radius:3px;font-size:11px;white-space:nowrap">' + (aircraft.atcId || aircraft.title.substring(0, 10)) + '</div>',
                         className: '',
                         iconSize: [100, 20],
                         iconAnchor: [50, -10]
@@ -1614,7 +1614,7 @@ function updateUserAircraftDetails() {
                 routeInfo = "To " + aircraft.destinationAirport;
             }
             
-            detailsPanel.innerHTML = \`<h4 style="margin-top:0">\${callsign}</h4>\${flightInfo ? \`<p><strong>Flight:</strong> \${flightInfo}</p>\` : ""}<p><strong>Aircraft:</strong> \${aircraft.atcModel || aircraft.atcType || aircraft.title}</p>\${routeInfo ? \`<p><strong>Route:</strong> \${routeInfo}</p>\` : ""}<div class="detail-row"><span class="detail-label">Departure:</span><span class="detail-value">\${aircraft.departureAirport || 'N/A'}</span></div><div class="detail-row"><span class="detail-label">Destination:</span><span class="detail-value">\${aircraft.destinationAirport || 'N/A'}</span></div><div class="detail-row"><span class="detail-label">Speed:</span><span class="detail-value">\${Math.round(aircraft.groundSpeed)} kts</span></div><div class="detail-row"><span class="detail-label">Altitude:</span><span class="detail-value">\${Math.round(aircraft.altitude)} ft</span></div><div class="detail-row"><span class="detail-label">Distance:</span><span class="detail-value">\${aircraft.distanceFromUser.toFixed(1)} nm</span></div>\`;
+            detailsPanel.innerHTML = '<h4 style="margin-top:0">' + callsign + '</h4>' + (flightInfo ? '<p><strong>Flight:</strong> ' + flightInfo + '</p>' : "") + '<p><strong>Aircraft:</strong> ' + (aircraft.atcModel || aircraft.atcType || aircraft.title) + '</p>' + (routeInfo ? '<p><strong>Route:</strong> ' + routeInfo + '</p>' : "") + '<div class="detail-row"><span class="detail-label">Departure:</span><span class="detail-value">' + (aircraft.departureAirport || 'N/A') + '</span></div><div class="detail-row"><span class="detail-label">Destination:</span><span class="detail-value">' + (aircraft.destinationAirport || 'N/A') + '</span></div><div class="detail-row"><span class="detail-label">Speed:</span><span class="detail-value">' + Math.round(aircraft.groundSpeed) + ' kts</span></div><div class="detail-row"><span class="detail-label">Altitude:</span><span class="detail-value">' + Math.round(aircraft.altitude) + ' ft</span></div><div class="detail-row"><span class="detail-label">Distance:</span><span class="detail-value">' + aircraft.distanceFromUser.toFixed(1) + ' nm</span></div>';
         }
 
         function updateNearbyAircraftList() {
@@ -1629,7 +1629,7 @@ function updateUserAircraftDetails() {
                 userItem.classList.add('selected');
             }
             
-            userItem.innerHTML = \`<div class="aircraft-callsign">Your Aircraft</div><div class="aircraft-distance">0 nm</div>\`;
+            userItem.innerHTML = '<div class="aircraft-callsign">Your Aircraft</div><div class="aircraft-distance">0 nm</div>';
             
             userItem.addEventListener('click', function() {
                 selectedAircraft = { isUser: true };
@@ -1662,7 +1662,7 @@ function updateUserAircraftDetails() {
                     item.classList.add('selected');
                 }
                 
-                item.innerHTML = \`<div class="aircraft-callsign">\${callsign}</div><div class="aircraft-distance">\${aircraft.distanceFromUser.toFixed(1)} nm</div>\`;
+                item.innerHTML = '<div class="aircraft-callsign">' + callsign + '</div><div class="aircraft-distance">' + aircraft.distanceFromUser.toFixed(1) + ' nm</div>';
                 
                 item.addEventListener('click', function() {
                     selectedAircraft = aircraft;
@@ -1738,7 +1738,7 @@ function updateUserAircraftDetails() {
             overlay.id = 'saveProgressOverlay';
             overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000;';
             
-            overlay.innerHTML = \`<div style="background: #1a1a1a; padding: 30px; border-radius: 15px; text-align: center; border: 2px solid #167fac;"><div style="font-size: 40px; margin-bottom: 15px;">💾</div><h3 style="margin: 0 0 10px 0; color: #167fac;">Saving Flight...</h3><div style="color: #888; font-size: 14px;">Please wait</div><div style="margin-top: 20px;"><div style="width: 200px; height: 4px; background: #333; border-radius: 2px; overflow: hidden;"><div id="saveProgressBar" style="width: 0%; height: 100%; background: #167fac; transition: width 0.3s;"></div></div></div></div>\`;
+            overlay.innerHTML = '<div style="background: #1a1a1a; padding: 30px; border-radius: 15px; text-align: center; border: 2px solid #167fac;"><div style="font-size: 40px; margin-bottom: 15px;">💾</div><h3 style="margin: 0 0 10px 0; color: #167fac;">Saving Flight...</h3><div style="color: #888; font-size: 14px;">Please wait</div><div style="margin-top: 20px;"><div style="width: 200px; height: 4px; background: #333; border-radius: 2px; overflow: hidden;"><div id="saveProgressBar" style="width: 0%; height: 100%; background: #167fac; transition: width 0.3s;"></div></div></div></div>';
             
             document.body.appendChild(overlay);
             
@@ -1851,11 +1851,9 @@ function initInstruments() {
     eicasCanvas = document.getElementById('eicasCanvas');
     eicasCtx = eicasCanvas.getContext('2d');
     
-    // Start drawing loop
     requestAnimationFrame(drawInstruments);
 }
 
-// Handle EICAS canvas clicks for navigation
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         const eicasCanvas = document.getElementById('eicasCanvas');
@@ -1865,13 +1863,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const x = e.clientX - rect.left;
                 const y = e.clientY - rect.top;
                 
-                // Check if clicked on left arrow (bottom left)
                 if (x < 30 && y > eicasCanvas.height - 30) {
                     if (eicasPage > 0) {
                         eicasPage--;
                     }
                 }
-                // Check if clicked on right arrow (bottom right)
                 else if (x > eicasCanvas.width - 30 && y > eicasCanvas.height - 30) {
                     if (eicasPage < eicasMaxPages - 1) {
                         eicasPage++;
@@ -1904,11 +1900,9 @@ function drawPFD() {
     const centerX = width / 2;
     const centerY = height / 2;
     
-    // Clear canvas
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, width, height);
     
-    // Get flight data
     const pitch = currentFlightData.pitch || 0;
     const roll = currentFlightData.roll || 0;
     const altitude = currentFlightData.altitude || 0;
@@ -1916,12 +1910,10 @@ function drawPFD() {
     const heading = currentFlightData.heading || 0;
     const vs = currentFlightData.verticalSpeed || 0;
     
-    // Get autopilot status from autopilot state
     const apData = window.lastAutopilotState || {};
     const apMaster = apData.master || false;
     const autoThrottle = apData.throttle || false;
     
-    // Define the horizon display area (clipped to avoid tapes)
     const horizonLeft = 75;
     const horizonRight = width - 95;
     const horizonTop = 35;
@@ -1931,12 +1923,10 @@ function drawPFD() {
     const horizonCenterX = horizonLeft + horizonWidth / 2;
     const horizonCenterY = horizonTop + horizonHeight / 2;
     
-    // Draw artificial horizon (clipped with rounded edges effect)
     ctx.save();
     
-    // Create rounded rectangle clip path
-    ctx.beginPath();
     const cornerRadius = 15;
+    ctx.beginPath();
     ctx.moveTo(horizonLeft + cornerRadius, horizonTop);
     ctx.lineTo(horizonRight - cornerRadius, horizonTop);
     ctx.arcTo(horizonRight, horizonTop, horizonRight, horizonTop + cornerRadius, cornerRadius);
@@ -1952,21 +1942,18 @@ function drawPFD() {
     ctx.translate(horizonCenterX, horizonCenterY);
     ctx.rotate(roll * Math.PI / 180);
     
-    // Sky with gradient
     const skyGrad = ctx.createLinearGradient(0, -height, 0, 0);
     skyGrad.addColorStop(0, '#0066cc');
     skyGrad.addColorStop(1, '#0099ff');
     ctx.fillStyle = skyGrad;
     ctx.fillRect(-width, -height - pitch * 2.5, width * 2, height * 2);
     
-    // Ground with gradient
     const groundGrad = ctx.createLinearGradient(0, 0, 0, height);
     groundGrad.addColorStop(0, '#8B4513');
     groundGrad.addColorStop(1, '#654321');
     ctx.fillStyle = groundGrad;
     ctx.fillRect(-width, -pitch * 2.5, width * 2, height * 2);
     
-    // Horizon line - thicker and white
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -1974,7 +1961,6 @@ function drawPFD() {
     ctx.lineTo(width, -pitch * 2.5);
     ctx.stroke();
     
-    // Pitch ladder
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;
     ctx.font = 'bold 12px Arial';
@@ -1984,13 +1970,11 @@ function drawPFD() {
         const y = (pitch - p) * 2.5;
         const lineWidth = p % 20 === 0 ? 50 : 25;
         
-        // Pitch lines
         ctx.beginPath();
         ctx.moveTo(-lineWidth / 2, y);
         ctx.lineTo(lineWidth / 2, y);
         ctx.stroke();
         
-        // Pitch numbers for major marks
         if (p % 20 === 0) {
             ctx.fillStyle = '#fff';
             ctx.textAlign = 'right';
@@ -2002,7 +1986,6 @@ function drawPFD() {
     
     ctx.restore();
     
-    // Fixed aircraft symbol - yellow with black outline
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 5;
     ctx.beginPath();
@@ -2025,24 +2008,20 @@ function drawPFD() {
     ctx.lineTo(horizonCenterX, horizonCenterY + 10);
     ctx.stroke();
     
-    // Center dot
     ctx.fillStyle = '#ffff00';
     ctx.beginPath();
     ctx.arc(horizonCenterX, horizonCenterY, 3, 0, Math.PI * 2);
     ctx.fill();
     
-    // Roll indicator at top
     ctx.save();
     ctx.translate(horizonCenterX, 55);
     
-    // Roll arc
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(0, 0, 70, -Math.PI * 0.65, -Math.PI * 0.35, false);
     ctx.stroke();
     
-    // Roll markers
     [-60, -45, -30, -20, -10, 0, 10, 20, 30, 45, 60].forEach(angle => {
         const rad = angle * Math.PI / 180 - Math.PI / 2;
         const isLarge = [0, -30, -45, 30, 45].includes(angle);
@@ -2059,7 +2038,6 @@ function drawPFD() {
         ctx.stroke();
     });
     
-    // Roll pointer (yellow triangle)
     ctx.rotate(-roll * Math.PI / 180);
     ctx.fillStyle = '#ffff00';
     ctx.strokeStyle = '#000';
@@ -2072,7 +2050,6 @@ function drawPFD() {
     ctx.fill();
     ctx.stroke();
     
-    // Bank angle indicator (white triangle at top)
     ctx.rotate(roll * Math.PI / 180);
     ctx.fillStyle = '#fff';
     ctx.beginPath();
@@ -2084,20 +2061,17 @@ function drawPFD() {
     
     ctx.restore();
     
-    // Speed tape (left side) - more realistic
     const tapeX = 15;
     const tapeY = horizonTop;
     const tapeWidth = 50;
     const tapeHeight = horizonHeight;
     
-    // Speed tape background
     ctx.fillStyle = 'rgba(50, 50, 50, 0.8)';
     ctx.fillRect(tapeX, tapeY, tapeWidth, tapeHeight);
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;
     ctx.strokeRect(tapeX, tapeY, tapeWidth, tapeHeight);
     
-    // Speed markings
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'right';
@@ -2109,7 +2083,6 @@ function drawPFD() {
             ctx.fillStyle = '#fff';
             ctx.fillText(s, tapeX + tapeWidth - 5, y + 5);
             
-            // Tick marks
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -2119,7 +2092,6 @@ function drawPFD() {
         }
     }
     
-    // Speed readout box
     ctx.fillStyle = '#000';
     ctx.fillRect(tapeX, horizonCenterY - 18, tapeWidth, 36);
     ctx.strokeStyle = '#ffff00';
@@ -2131,7 +2103,6 @@ function drawPFD() {
     ctx.textAlign = 'center';
     ctx.fillText(Math.round(speed), tapeX + tapeWidth / 2, horizonCenterY + 7);
     
-    // Altitude tape (right side)
     const altTapeX = width - tapeX - tapeWidth - 20;
     
     ctx.fillStyle = 'rgba(50, 50, 50, 0.8)';
@@ -2140,7 +2111,6 @@ function drawPFD() {
     ctx.lineWidth = 2;
     ctx.strokeRect(altTapeX, tapeY, tapeWidth, tapeHeight);
     
-    // Altitude markings
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'left';
     
@@ -2162,7 +2132,6 @@ function drawPFD() {
         }
     }
     
-    // Altitude readout box
     ctx.fillStyle = '#000';
     ctx.fillRect(altTapeX, horizonCenterY - 18, tapeWidth, 36);
     ctx.strokeStyle = '#00ff00';
@@ -2174,12 +2143,10 @@ function drawPFD() {
     ctx.textAlign = 'center';
     ctx.fillText(Math.round(altitude), altTapeX + tapeWidth / 2, horizonCenterY + 7);
     
-    // Vertical speed indicator (right side)
     const vsiX = width - 15;
     const vsiY = horizonCenterY - 80;
     const vsiHeight = 160;
     
-    // VSI scale
     ctx.strokeStyle = '#888';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -2187,7 +2154,6 @@ function drawPFD() {
     ctx.lineTo(vsiX, vsiY + vsiHeight);
     ctx.stroke();
     
-    // VSI marks
     [6, 4, 2, 1, 0, -1, -2, -4, -6].forEach(n => {
         const y = horizonCenterY - n * 13;
         ctx.strokeStyle = '#888';
@@ -2198,7 +2164,6 @@ function drawPFD() {
         ctx.stroke();
     });
     
-    // VSI pointer
     const vsIndicator = Math.max(-6, Math.min(6, vs / 500));
     const vsY = horizonCenterY - vsIndicator * 13;
     
@@ -2211,7 +2176,6 @@ function drawPFD() {
     ctx.closePath();
     ctx.fill();
     
-    // Heading tape (bottom) - 15px gap from bottom
     const hdgTapeY = height - 45;
     const hdgTapeHeight = 30;
     
@@ -2219,10 +2183,8 @@ function drawPFD() {
     ctx.fillRect(horizonCenterX - 100, hdgTapeY, 200, hdgTapeHeight);
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;
-    ctx.strokeRect(horizonCenterX - 100, hdgTapeY, 200, hdgTapeHeight);
-    
-    // Heading marks
-    ctx.fillStyle = '#fff';
+    ctx.strokeRect(horizon
+        ctx.fillStyle = '#fff';
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
     
@@ -2235,7 +2197,6 @@ function drawPFD() {
             ctx.fillText(hdgText, x, hdgTapeY + 20);
         }
         
-        // Tick
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -2244,7 +2205,6 @@ function drawPFD() {
         ctx.stroke();
     }
     
-    // Heading bug (center triangle)
     ctx.fillStyle = '#ffff00';
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 1;
@@ -2256,38 +2216,32 @@ function drawPFD() {
     ctx.fill();
     ctx.stroke();
     
-// Top status bar - clean autopilot mode indicators
     ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
     ctx.fillRect(0, 0, width, 25);
     
     ctx.font = 'bold 12px Arial';
     ctx.textAlign = 'center';
     
-    // SPEED indicator (left)
     if (apData.speed) {
         ctx.fillStyle = '#00ff00';
         ctx.fillText('SPEED', 45, 17);
     }
     
-    // HDG indicator (center-left)
     if (apData.heading) {
         ctx.fillStyle = '#00ff00';
         ctx.fillText('HDG', 110, 17);
     }
     
-    // LOC indicator (center)
     if (apData.nav) {
         ctx.fillStyle = '#00ff00';
         ctx.fillText('LOC', width / 2, 17);
     }
     
-    // ALT indicator (center-right)
     if (apData.altitude) {
         ctx.fillStyle = '#00ff00';
         ctx.fillText('ALT', width - 110, 17);
     }
     
-    // AP1 and A/THR (far right, stacked)
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 10px Arial';
     ctx.textAlign = 'right';
@@ -2307,7 +2261,6 @@ function drawPFD() {
             const centerX = width / 2;
             const centerY = height / 2;
             
-            // Clear canvas
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, width, height);
             
@@ -2315,12 +2268,10 @@ function drawPFD() {
             const groundSpeed = currentFlightData.groundSpeed || 0;
             const trueAirspeed = currentFlightData.airspeed || groundSpeed;
             
-            // Draw compass rose
             ctx.save();
             ctx.translate(centerX, centerY);
             ctx.rotate(-heading * Math.PI / 180);
             
-            // Compass circles
             ctx.strokeStyle = '#333';
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -2330,22 +2281,20 @@ function drawPFD() {
             ctx.arc(0, 0, 120, 0, Math.PI * 2);
             ctx.stroke();
             
-            // Cardinal directions
             ctx.fillStyle = '#fff';
             ctx.font = 'bold 16px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
-            // N
             ctx.fillText('N', 0, -130);
-            // E
             ctx.fillText('E', 130, 0);
-            // S
             ctx.fillText('S', 0, 130);
-            // W
             ctx.fillText('W', -130, 0);
             
-            // Heading marks every 30 degrees
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
             for (let i = 0; i < 360; i += 30) {
                 const rad = i * Math.PI / 180;
                 const x1 = Math.sin(rad) * 110;
@@ -2353,17 +2302,20 @@ function drawPFD() {
                 const x2 = Math.sin(rad) * 120;
                 const y2 = -Math.cos(rad) * 120;
                 
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
                 ctx.moveTo(x1, y1);
                 ctx.lineTo(x2, y2);
-                ctx.stroke();
+            }
+            ctx.stroke();
+            
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            
+            for (let i = 0; i < 360; i += 30) {
+                const rad = i * Math.PI / 180;
+                const x3 = Math.sin(rad) * 100;
+                const y3 = -Math.cos(rad) * 100;
                 
-                // Heading numbers
                 if (i % 30 === 0 && ![0, 90, 180, 270].includes(i)) {
-                    const x3 = Math.sin(rad) * 100;
-                    const y3 = -Math.cos(rad) * 100;
                     ctx.fillStyle = '#888';
                     ctx.font = '12px Arial';
                     ctx.fillText(i.toString().padStart(3, '0'), x3, y3);
@@ -2372,7 +2324,6 @@ function drawPFD() {
             
             ctx.restore();
             
-            // Fixed aircraft symbol
             ctx.strokeStyle = '#ffff00';
             ctx.lineWidth = 3;
             ctx.beginPath();
@@ -2388,7 +2339,6 @@ function drawPFD() {
             ctx.fillStyle = '#ffff00';
             ctx.fill();
             
-            // Heading bug (autopilot heading)
             const apHeading = currentFlightData.apHeading || heading;
             const bugAngle = (apHeading - heading) * Math.PI / 180;
             const bugX = centerX + Math.sin(bugAngle) * 120;
@@ -2402,8 +2352,6 @@ function drawPFD() {
             ctx.closePath();
             ctx.fill();
             
-            // Info boxes
-            // Ground Speed
             ctx.fillStyle = '#0d0d0d';
             ctx.fillRect(10, 10, 80, 30);
             ctx.strokeStyle = '#333';
@@ -2416,7 +2364,6 @@ function drawPFD() {
             ctx.font = 'bold 14px Arial';
             ctx.fillText(Math.round(groundSpeed) + ' kts', 15, 36);
             
-            // True Airspeed
             ctx.fillStyle = '#0d0d0d';
             ctx.fillRect(10, 45, 80, 30);
             ctx.strokeStyle = '#333';
@@ -2428,7 +2375,6 @@ function drawPFD() {
             ctx.font = 'bold 14px Arial';
             ctx.fillText(Math.round(trueAirspeed) + ' kts', 15, 71);
             
-            // Next waypoint
             const nextWp = currentFlightData.nextWaypoint || 'N/A';
             ctx.fillStyle = '#0d0d0d';
             ctx.fillRect(width - 90, 10, 80, 30);
@@ -2442,7 +2388,6 @@ function drawPFD() {
             ctx.font = 'bold 12px Arial';
             ctx.fillText(nextWp.substring(0, 6), width - 15, 36);
             
-            // Distance to waypoint
             const wpDist = currentFlightData.distanceToWaypoint || 0;
             ctx.fillStyle = '#0d0d0d';
             ctx.fillRect(width - 90, 45, 80, 30);
@@ -2455,7 +2400,6 @@ function drawPFD() {
             ctx.font = 'bold 12px Arial';
             ctx.fillText(wpDist.toFixed(1) + ' nm', width - 15, 71);
             
-            // Bottom info bar
             ctx.fillStyle = '#0d0d0d';
             ctx.fillRect(0, height - 40, width, 40);
             ctx.strokeStyle = '#333';
@@ -2467,47 +2411,37 @@ function drawPFD() {
             ctx.fillText('HDG ' + Math.round(heading) + '°', centerX, height - 15);
         }
 
-let eicasPage = 0; // Add this at the top with other variables (around line 1050)
-const eicasMaxPages = 3; // We'll have 3 pages
-
 function drawEICAS() {
     const ctx = eicasCtx;
     const width = eicasCanvas.width;
     const height = eicasCanvas.height;
     
-    // Clear canvas
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, width, height);
     
-    // Get real engine data
     const apData = window.lastAutopilotState || {};
     
-    // Detect number of engines
     const hasEngine3 = (apData.engine3N1 !== undefined && apData.engine3N1 > 0) || false;
     const hasEngine4 = (apData.engine4N1 !== undefined && apData.engine4N1 > 0) || false;
     const numEngines = hasEngine4 ? 4 : (hasEngine3 ? 3 : 2);
     
-    // Draw page indicator and navigation
     drawEICASNavigation(ctx, width, height);
     
-// Draw appropriate page
-if (eicasPage === 0) {
-    drawEICASEnginePage(ctx, width, height, apData, numEngines);
-} else if (eicasPage === 1) {
-    drawEICASSystemsPage(ctx, width, height, apData);
-} else if (eicasPage === 2) {
-    drawEICASFlightControlsPage(ctx, width, height, apData);
-}
+    if (eicasPage === 0) {
+        drawEICASEnginePage(ctx, width, height, apData, numEngines);
+    } else if (eicasPage === 1) {
+        drawEICASSystemsPage(ctx, width, height, apData);
+    } else if (eicasPage === 2) {
+        drawEICASFlightControlsPage(ctx, width, height, apData);
+    }
 }
 
 function drawEICASNavigation(ctx, width, height) {
-    // Page indicator at top right
     ctx.fillStyle = '#888';
     ctx.font = 'bold 10px Arial';
     ctx.textAlign = 'right';
-    ctx.fillText(`{eicasPage + 1}/${eicasMaxPages}`, width - 10, 15);
+    ctx.fillText((eicasPage + 1) + '/' + eicasMaxPages, width - 10, 15);
     
-    // Left arrow
     const leftArrowX = 10;
     const arrowY = height - 15;
     ctx.fillStyle = eicasPage > 0 ? '#167fac' : '#333';
@@ -2518,7 +2452,6 @@ function drawEICASNavigation(ctx, width, height) {
     ctx.closePath();
     ctx.fill();
     
-    // Right arrow
     const rightArrowX = width - 10;
     ctx.fillStyle = eicasPage < eicasMaxPages - 1 ? '#167fac' : '#333';
     ctx.beginPath();
@@ -2548,13 +2481,11 @@ function drawEICASEnginePage(ctx, width, height, apData, numEngines) {
     const ff_4 = apData.engine4FuelFlow || 0;
     const fuelTotal = apData.fuelTotalQuantity || 0;
     
-    // Title
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('ENGINE', width / 2, 20);
     
-    // Calculate engine positions
     let enginePositions = [];
     if (numEngines === 2) {
         enginePositions = [width * 0.3, width * 0.7];
@@ -2566,20 +2497,17 @@ function drawEICASEnginePage(ctx, width, height, apData, numEngines) {
     
     const startY = 35;
     
-    // Engine labels
     ctx.font = 'bold 11px Arial';
     ctx.fillStyle = '#888';
     enginePositions.forEach((x, i) => {
         ctx.fillText((i + 1).toString(), x, startY);
     });
     
-    // N1 Label
     ctx.font = 'bold 9px Arial';
     ctx.fillStyle = '#888';
     ctx.textAlign = 'left';
     ctx.fillText('N1', 15, startY + 20);
     
-    // N1 Values
     ctx.font = 'bold 16px Arial';
     ctx.textAlign = 'center';
     const n1Values = [n1_1, n1_2, n1_3, n1_4];
@@ -2589,26 +2517,22 @@ function drawEICASEnginePage(ctx, width, height, apData, numEngines) {
         ctx.fillText(n1.toFixed(1), x, startY + 20);
     });
     
-    // % symbol
     ctx.font = 'bold 9px Arial';
     ctx.fillStyle = '#888';
     enginePositions.forEach((x, i) => {
         ctx.fillText('%', x + 20, startY + 20);
     });
     
-    // N1 Arc Gauges
     enginePositions.forEach((x, i) => {
         const n1 = n1Values[i];
         drawArcGauge(ctx, x, startY + 45, 28, n1, 100, n1 > 95 ? '#ff0000' : '#00ff00');
     });
     
-    // N2 Label
     ctx.font = 'bold 9px Arial';
     ctx.fillStyle = '#888';
     ctx.textAlign = 'left';
     ctx.fillText('N2', 15, startY + 85);
     
-    // N2 Values
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
     const n2Values = [n2_1, n2_2, n2_3, n2_4];
@@ -2617,13 +2541,11 @@ function drawEICASEnginePage(ctx, width, height, apData, numEngines) {
         ctx.fillText(n2Values[i].toFixed(1), x, startY + 85);
     });
     
-    // EGT Label
     ctx.font = 'bold 9px Arial';
     ctx.fillStyle = '#888';
     ctx.textAlign = 'left';
     ctx.fillText('EGT', 15, startY + 110);
     
-    // EGT Values
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
     const egtValues = [egt_1, egt_2, egt_3, egt_4];
@@ -2633,20 +2555,17 @@ function drawEICASEnginePage(ctx, width, height, apData, numEngines) {
         ctx.fillText(Math.round(egt), x, startY + 110);
     });
     
-    // °C symbol
     ctx.font = 'bold 9px Arial';
     ctx.fillStyle = '#888';
     enginePositions.forEach((x, i) => {
         ctx.fillText('°C', x + 18, startY + 110);
     });
     
-    // Fuel Flow Label
     ctx.font = 'bold 9px Arial';
     ctx.fillStyle = '#888';
     ctx.textAlign = 'left';
     ctx.fillText('FF', 15, startY + 135);
     
-    // Fuel Flow Values
     ctx.font = 'bold 12px Arial';
     ctx.textAlign = 'center';
     const ffValues = [ff_1, ff_2, ff_3, ff_4];
@@ -2655,14 +2574,12 @@ function drawEICASEnginePage(ctx, width, height, apData, numEngines) {
         ctx.fillText(Math.round(ffValues[i]), x, startY + 135);
     });
     
-    // kg/h symbol
     ctx.font = 'bold 8px Arial';
     ctx.fillStyle = '#888';
     enginePositions.forEach((x, i) => {
         ctx.fillText('kg/h', x + 20, startY + 135);
     });
     
-    // Fuel quantity at bottom
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 2;
     ctx.strokeRect(10, height - 60, width - 20, 35);
@@ -2681,7 +2598,6 @@ function drawEICASEnginePage(ctx, width, height, apData, numEngines) {
     ctx.textAlign = 'center';
     ctx.fillText(fuelKg + ' kg', width / 2, height - 30);
     
-    // Fuel bar
     const barWidth = width - 80;
     const barX = 40;
     const barY = height - 40;
@@ -2698,7 +2614,6 @@ function drawEICASEnginePage(ctx, width, height, apData, numEngines) {
 }
 
 function drawEICASSystemsPage(ctx, width, height, apData) {
-    // Title
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
@@ -2708,17 +2623,14 @@ function drawEICASSystemsPage(ctx, width, height, apData) {
     const leftCol = width * 0.15;
     const rightCol = width * 0.55;
     
-    // Hydraulics Section
     ctx.font = 'bold 12px Arial';
     ctx.fillStyle = '#167fac';
     ctx.textAlign = 'left';
     ctx.fillText('HYDRAULICS', leftCol, startY);
     
-    // Hydraulic bars
     const hydWidth = 100;
     const hydHeight = 15;
     
-    // System 1
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 10px Arial';
     ctx.fillText('SYS 1', leftCol, startY + 25);
@@ -2736,7 +2648,6 @@ function drawEICASSystemsPage(ctx, width, height, apData) {
     ctx.textAlign = 'center';
     ctx.fillText('3000 PSI', leftCol + hydWidth / 2, startY + 42);
     
-    // System 2
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 10px Arial';
     ctx.textAlign = 'left';
@@ -2755,7 +2666,6 @@ function drawEICASSystemsPage(ctx, width, height, apData) {
     ctx.textAlign = 'center';
     ctx.fillText('3000 PSI', leftCol + hydWidth / 2, startY + 77);
     
-    // Electric System 3 (if applicable)
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 10px Arial';
     ctx.textAlign = 'left';
@@ -2774,7 +2684,6 @@ function drawEICASSystemsPage(ctx, width, height, apData) {
     ctx.textAlign = 'center';
     ctx.fillText('3000 PSI', leftCol + hydWidth / 2, startY + 112);
     
-    // APU Section
     ctx.font = 'bold 12px Arial';
     ctx.fillStyle = '#167fac';
     ctx.textAlign = 'left';
@@ -2782,7 +2691,6 @@ function drawEICASSystemsPage(ctx, width, height, apData) {
     
     const apuRunning = false;
     
-    // APU Status box
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(rightCol, startY + 15, 100, 50);
     ctx.strokeStyle = apuRunning ? '#00ff00' : '#333';
@@ -2800,17 +2708,14 @@ function drawEICASSystemsPage(ctx, width, height, apData) {
         ctx.fillText('GEN ONLINE', rightCol + 50, startY + 55);
     }
     
-    // Fuel Distribution
     ctx.font = 'bold 12px Arial';
     ctx.fillStyle = '#167fac';
     ctx.textAlign = 'center';
     ctx.fillText('FUEL DISTRIBUTION', width / 2, startY + 135);
     
-    // Fuel tank diagram
     const tankY = startY + 155;
     const tankCenterX = width / 2;
     
-    // Left tank
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(tankCenterX - 100, tankY, 40, 40);
     ctx.strokeStyle = '#333';
@@ -2827,7 +2732,6 @@ function drawEICASSystemsPage(ctx, width, height, apData) {
     ctx.fillText('L', tankCenterX - 80, tankY - 5);
     ctx.fillText(leftTankPercent + '%', tankCenterX - 80, tankY + 55);
     
-    // Center tank
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(tankCenterX - 20, tankY, 40, 40);
     ctx.strokeStyle = '#333';
@@ -2840,11 +2744,9 @@ function drawEICASSystemsPage(ctx, width, height, apData) {
     
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 10px Arial';
-    ctx.textAlign = 'center';
     ctx.fillText('C', tankCenterX, tankY - 5);
     ctx.fillText(centerTankPercent + '%', tankCenterX, tankY + 55);
     
-    // Right tank
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(tankCenterX + 60, tankY, 40, 40);
     ctx.strokeStyle = '#333';
@@ -2857,19 +2759,16 @@ function drawEICASSystemsPage(ctx, width, height, apData) {
     
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 10px Arial';
-    ctx.textAlign = 'center';
     ctx.fillText('R', tankCenterX + 80, tankY - 5);
     ctx.fillText(rightTankPercent + '%', tankCenterX + 80, tankY + 55);
 }
 
 function drawEICASFlightControlsPage(ctx, width, height, apData) {
-    // Title
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('FLIGHT CONTROLS', width / 2, 20);
     
-    // Get control surface data
     const gear = apData.gear || false;
     const flaps = apData.flaps || 0;
     const spoilers = apData.spoilers || 0;
@@ -2877,7 +2776,6 @@ function drawEICASFlightControlsPage(ctx, width, height, apData) {
     
     const startY = 40;
     
-    // Status indicators at top
     const statusY = startY + 10;
     const col1 = 30;
     const col2 = width / 2 + 20;
@@ -2886,13 +2784,11 @@ function drawEICASFlightControlsPage(ctx, width, height, apData) {
     ctx.fillStyle = '#888';
     ctx.textAlign = 'left';
     
-    // Gear status
     ctx.fillText('GEAR:', col1, statusY);
     ctx.fillStyle = gear ? '#00ff00' : '#888';
     ctx.font = 'bold 12px Arial';
     ctx.fillText(gear ? 'DOWN' : 'UP', col1 + 45, statusY);
     
-    // Flaps status
     ctx.font = 'bold 10px Arial';
     ctx.fillStyle = '#888';
     ctx.fillText('FLAPS:', col2, statusY);
@@ -2900,7 +2796,6 @@ function drawEICASFlightControlsPage(ctx, width, height, apData) {
     ctx.font = 'bold 12px Arial';
     ctx.fillText(Math.round(flaps) + '%', col2 + 50, statusY);
     
-    // Spoilers status
     ctx.font = 'bold 10px Arial';
     ctx.fillStyle = '#888';
     ctx.fillText('SPOILERS:', col1, statusY + 20);
@@ -2908,7 +2803,6 @@ function drawEICASFlightControlsPage(ctx, width, height, apData) {
     ctx.font = 'bold 12px Arial';
     ctx.fillText(spoilers > 10 ? 'EXTENDED' : 'RETRACTED', col1 + 70, statusY + 20);
     
-    // Parking brake status
     ctx.font = 'bold 10px Arial';
     ctx.fillStyle = '#888';
     ctx.fillText('PARK BRK:', col2, statusY + 20);
@@ -2916,20 +2810,16 @@ function drawEICASFlightControlsPage(ctx, width, height, apData) {
     ctx.font = 'bold 12px Arial';
     ctx.fillText(parkingBrake ? 'SET' : 'OFF', col2 + 70, statusY + 20);
     
-    // Aircraft diagram
     const diagramY = startY + 60;
     const centerX = width / 2;
     
-    // Draw frame
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 2;
     ctx.strokeRect(20, diagramY, width - 40, 130);
     
-    // Fuselage (center body)
     ctx.fillStyle = '#555';
     ctx.fillRect(centerX - 12, diagramY + 30, 24, 80);
     
-    // Nose
     ctx.beginPath();
     ctx.moveTo(centerX - 12, diagramY + 30);
     ctx.lineTo(centerX, diagramY + 15);
@@ -2937,100 +2827,77 @@ function drawEICASFlightControlsPage(ctx, width, height, apData) {
     ctx.closePath();
     ctx.fill();
     
-    // Main wings
     ctx.fillStyle = '#555';
     ctx.fillRect(centerX - 90, diagramY + 60, 180, 18);
     
-    // Horizontal stabilizer (tail)
+    ctx.fillStyle = '#555';
     ctx.fillRect(centerX - 50, diagramY + 105, 100, 8);
     
-    // Vertical stabilizer
+    ctx.fillStyle = '#555';
     ctx.fillRect(centerX - 5, diagramY + 90, 10, 25);
     
-    // AILERONS (green = active)
     ctx.fillStyle = '#00ff00';
-    // Left aileron
     ctx.fillRect(centerX - 88, diagramY + 80, 30, 4);
     ctx.fillText('AIL', centerX - 95, diagramY + 90);
-    // Right aileron  
     ctx.fillRect(centerX + 58, diagramY + 80, 30, 4);
     ctx.fillText('AIL', centerX + 90, diagramY + 90);
     
-    // FLAPS (blue when deployed)
     if (flaps > 0) {
         ctx.fillStyle = '#167fac';
-        // Left flap
         ctx.fillRect(centerX - 55, diagramY + 80, 35, 5);
-        // Right flap
         ctx.fillRect(centerX + 20, diagramY + 80, 35, 5);
-        
         ctx.font = 'bold 8px Arial';
         ctx.fillText('FLAP', centerX - 55, diagramY + 92);
         ctx.fillText('FLAP', centerX + 25, diagramY + 92);
     }
     
-    // SPOILERS (orange when extended)
     if (spoilers > 10) {
         ctx.fillStyle = '#ff8800';
-        // Left spoilers
         for (let i = 0; i < 3; i++) {
             ctx.fillRect(centerX - 75 + i * 15, diagramY + 50, 3, 10);
         }
-        // Right spoilers
         for (let i = 0; i < 3; i++) {
             ctx.fillRect(centerX + 30 + i * 15, diagramY + 50, 3, 10);
         }
-        
         ctx.font = 'bold 8px Arial';
         ctx.fillText('SPLR', centerX - 80, diagramY + 48);
         ctx.fillText('SPLR', centerX + 75, diagramY + 48);
     }
     
-    // ELEVATORS (always shown in green)
     ctx.fillStyle = '#00ff00';
-    // Left elevator
     ctx.fillRect(centerX - 48, diagramY + 115, 20, 3);
-    // Right elevator
     ctx.fillRect(centerX + 28, diagramY + 115, 20, 3);
-    
     ctx.font = 'bold 8px Arial';
     ctx.fillText('ELEV', centerX - 60, diagramY + 125);
     ctx.fillText('ELEV', centerX + 50, diagramY + 125);
     
-    // RUDDER (always shown in green)
     ctx.fillStyle = '#00ff00';
     ctx.fillRect(centerX + 12, diagramY + 95, 3, 15);
-    
     ctx.font = 'bold 8px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('RUD', centerX + 20, diagramY + 103);
     
-    // LANDING GEAR indicators
     ctx.font = 'bold 9px Arial';
     ctx.textAlign = 'center';
     
-    // Nose gear
     ctx.fillStyle = gear ? '#00ff00' : '#888';
     ctx.beginPath();
     ctx.arc(centerX, diagramY + 35, 5, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillText('N', centerX, diagramY + 28);
     
-    // Left main gear
     ctx.fillStyle = gear ? '#00ff00' : '#888';
     ctx.beginPath();
     ctx.arc(centerX - 25, diagramY + 75, 5, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillText('L', centerX - 25, diagramY + 68);
     
-    // Right main gear
     ctx.fillStyle = gear ? '#00ff00' : '#888';
     ctx.beginPath();
     ctx.arc(centerX + 25, diagramY + 75, 5, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillText('R', centerX + 25, diagramY + 68);
     
-    // Legend at bottom
     ctx.font = 'bold 9px Arial';
     ctx.textAlign = 'left';
     ctx.fillStyle = '#888';
@@ -3051,6 +2918,19 @@ function drawEICASFlightControlsPage(ctx, width, height, apData) {
     ctx.fillStyle = '#888';
     ctx.fillText('Spoilers', 200, height - 25);
 }
+
+function drawArcGauge(ctx, x, y, radius, value, max, color) {
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * value / max));
+    ctx.stroke();
 }
 
         window.onload = () => {
@@ -3067,15 +2947,3 @@ function drawEICASFlightControlsPage(ctx, width, height, apData) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
-
-
-
-
-
-
-
-
-
-
-
-
