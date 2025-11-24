@@ -1088,10 +1088,12 @@ function getMobileAppHTML() {
         let userHeading = 0;
         let currentFlightData = {};
         let mapInitialized = false;
-        let pfdCanvas = null;
-        let pfdCtx = null;
-        let mfdCanvas = null;
-        let mfdCtx = null;
+let pfdCanvas = null;
+let pfdCtx = null;
+let mfdCanvas = null;
+let mfdCtx = null;
+let eicasCanvas = null;
+let eicasCtx = null;
 
 function switchTab(index) {
             document.querySelectorAll('.tab').forEach((tab, i) => {
@@ -1842,14 +1844,16 @@ function updateUserAircraftDetails() {
             ws.send(JSON.stringify({ type: 'toggle_cabin', cabinType: cabinType }));
         }
 function initInstruments() {
-            pfdCanvas = document.getElementById('pfdCanvas');
-            pfdCtx = pfdCanvas.getContext('2d');
-            mfdCanvas = document.getElementById('mfdCanvas');
-            mfdCtx = mfdCanvas.getContext('2d');
-            
-            // Start drawing loop
-            requestAnimationFrame(drawInstruments);
-        }
+    pfdCanvas = document.getElementById('pfdCanvas');
+    pfdCtx = pfdCanvas.getContext('2d');
+    mfdCanvas = document.getElementById('mfdCanvas');
+    mfdCtx = mfdCanvas.getContext('2d');
+    eicasCanvas = document.getElementById('eicasCanvas');
+    eicasCtx = eicasCanvas.getContext('2d');
+    
+    // Start drawing loop
+    requestAnimationFrame(drawInstruments);
+}
         
 function drawInstruments() {
     if (pfdCtx && currentFlightData) {
@@ -2565,6 +2569,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
