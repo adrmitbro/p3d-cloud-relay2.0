@@ -2662,20 +2662,20 @@ function drawSystemsPage(ctx, width, height, apData) {
     
     ctx.font = '9px Arial';
     ctx.fillStyle = '#888';
-    ctx.fillText('Status:', 10, yPos);
+    ctx.fillText('STATUS:', 10, yPos);
     ctx.fillStyle = apuRunning ? '#00ff00' : '#888';
     ctx.fillText(apuRunning ? 'RUN' : 'OFF', 55, yPos);
     yPos += 12;
     
     if (apuRunning) {
         ctx.fillStyle = '#888';
-        ctx.fillText('N1:', 15, yPos);
+        ctx.fillText('N1:', 10, yPos);
         ctx.fillStyle = '#00ff00';
         ctx.fillText(apuN1.toFixed(1) + '%', 55, yPos);
         yPos += 12;
         
         ctx.fillStyle = '#888';
-        ctx.fillText('EGT:', 15, yPos);
+        ctx.fillText('EGT:', 10, yPos);
         ctx.fillStyle = apuEgt > 600 ? '#ff8800' : '#00ff00';
         ctx.fillText(Math.round(apuEgt) + '°C', 55, yPos);
     }
@@ -2967,6 +2967,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
