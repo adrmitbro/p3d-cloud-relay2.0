@@ -1256,8 +1256,6 @@ function switchTab(index) {
         }
 
 function updateAutopilotUI(data) {
-    // Store autopilot state globally for PFD access
-    window.lastAutopilotState = data;
     
     updateToggle('apMaster', data.master);
             updateToggle('apAlt', data.altitude);
@@ -1847,7 +1845,7 @@ function initInstruments() {
         
 function drawInstruments() {
     if (pfdCtx && currentFlightData) {
-        drawPFD();  // Fixed!
+        ();  // Fixed!
     }
     if (mfdCtx && currentFlightData) {
         drawMFD();
@@ -2157,7 +2155,7 @@ function drawPFD() {
             ctx.closePath();
             ctx.fill();
             
-            // Heading tape (bottom) - moved down to match side bar spacing
+            // Heading tape (bottom) - moved down to match side bar spacing (15px gap)
             const hdgTapeY = height - 45;
             const hdgTapeHeight = 30;
             
@@ -2411,6 +2409,7 @@ function drawPFD() {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
