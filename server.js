@@ -2862,12 +2862,12 @@ function drawFlightControlsPage(ctx, width, height, apData) {
         ctx.stroke();
     }
     
-    // Control surface position readouts
+// Control surface position readouts - moved higher to avoid overlap
     ctx.font = '8px Arial';
     ctx.textAlign = 'left';
     ctx.fillStyle = '#888';
     
-    let infoY = height - 60;
+    let infoY = height - 45;
     ctx.fillText('AILER:', 10, infoY);
     ctx.fillStyle = '#00ff00';
     ctx.fillText(aileron.toFixed(1), 45, infoY);
@@ -2967,6 +2967,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
