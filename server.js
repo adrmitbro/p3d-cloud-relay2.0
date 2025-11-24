@@ -1255,8 +1255,11 @@ function switchTab(index) {
             }
         }
 
-        function updateAutopilotUI(data) {
-            updateToggle('apMaster', data.master);
+function updateAutopilotUI(data) {
+    // Store autopilot state globally for PFD access
+    window.lastAutopilotState = data;
+    
+    updateToggle('apMaster', data.master);
             updateToggle('apAlt', data.altitude);
             updateToggle('apHdg', data.heading);
             updateToggle('apVS', data.vs);
@@ -1842,15 +1845,15 @@ function initInstruments() {
             requestAnimationFrame(drawInstruments);
         }
         
-        function drawInstruments() {
-            if (pfdCtx && currentFlightData) {
-                ();
-            }
-            if (mfdCtx && currentFlightData) {
-                drawMFD();
-            }
-            requestAnimationFrame(drawInstruments);
-        }
+function drawInstruments() {
+    if (pfdCtx && currentFlightData) {
+        drawPFD();  // Fixed!
+    }
+    if (mfdCtx && currentFlightData) {
+        drawMFD();
+    }
+    requestAnimationFrame(drawInstruments);
+}
         
 function drawPFD() {
             const ctx = pfdCtx;
@@ -2408,6 +2411,7 @@ function drawPFD() {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
