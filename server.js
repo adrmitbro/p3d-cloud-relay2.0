@@ -2647,7 +2647,7 @@ function drawSystemsPage(ctx, width, height, apData) {
     drawSystemBar(ctx, 10, yPos, 130, 'A', hydA, 3000, hydA > 2500 ? '#00ff00' : '#ff8800');
     yPos += 18;
     drawSystemBar(ctx, 10, yPos, 130, 'B', hydB, 3000, hydB > 2500 ? '#00ff00' : '#ff8800');
-    yPos += 120;
+    yPos += 105;
     
 // APU Section
     ctx.fillStyle = '#167fac';
@@ -2967,6 +2967,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
