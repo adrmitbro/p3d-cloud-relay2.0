@@ -2649,10 +2649,10 @@ function drawSystemsPage(ctx, width, height, apData) {
     drawSystemBar(ctx, 10, yPos, 130, 'B', hydB, 3000, hydB > 2500 ? '#00ff00' : '#ff8800');
     yPos += 20;
     
-    // APU Section
+// APU Section
     ctx.fillStyle = '#167fac';
     ctx.font = 'bold 10px Arial';
-    ctx.fillText('APU', 10, yPos);
+    ctx.fillText('APU', rightX - 65, yPos);
     yPos += 12;
     
     const apuRunning = apData.apuRunning !== undefined ? apData.apuRunning : false;
@@ -2661,23 +2661,27 @@ function drawSystemsPage(ctx, width, height, apData) {
     
     ctx.font = '9px Arial';
     ctx.fillStyle = '#888';
-    ctx.fillText('Status:', 15, yPos);
+    ctx.fillText('Status:', rightX - 65, yPos);
     ctx.fillStyle = apuRunning ? '#00ff00' : '#888';
-    ctx.fillText(apuRunning ? 'RUN' : 'OFF', 50, yPos);
-    
-    if (apuRunning) {
-        ctx.fillStyle = '#888';
-        ctx.fillText('N1:', 85, yPos);
-        ctx.fillStyle = '#00ff00';
-        ctx.fillText(apuN1.toFixed(1) + '%', 105, yPos);
-    }
+    ctx.textAlign = 'right';
+    ctx.fillText(apuRunning ? 'RUN' : 'OFF', width - 10, yPos);
     yPos += 12;
     
     if (apuRunning) {
+        ctx.textAlign = 'left';
         ctx.fillStyle = '#888';
-        ctx.fillText('EGT:', 15, yPos);
+        ctx.fillText('N1:', rightX - 65, yPos);
+        ctx.fillStyle = '#00ff00';
+        ctx.textAlign = 'right';
+        ctx.fillText(apuN1.toFixed(1) + '%', width - 10, yPos);
+        yPos += 12;
+        
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#888';
+        ctx.fillText('EGT:', rightX - 65, yPos);
         ctx.fillStyle = apuEgt > 600 ? '#ff8800' : '#00ff00';
-        ctx.fillText(Math.round(apuEgt) + '°C', 50, yPos);
+        ctx.textAlign = 'right';
+        ctx.fillText(Math.round(apuEgt) + '°C', width - 10, yPos);
     }
     
     // Fuel Distribution (right side)
@@ -2967,6 +2971,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
