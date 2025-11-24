@@ -1872,7 +1872,7 @@ function nextEICASPage() {
 }
 
 function updateEICASPageLabel() {
-    const labels = ['ENGINE', 'SYSTEMS', 'FLIGHT CONTROLS'];
+    const labels = ['EICAS DISPLAY', 'EICAS DISPLAY', 'EICAS DISPLAY'];
     document.getElementById('eicasPageLabel').textContent = labels[eicasPage];
 }
         
@@ -2538,7 +2538,7 @@ function drawEnginePage(ctx, width, height, apData) {
     const n1Values = [n1_1, n1_2, n1_3, n1_4];
     for (let i = 0; i < numEngines; i++) {
         ctx.fillStyle = n1Values[i] > 95 ? '#ff0000' : '#00ff00';
-        ctx.fillText(n1Values[i].toFixed(1), engineX[i], startY + rowHeight + 10);
+        ctx.fillText(n1Values[i].toFixed(1), engineX[i], startY + rowHeight + 5);
     }
     
     // N1 Arc Gauges - smaller
@@ -2647,7 +2647,7 @@ function drawSystemsPage(ctx, width, height, apData) {
     drawSystemBar(ctx, 10, yPos, 130, 'A', hydA, 3000, hydA > 2500 ? '#00ff00' : '#ff8800');
     yPos += 20;
     drawSystemBar(ctx, 10, yPos, 130, 'B', hydB, 3000, hydB > 2500 ? '#00ff00' : '#ff8800');
-    yPos += 30;
+    yPos += 25;
     
     // APU Section
     ctx.fillStyle = '#167fac';
@@ -2966,6 +2966,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
