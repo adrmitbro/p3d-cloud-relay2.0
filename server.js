@@ -2551,12 +2551,12 @@ function drawEICASEnginePage(ctx, width, height, apData) {
         const x = column * columnWidth + columnWidth / 2;
         
         // Get engine data
-        const n1 = apData[`engine${i}N1`] || 0;
-        const n2 = apData[`engine${i}N2`] || 0;
-        const egt = apData[`engine${i}EGT`] || 0;
-        const ff = apData[`engine${i}FuelFlow`] || 0;
-        const oilTemp = apData[`engine${i}OilTemp`] || 0;
-        const oilPressure = apData[`engine${i}OilPressure`] || 0;
+        const n1 = apData['engine' + i + 'N1'] || 0;
+        const n2 = apData['engine' + i + 'N2'] || 0;
+const egt = apData['engine' + i + 'EGT'] || 0;
+const ff = apData['engine' + i + 'FuelFlow'] || 0;
+const oilTemp = apData['engine' + i + 'OilTemp'] || 0;
+const oilPressure = apData['engine' + i + 'OilPressure'] || 0;
         
         // N1 Display
         ctx.fillStyle = n1 > 95 ? '#ff0000' : '#00ff00';
@@ -2644,7 +2644,7 @@ function drawEICASSystemsPage(ctx, width, height, apData) {
         ctx.fillText('System ' + system, hydraulicX, y);
         
         // System pressure bar
-        const pressure = apData[`hydraulic${system}Pressure`] || 0;
+        const pressure = apData['hydraulic' + system + 'Pressure'] || 0;
         const pressurePercent = Math.min(100, (pressure / 3000) * 100); // Assuming 3000 PSI max
         
         ctx.fillStyle = '#1a1a1a';
@@ -2899,5 +2899,6 @@ document.getElementById('uniqueId').value = savedId;
 server.listen(PORT, () => {
 console.log(P3D Remote Cloud Relay running on port ${PORT});
 });
+
 
 
