@@ -3051,6 +3051,7 @@ function drawEICASFlightControlsPage(ctx, width, height, apData) {
     ctx.fillStyle = '#888';
     ctx.fillText('Spoilers', 200, height - 25);
 }
+}
 
         window.onload = () => {
             const savedId = localStorage.getItem('p3d_unique_id');
@@ -3066,6 +3067,7 @@ function drawEICASFlightControlsPage(ctx, width, height, apData) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
