@@ -2437,15 +2437,17 @@ function drawPFD() {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, width, height);
     
-    // Get autopilot data for engine info
-    const apData = window.lastAutopilotState || {};
-    const throttlePercent = apData.throttlePercent || 0;
-    
-    // Simulate engine parameters based on throttle
-    const n1 = Math.min(100, throttlePercent * 1.1);
-    const n2 = Math.min(100, throttlePercent * 0.95);
-    const egt = Math.min(900, throttlePercent * 8.5 + 100);
-    const fuelFlow = Math.max(0, throttlePercent * 25);
+// Get real engine data
+const apData = window.lastAutopilotState || {};
+const n1_1 = apData.engine1N1 || 0;
+const n1_2 = apData.engine2N1 || 0;
+const n2_1 = apData.engine1N2 || 0;
+const n2_2 = apData.engine2N2 || 0;
+const egt_1 = apData.engine1EGT || 0;
+const egt_2 = apData.engine2EGT || 0;
+const ff_1 = apData.engine1FuelFlow || 0;
+const ff_2 = apData.engine2FuelFlow || 0;
+const fuelTotal = apData.fuelTotalQuantity || 0;
     
     // Draw title
     ctx.fillStyle = '#fff';
@@ -2464,85 +2466,36 @@ function drawPFD() {
     ctx.fillText('1', engine1X, startY);
     ctx.fillText('2', engine2X, startY);
     
-    // N1 Display
-    ctx.font = 'bold 10px Arial';
-    ctx.fillStyle = '#888';
-    ctx.textAlign = 'center';
-    ctx.fillText('N1', 40, startY + 30);
-    
-    ctx.font = 'bold 20px Arial';
-    ctx.fillStyle = n1 > 95 ? '#ff0000' : '#00ff00';
-    ctx.fillText(n1.toFixed(1), engine1X, startY + 30);
-    ctx.fillText(n1.toFixed(1), engine2X, startY + 30);
-    
-    ctx.font = 'bold 10px Arial';
-    ctx.fillStyle = '#888';
-    ctx.fillText('%', engine1X + 35, startY + 30);
-    ctx.fillText('%', engine2X + 35, startY + 30);
-    
-    // N1 Arc Gauges
-    drawArcGauge(ctx, engine1X, startY + 55, 35, n1, 100, n1 > 95 ? '#ff0000' : '#00ff00');
-    drawArcGauge(ctx, engine2X, startY + 55, 35, n1, 100, n1 > 95 ? '#ff0000' : '#00ff00');
-    
-    // N2 Display
-    ctx.font = 'bold 10px Arial';
-    ctx.fillStyle = '#888';
-    ctx.textAlign = 'center';
-    ctx.fillText('N2', 40, startY + 100);
-    
-    ctx.font = 'bold 16px Arial';
-    ctx.fillStyle = '#fff';
-    ctx.fillText(n2.toFixed(1), engine1X, startY + 100);
-    ctx.fillText(n2.toFixed(1), engine2X, startY + 100);
-    
-    // EGT Display
-    ctx.font = 'bold 10px Arial';
-    ctx.fillStyle = '#888';
-    ctx.fillText('EGT', 40, startY + 130);
-    
-    ctx.font = 'bold 16px Arial';
-    ctx.fillStyle = egt > 800 ? '#ff8800' : '#fff';
-    ctx.fillText(Math.round(egt), engine1X, startY + 130);
-    ctx.fillText(Math.round(egt), engine2X, startY + 130);
-    
-    ctx.font = 'bold 9px Arial';
-    ctx.fillStyle = '#888';
-    ctx.fillText('°C', engine1X + 25, startY + 130);
-    ctx.fillText('°C', engine2X + 25, startY + 130);
-    
-    // Fuel Flow
-    ctx.font = 'bold 10px Arial';
-    ctx.fillStyle = '#888';
-    ctx.fillText('FF', 40, startY + 160);
-    
-    ctx.font = 'bold 14px Arial';
-    ctx.fillStyle = '#00ff00';
-    ctx.fillText(Math.round(fuelFlow), engine1X, startY + 160);
-    ctx.fillText(Math.round(fuelFlow), engine2X, startY + 160);
-    
-    ctx.font = 'bold 9px Arial';
-    ctx.fillStyle = '#888';
-    ctx.fillText('kg/h', engine1X + 25, startY + 160);
-    ctx.fillText('kg/h', engine2X + 25, startY + 160);
-    
-    // Fuel quantity display at bottom
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(10, height - 50, width - 20, 40);
-    
-    ctx.font = 'bold 10px Arial';
-    ctx.fillStyle = '#888';
-    ctx.textAlign = 'left';
-    ctx.fillText('FUEL', 20, height - 35);
-    
-    // Simulate fuel quantity (you'd get this from flight data)
-    const fuelPercent = 75; // Default 75%
-    const fuelKg = Math.round(fuelPercent * 100);
-    
-    ctx.font = 'bold 16px Arial';
-    ctx.fillStyle = fuelPercent < 20 ? '#ff8800' : '#00ff00';
-    ctx.textAlign = 'center';
-    ctx.fillText(fuelKg + ' kg', width / 2, height - 20);
+// N1 Display - Engine 1
+ctx.fillStyle = n1_1 > 95 ? '#ff0000' : '#00ff00';
+ctx.fillText(n1_1.toFixed(1), engine1X, startY + 30);
+
+// N1 Display - Engine 2
+ctx.fillStyle = n1_2 > 95 ? '#ff0000' : '#00ff00';
+ctx.fillText(n1_2.toFixed(1), engine2X, startY + 30);
+
+// N1 Arc Gauges
+drawArcGauge(ctx, engine1X, startY + 55, 35, n1_1, 100, n1_1 > 95 ? '#ff0000' : '#00ff00');
+drawArcGauge(ctx, engine2X, startY + 55, 35, n1_2, 100, n1_2 > 95 ? '#ff0000' : '#00ff00');
+
+// N2 Display
+ctx.fillText(n2_1.toFixed(1), engine1X, startY + 100);
+ctx.fillText(n2_2.toFixed(1), engine2X, startY + 100);
+
+// EGT Display
+ctx.fillStyle = egt_1 > 800 ? '#ff8800' : '#fff';
+ctx.fillText(Math.round(egt_1), engine1X, startY + 130);
+ctx.fillStyle = egt_2 > 800 ? '#ff8800' : '#fff';
+ctx.fillText(Math.round(egt_2), engine2X, startY + 130);
+
+// Fuel Flow
+ctx.fillText(Math.round(ff_1), engine1X, startY + 160);
+ctx.fillText(Math.round(ff_2), engine2X, startY + 160);
+
+// Fuel quantity - calculate percentage
+const fuelMaxGallons = 10000; // Adjust based on your aircraft
+const fuelPercent = Math.min(100, (fuelTotal / fuelMaxGallons) * 100);
+const fuelKg = Math.round(fuelTotal * 0.8); // Rough conversion
     
     // Fuel bar
     const barWidth = width - 100;
@@ -2606,6 +2559,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
