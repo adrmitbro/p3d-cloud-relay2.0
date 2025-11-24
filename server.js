@@ -1853,345 +1853,378 @@ function initInstruments() {
         }
         
 function drawPFD() {
-    const ctx = pfdCtx;
-    const width = pfdCanvas.width;
-    const height = pfdCanvas.height;
-    const centerX = width / 2;
-    const centerY = height / 2;
-    
-    // Clear canvas
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, width, height);
-    
-    // Get flight data
-    const pitch = currentFlightData.pitch || 0;
-    const roll = currentFlightData.roll || 0;
-    const altitude = currentFlightData.altitude || 0;
-    const speed = currentFlightData.groundSpeed || 0;
-    const heading = currentFlightData.heading || 0;
-    const vs = currentFlightData.verticalSpeed || 0;
-    
-    // Draw artificial horizon
-    ctx.save();
-    ctx.translate(centerX, centerY);
-    ctx.rotate(roll * Math.PI / 180);
-    
-    // Sky with gradient
-    const skyGrad = ctx.createLinearGradient(0, -height, 0, 0);
-    skyGrad.addColorStop(0, '#0066cc');
-    skyGrad.addColorStop(1, '#0099ff');
-    ctx.fillStyle = skyGrad;
-    ctx.fillRect(-width, -height - pitch * 3, width * 2, height * 2);
-    
-    // Ground with gradient
-    const groundGrad = ctx.createLinearGradient(0, 0, 0, height);
-    groundGrad.addColorStop(0, '#8B4513');
-    groundGrad.addColorStop(1, '#654321');
-    ctx.fillStyle = groundGrad;
-    ctx.fillRect(-width, -pitch * 3, width * 2, height * 2);
-    
-    // Horizon line - thicker and white
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(-width, -pitch * 3);
-    ctx.lineTo(width, -pitch * 3);
-    ctx.stroke();
-    
-    // Pitch ladder
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
-    ctx.font = 'bold 14px Arial';
-    
-    for (let p = -90; p <= 90; p += 10) {
-        if (p === 0) continue;
-        const y = (pitch - p) * 2.5;
-        const lineWidth = p % 20 === 0 ? 60 : 30;
-        
-        // Pitch lines
-        ctx.beginPath();
-        ctx.moveTo(-lineWidth / 2, y);
-        ctx.lineTo(lineWidth / 2, y);
-        ctx.stroke();
-        
-        // Pitch numbers for major marks
-        if (p % 20 === 0) {
-            ctx.fillStyle = '#fff';
-            ctx.textAlign = 'right';
-            ctx.fillText(Math.abs(p), -lineWidth / 2 - 8, y + 5);
-            ctx.textAlign = 'left';
-            ctx.fillText(Math.abs(p), lineWidth / 2 + 8, y + 5);
-        }
-    }
-    
-    ctx.restore();
-    
-    // Fixed aircraft symbol - yellow with black outline
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(centerX - 50, centerY);
-    ctx.lineTo(centerX - 15, centerY);
-    ctx.moveTo(centerX + 15, centerY);
-    ctx.lineTo(centerX + 50, centerY);
-    ctx.moveTo(centerX, centerY);
-    ctx.lineTo(centerX, centerY + 12);
-    ctx.stroke();
-    
-    ctx.strokeStyle = '#ffff00';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(centerX - 50, centerY);
-    ctx.lineTo(centerX - 15, centerY);
-    ctx.moveTo(centerX + 15, centerY);
-    ctx.lineTo(centerX + 50, centerY);
-    ctx.moveTo(centerX, centerY);
-    ctx.lineTo(centerX, centerY + 12);
-    ctx.stroke();
-    
-    // Center box for reference
-    ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
-    ctx.fillRect(centerX - 15, centerY - 2, 30, 4);
-    
-    // Roll indicator at top
-    ctx.save();
-    ctx.translate(centerX, 50);
-    
-    // Roll arc
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, 0, 80, -Math.PI * 0.7, -Math.PI * 0.3, false);
-    ctx.stroke();
-    
-    // Roll markers
-    [-60, -45, -30, -20, -10, 0, 10, 20, 30, 45, 60].forEach(angle => {
-        const rad = angle * Math.PI / 180 - Math.PI / 2;
-        const isLarge = [0, -30, -45, 30, 45].includes(angle);
-        const length = isLarge ? 15 : 10;
-        const x1 = Math.cos(rad) * 80;
-        const y1 = Math.sin(rad) * 80;
-        const x2 = Math.cos(rad) * (80 - length);
-        const y2 = Math.sin(rad) * (80 - length);
-        
-        ctx.lineWidth = isLarge ? 2 : 1;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
-    });
-    
-    // Roll pointer (yellow triangle)
-    ctx.rotate(-roll * Math.PI / 180);
-    ctx.fillStyle = '#ffff00';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, -80);
-    ctx.lineTo(-7, -67);
-    ctx.lineTo(7, -67);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    
-    // Bank angle indicator (white triangle at top)
-    ctx.rotate(roll * Math.PI / 180);
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.moveTo(0, -82);
-    ctx.lineTo(-5, -72);
-    ctx.lineTo(5, -72);
-    ctx.closePath();
-    ctx.fill();
-    
-    ctx.restore();
-    
-    // Speed tape (left side) - more realistic
-    const tapeX = 15;
-    const tapeY = centerY - 120;
-    const tapeWidth = 50;
-    const tapeHeight = 240;
-    
-    // Speed tape background
-    ctx.fillStyle = 'rgba(50, 50, 50, 0.8)';
-    ctx.fillRect(tapeX, tapeY, tapeWidth, tapeHeight);
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(tapeX, tapeY, tapeWidth, tapeHeight);
-    
-    // Speed markings
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'right';
-    
-    for (let s = Math.floor(speed / 20) * 20 - 60; s <= speed + 60; s += 20) {
-        if (s < 0) continue;
-        const y = centerY - (s - speed) * 2;
-        if (y >= tapeY && y <= tapeY + tapeHeight) {
-            ctx.fillStyle = '#fff';
-            ctx.fillText(s, tapeX + tapeWidth - 5, y + 5);
+            const ctx = pfdCtx;
+            const width = pfdCanvas.width;
+            const height = pfdCanvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
             
-            // Tick marks
+            // Clear canvas
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Get flight data
+            const pitch = currentFlightData.pitch || 0;
+            const roll = currentFlightData.roll || 0;
+            const altitude = currentFlightData.altitude || 0;
+            const speed = currentFlightData.groundSpeed || 0;
+            const heading = currentFlightData.heading || 0;
+            const vs = currentFlightData.verticalSpeed || 0;
+            
+            // Get autopilot status
+            const apMaster = currentFlightData.apMaster || false;
+            const autoThrottle = currentFlightData.autoThrottle || false;
+            
+            // Define the horizon display area (clipped to avoid tapes)
+            const horizonLeft = 75;
+            const horizonRight = width - 95;
+            const horizonTop = 30;
+            const horizonBottom = height - 40;
+            const horizonWidth = horizonRight - horizonLeft;
+            const horizonHeight = horizonBottom - horizonTop;
+            const horizonCenterX = horizonLeft + horizonWidth / 2;
+            const horizonCenterY = horizonTop + horizonHeight / 2;
+            
+            // Draw artificial horizon (clipped)
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(horizonLeft, horizonTop, horizonWidth, horizonHeight);
+            ctx.clip();
+            
+            ctx.translate(horizonCenterX, horizonCenterY);
+            ctx.rotate(roll * Math.PI / 180);
+            
+            // Sky with gradient
+            const skyGrad = ctx.createLinearGradient(0, -height, 0, 0);
+            skyGrad.addColorStop(0, '#0066cc');
+            skyGrad.addColorStop(1, '#0099ff');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(-width, -height - pitch * 2.5, width * 2, height * 2);
+            
+            // Ground with gradient
+            const groundGrad = ctx.createLinearGradient(0, 0, 0, height);
+            groundGrad.addColorStop(0, '#8B4513');
+            groundGrad.addColorStop(1, '#654321');
+            ctx.fillStyle = groundGrad;
+            ctx.fillRect(-width, -pitch * 2.5, width * 2, height * 2);
+            
+            // Horizon line - thicker and white
             ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(-width, -pitch * 2.5);
+            ctx.lineTo(width, -pitch * 2.5);
+            ctx.stroke();
+            
+            // Pitch ladder
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.font = 'bold 12px Arial';
+            
+            for (let p = -90; p <= 90; p += 10) {
+                if (p === 0) continue;
+                const y = (pitch - p) * 2.5;
+                const lineWidth = p % 20 === 0 ? 50 : 25;
+                
+                // Pitch lines
+                ctx.beginPath();
+                ctx.moveTo(-lineWidth / 2, y);
+                ctx.lineTo(lineWidth / 2, y);
+                ctx.stroke();
+                
+                // Pitch numbers for major marks
+                if (p % 20 === 0) {
+                    ctx.fillStyle = '#fff';
+                    ctx.textAlign = 'right';
+                    ctx.fillText(Math.abs(p), -lineWidth / 2 - 8, y + 5);
+                    ctx.textAlign = 'left';
+                    ctx.fillText(Math.abs(p), lineWidth / 2 + 8, y + 5);
+                }
+            }
+            
+            ctx.restore();
+            
+            // Fixed aircraft symbol - yellow with black outline
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(horizonCenterX - 40, horizonCenterY);
+            ctx.lineTo(horizonCenterX - 12, horizonCenterY);
+            ctx.moveTo(horizonCenterX + 12, horizonCenterY);
+            ctx.lineTo(horizonCenterX + 40, horizonCenterY);
+            ctx.moveTo(horizonCenterX, horizonCenterY);
+            ctx.lineTo(horizonCenterX, horizonCenterY + 10);
+            ctx.stroke();
+            
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(horizonCenterX - 40, horizonCenterY);
+            ctx.lineTo(horizonCenterX - 12, horizonCenterY);
+            ctx.moveTo(horizonCenterX + 12, horizonCenterY);
+            ctx.lineTo(horizonCenterX + 40, horizonCenterY);
+            ctx.moveTo(horizonCenterX, horizonCenterY);
+            ctx.lineTo(horizonCenterX, horizonCenterY + 10);
+            ctx.stroke();
+            
+            // Center dot
+            ctx.fillStyle = '#ffff00';
+            ctx.beginPath();
+            ctx.arc(horizonCenterX, horizonCenterY, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Roll indicator at top
+            ctx.save();
+            ctx.translate(horizonCenterX, 50);
+            
+            // Roll arc
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, 70, -Math.PI * 0.65, -Math.PI * 0.35, false);
+            ctx.stroke();
+            
+            // Roll markers
+            [-60, -45, -30, -20, -10, 0, 10, 20, 30, 45, 60].forEach(angle => {
+                const rad = angle * Math.PI / 180 - Math.PI / 2;
+                const isLarge = [0, -30, -45, 30, 45].includes(angle);
+                const length = isLarge ? 12 : 8;
+                const x1 = Math.cos(rad) * 70;
+                const y1 = Math.sin(rad) * 70;
+                const x2 = Math.cos(rad) * (70 - length);
+                const y2 = Math.sin(rad) * (70 - length);
+                
+                ctx.lineWidth = isLarge ? 2 : 1;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            });
+            
+            // Roll pointer (yellow triangle)
+            ctx.rotate(-roll * Math.PI / 180);
+            ctx.fillStyle = '#ffff00';
+            ctx.strokeStyle = '#000';
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(tapeX, y);
-            ctx.lineTo(tapeX + 10, y);
+            ctx.moveTo(0, -70);
+            ctx.lineTo(-6, -58);
+            ctx.lineTo(6, -58);
+            ctx.closePath();
+            ctx.fill();
             ctx.stroke();
-        }
-    }
-    
-    // Speed readout box
-    ctx.fillStyle = '#000';
-    ctx.fillRect(tapeX, centerY - 18, tapeWidth, 36);
-    ctx.strokeStyle = '#ffff00';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(tapeX, centerY - 18, tapeWidth, 36);
-    
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 20px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(Math.round(speed), tapeX + tapeWidth / 2, centerY + 7);
-    
-    // Altitude tape (right side)
-    const altTapeX = width - tapeX - tapeWidth;
-    
-    ctx.fillStyle = 'rgba(50, 50, 50, 0.8)';
-    ctx.fillRect(altTapeX, tapeY, tapeWidth, tapeHeight);
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(altTapeX, tapeY, tapeWidth, tapeHeight);
-    
-    // Altitude markings
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'left';
-    
-    const altStep = 100;
-    for (let a = Math.floor(altitude / altStep) * altStep - 600; a <= altitude + 600; a += altStep) {
-        const y = centerY - (a - altitude) * 0.3;
-        if (y >= tapeY && y <= tapeY + tapeHeight) {
-            if (a % 200 === 0) {
-                ctx.fillStyle = '#fff';
-                ctx.fillText(a, altTapeX + 8, y + 5);
+            
+            // Bank angle indicator (white triangle at top)
+            ctx.rotate(roll * Math.PI / 180);
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.moveTo(0, -72);
+            ctx.lineTo(-5, -62);
+            ctx.lineTo(5, -62);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.restore();
+            
+            // Speed tape (left side) - more realistic
+            const tapeX = 15;
+            const tapeY = horizonTop;
+            const tapeWidth = 50;
+            const tapeHeight = horizonHeight;
+            
+            // Speed tape background
+            ctx.fillStyle = 'rgba(50, 50, 50, 0.8)';
+            ctx.fillRect(tapeX, tapeY, tapeWidth, tapeHeight);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(tapeX, tapeY, tapeWidth, tapeHeight);
+            
+            // Speed markings
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'right';
+            
+            for (let s = Math.floor(speed / 20) * 20 - 80; s <= speed + 80; s += 20) {
+                if (s < 0) continue;
+                const y = horizonCenterY - (s - speed) * 1.5;
+                if (y >= tapeY + 10 && y <= tapeY + tapeHeight - 10) {
+                    ctx.fillStyle = '#fff';
+                    ctx.fillText(s, tapeX + tapeWidth - 5, y + 5);
+                    
+                    // Tick marks
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(tapeX, y);
+                    ctx.lineTo(tapeX + 10, y);
+                    ctx.stroke();
+                }
+            }
+            
+            // Speed readout box
+            ctx.fillStyle = '#000';
+            ctx.fillRect(tapeX, horizonCenterY - 18, tapeWidth, 36);
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(tapeX, horizonCenterY - 18, tapeWidth, 36);
+            
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(Math.round(speed), tapeX + tapeWidth / 2, horizonCenterY + 7);
+            
+            // Altitude tape (right side)
+            const altTapeX = width - tapeX - tapeWidth - 20;
+            
+            ctx.fillStyle = 'rgba(50, 50, 50, 0.8)';
+            ctx.fillRect(altTapeX, tapeY, tapeWidth, tapeHeight);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(altTapeX, tapeY, tapeWidth, tapeHeight);
+            
+            // Altitude markings
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'left';
+            
+            const altStep = 100;
+            for (let a = Math.floor(altitude / altStep) * altStep - 500; a <= altitude + 500; a += altStep) {
+                const y = horizonCenterY - (a - altitude) * 0.4;
+                if (y >= tapeY + 10 && y <= tapeY + tapeHeight - 10) {
+                    if (a % 200 === 0) {
+                        ctx.fillStyle = '#fff';
+                        ctx.fillText(a, altTapeX + 8, y + 5);
+                        
+                        ctx.strokeStyle = '#fff';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(altTapeX + tapeWidth - 10, y);
+                        ctx.lineTo(altTapeX + tapeWidth, y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            // Altitude readout box
+            ctx.fillStyle = '#000';
+            ctx.fillRect(altTapeX, horizonCenterY - 18, tapeWidth, 36);
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(altTapeX, horizonCenterY - 18, tapeWidth, 36);
+            
+            ctx.fillStyle = '#00ff00';
+            ctx.font = 'bold 18px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(Math.round(altitude), altTapeX + tapeWidth / 2, horizonCenterY + 7);
+            
+            // Vertical speed indicator (right side)
+            const vsiX = width - 15;
+            const vsiY = horizonCenterY - 80;
+            const vsiHeight = 160;
+            
+            // VSI scale
+            ctx.strokeStyle = '#888';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(vsiX, vsiY);
+            ctx.lineTo(vsiX, vsiY + vsiHeight);
+            ctx.stroke();
+            
+            // VSI marks
+            [6, 4, 2, 1, 0, -1, -2, -4, -6].forEach(n => {
+                const y = horizonCenterY - n * 13;
+                ctx.strokeStyle = '#888';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(vsiX - 5, y);
+                ctx.lineTo(vsiX, y);
+                ctx.stroke();
+            });
+            
+            // VSI pointer
+            const vsIndicator = Math.max(-6, Math.min(6, vs / 500));
+            const vsY = horizonCenterY - vsIndicator * 13;
+            
+            ctx.fillStyle = '#00ff00';
+            ctx.beginPath();
+            ctx.moveTo(vsiX - 12, horizonCenterY);
+            ctx.lineTo(vsiX - 3, vsY);
+            ctx.lineTo(vsiX, vsY);
+            ctx.lineTo(vsiX, horizonCenterY);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Heading tape (bottom)
+            const hdgTapeY = horizonBottom;
+            const hdgTapeHeight = 30;
+            
+            ctx.fillStyle = 'rgba(50, 50, 50, 0.8)';
+            ctx.fillRect(horizonCenterX - 100, hdgTapeY, 200, hdgTapeHeight);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(horizonCenterX - 100, hdgTapeY, 200, hdgTapeHeight);
+            
+            // Heading marks
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            
+            for (let h = Math.floor(heading / 10) * 10 - 30; h <= heading + 30; h += 10) {
+                const hdg = ((h % 360) + 360) % 360;
+                const x = horizonCenterX + (hdg - heading) * 3;
                 
+                if (hdg % 30 === 0) {
+                    const hdgText = hdg === 0 ? '36' : (hdg / 10).toString().padStart(2, '0');
+                    ctx.fillText(hdgText, x, hdgTapeY + 20);
+                }
+                
+                // Tick
                 ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(altTapeX + tapeWidth - 10, y);
-                ctx.lineTo(altTapeX + tapeWidth, y);
+                ctx.moveTo(x, hdgTapeY);
+                ctx.lineTo(x, hdgTapeY + 8);
                 ctx.stroke();
             }
+            
+            // Heading bug (center triangle)
+            ctx.fillStyle = '#ffff00';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(horizonCenterX, hdgTapeY);
+            ctx.lineTo(horizonCenterX - 8, hdgTapeY - 8);
+            ctx.lineTo(horizonCenterX + 8, hdgTapeY - 8);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // Top status bar
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(0, 0, width, 30);
+            
+            // Left side - Mode indicators
+            ctx.fillStyle = '#00ff00';
+            ctx.font = 'bold 11px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('SPEED', 10, 20);
+            
+            // Center
+            ctx.textAlign = 'center';
+            ctx.fillText('G/S', width / 3, 20);
+            ctx.fillText('LOC', width / 2, 20);
+            
+            // Right side - AP1 and A/THR status stacked (only if active)
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 10px Arial';
+            
+            if (apMaster) {
+                ctx.fillText('AP1', width - 10, 12);
+            }
+            if (autoThrottle) {
+                ctx.fillText('A/THR', width - 10, 24);
+            }
         }
-    }
-    
-    // Altitude readout box
-    ctx.fillStyle = '#000';
-    ctx.fillRect(altTapeX, centerY - 18, tapeWidth, 36);
-    ctx.strokeStyle = '#00ff00';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(altTapeX, centerY - 18, tapeWidth, 36);
-    
-    ctx.fillStyle = '#00ff00';
-    ctx.font = 'bold 18px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(Math.round(altitude), altTapeX + tapeWidth / 2, centerY + 7);
-    
-    // Vertical speed indicator (right side)
-    const vsiX = width - 20;
-    const vsiY = centerY - 80;
-    const vsiHeight = 160;
-    
-    // VSI scale
-    ctx.strokeStyle = '#888';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(vsiX, vsiY);
-    ctx.lineTo(vsiX, vsiY + vsiHeight);
-    ctx.stroke();
-    
-    // VSI marks
-    [-6, -4, -2, -1, 0, 1, 2, 4, 6].forEach(n => {
-        const y = centerY - n * 13;
-        ctx.beginPath();
-        ctx.moveTo(vsiX - 5, y);
-        ctx.lineTo(vsiX, y);
-        ctx.stroke();
-    });
-    
-    // VSI pointer
-    const vsIndicator = Math.max(-6, Math.min(6, vs / 500));
-    const vsY = centerY - vsIndicator * 13;
-    
-    ctx.fillStyle = '#00ff00';
-    ctx.beginPath();
-    ctx.moveTo(vsiX - 12, centerY);
-    ctx.lineTo(vsiX - 3, vsY);
-    ctx.lineTo(vsiX, vsY);
-    ctx.lineTo(vsiX, centerY);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Heading tape (bottom)
-    const hdgTapeY = height - 35;
-    const hdgTapeHeight = 30;
-    
-    ctx.fillStyle = 'rgba(50, 50, 50, 0.8)';
-    ctx.fillRect(centerX - 100, hdgTapeY, 200, hdgTapeHeight);
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(centerX - 100, hdgTapeY, 200, hdgTapeHeight);
-    
-    // Heading marks
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'center';
-    
-    for (let h = Math.floor(heading / 10) * 10 - 30; h <= heading + 30; h += 10) {
-        const hdg = ((h % 360) + 360) % 360;
-        const x = centerX + (hdg - heading) * 3;
-        
-        if (hdg % 30 === 0) {
-            const hdgText = hdg === 0 ? '36' : (hdg / 10).toString().padStart(2, '0');
-            ctx.fillText(hdgText, x, hdgTapeY + 20);
-        }
-        
-        // Tick
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x, hdgTapeY);
-        ctx.lineTo(x, hdgTapeY + 8);
-        ctx.stroke();
-    }
-    
-    // Heading bug (center triangle)
-    ctx.fillStyle = '#ffff00';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(centerX, hdgTapeY);
-    ctx.lineTo(centerX - 8, hdgTapeY - 8);
-    ctx.lineTo(centerX + 8, hdgTapeY - 8);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    
-    // Top status bar
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(0, 0, width, 25);
-    
-    ctx.fillStyle = '#00ff00';
-    ctx.font = 'bold 12px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText('SPEED', 10, 17);
-    
-    ctx.textAlign = 'center';
-    ctx.fillText('G/S', centerX / 2, 17);
-    ctx.fillText('LOC', centerX, 17);
-    
-    ctx.textAlign = 'right';
-    ctx.fillText('ALT ' + Math.round(altitude), width - 10, 17);
-}
         
         function drawMFD() {
             const ctx = mfdCtx;
@@ -2374,6 +2407,7 @@ function drawPFD() {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
