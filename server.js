@@ -2681,7 +2681,7 @@ function drawSystemsPage(ctx, width, height, apData) {
     }
     
     // Fuel Distribution (right side)
-    yPos = 30;
+    yPos = 35;
     ctx.fillStyle = '#167fac';
     ctx.font = 'bold 10px Arial';
     ctx.textAlign = 'left';
@@ -2967,6 +2967,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
