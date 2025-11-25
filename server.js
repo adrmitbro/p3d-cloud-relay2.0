@@ -2696,6 +2696,246 @@ function drawEnginePage(ctx, width, height, apData) {
     ctx.fillText(fuelKg + ' kg', width - 10, barY + 6);
 }
 
+function drawFuelPage(ctx, width, height, apData) {
+    // Draw title
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('FUEL', width / 2, 15);
+    
+    const fuelLeft = apData.fuelLeftQuantity || 0;
+    const fuelRight = apData.fuelRightQuantity || 0;
+    const fuelCenter = apData.fuelCenterQuantity || 0;
+    const fuelTotal = apData.fuelTotalQuantity || 0;
+    const leftPump = apData.fuelLeftPump || false;
+    const rightPump = apData.fuelRightPump || false;
+    const centerPump = apData.fuelCenterPump || false;
+    
+    // Aircraft outline (top-down view)
+    const centerX = width / 2;
+    const centerY = height / 2 - 10;
+    
+    // Draw fuselage
+    ctx.strokeStyle = '#888';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY - 60);
+    ctx.lineTo(centerX - 8, centerY - 50);
+    ctx.lineTo(centerX - 8, centerY + 50);
+    ctx.lineTo(centerX, centerY + 60);
+    ctx.lineTo(centerX + 8, centerY + 50);
+    ctx.lineTo(centerX + 8, centerY - 50);
+    ctx.closePath();
+    ctx.stroke();
+    
+    // Draw wings
+    ctx.beginPath();
+    ctx.moveTo(centerX - 8, centerY);
+    ctx.lineTo(centerX - 90, centerY - 15);
+    ctx.lineTo(centerX - 90, centerY + 15);
+    ctx.lineTo(centerX - 8, centerY);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(centerX + 8, centerY);
+    ctx.lineTo(centerX + 90, centerY - 15);
+    ctx.lineTo(centerX + 90, centerY + 15);
+    ctx.lineTo(centerX + 8, centerY);
+    ctx.stroke();
+    
+    // LEFT TANK
+    const leftTankX = centerX - 50;
+    const leftTankY = centerY;
+    
+    // Tank outline
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(leftTankX - 25, leftTankY - 20, 30, 40);
+    
+    // Fuel level indicator
+    const leftPercent = (fuelLeft / 2000) * 100; // Assume 2000 gal capacity per tank
+    const leftFillHeight = (leftPercent / 100) * 40;
+    ctx.fillStyle = '#00ff00';
+    ctx.globalAlpha = 0.3;
+    ctx.fillRect(leftTankX - 25, leftTankY + 20 - leftFillHeight, 30, leftFillHeight);
+    ctx.globalAlpha = 1.0;
+    
+    // LEFT quantity text
+    ctx.fillStyle = '#00ff00';
+    ctx.font = 'bold 10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(Math.round(fuelLeft), leftTankX - 10, leftTankY - 25);
+    ctx.font = '8px Arial';
+    ctx.fillText('GAL', leftTankX - 10, leftTankY - 15);
+    
+    // LEFT pump indicator
+    if (leftPump) {
+        ctx.fillStyle = '#00ff00';
+        ctx.beginPath();
+        ctx.arc(leftTankX - 10, leftTankY + 30, 4, 0, Math.PI * 2);
+        ctx.fill();
+    } else {
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(leftTankX - 10, leftTankY + 30, 4, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    
+    // RIGHT TANK
+    const rightTankX = centerX + 50;
+    const rightTankY = centerY;
+    
+    // Tank outline
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(rightTankX - 5, rightTankY - 20, 30, 40);
+    
+    // Fuel level indicator
+    const rightPercent = (fuelRight / 2000) * 100;
+    const rightFillHeight = (rightPercent / 100) * 40;
+    ctx.fillStyle = '#00ff00';
+    ctx.globalAlpha = 0.3;
+    ctx.fillRect(rightTankX - 5, rightTankY + 20 - rightFillHeight, 30, rightFillHeight);
+    ctx.globalAlpha = 1.0;
+    
+    // RIGHT quantity text
+    ctx.fillStyle = '#00ff00';
+    ctx.font = 'bold 10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(Math.round(fuelRight), rightTankX + 10, rightTankY - 25);
+    ctx.font = '8px Arial';
+    ctx.fillText('GAL', rightTankX + 10, rightTankY - 15);
+    
+    // RIGHT pump indicator
+    if (rightPump) {
+        ctx.fillStyle = '#00ff00';
+        ctx.beginPath();
+        ctx.arc(rightTankX + 10, rightTankY + 30, 4, 0, Math.PI * 2);
+        ctx.fill();
+    } else {
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(rightTankX + 10, rightTankY + 30, 4, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    
+    // CENTER TANK
+    if (fuelCenter > 0 || centerPump) {
+        const centerTankX = centerX;
+        const centerTankY = centerY + 10;
+        
+        // Tank outline
+        ctx.strokeStyle = '#00ff00';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(centerTankX - 15, centerTankY - 10, 30, 20);
+        
+        // Fuel level indicator
+        const centerPercent = (fuelCenter / 3000) * 100; // Assume 3000 gal capacity
+        const centerFillHeight = (centerPercent / 100) * 20;
+        ctx.fillStyle = '#00ff00';
+        ctx.globalAlpha = 0.3;
+        ctx.fillRect(centerTankX - 15, centerTankY + 10 - centerFillHeight, 30, centerFillHeight);
+        ctx.globalAlpha = 1.0;
+        
+        // CENTER quantity text
+        ctx.fillStyle = '#00ff00';
+        ctx.font = 'bold 9px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(Math.round(fuelCenter), centerTankX, centerTankY + 20);
+        
+        // CENTER pump indicator
+        if (centerPump) {
+            ctx.fillStyle = '#00ff00';
+            ctx.beginPath();
+            ctx.arc(centerTankX, centerTankY + 25, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Label
+        ctx.fillStyle = '#888';
+        ctx.font = '8px Arial';
+        ctx.fillText('CTR', centerTankX, centerTankY - 12);
+    }
+    
+    // Labels
+    ctx.fillStyle = '#888';
+    ctx.font = '8px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('LEFT', leftTankX - 10, leftTankY + 45);
+    ctx.fillText('RIGHT', rightTankX + 10, rightTankY + 45);
+    
+    // Flow lines from tanks to engines
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    
+    // Left tank to left engine
+    ctx.beginPath();
+    ctx.moveTo(leftTankX - 10, leftTankY + 20);
+    ctx.lineTo(leftTankX - 10, leftTankY + 35);
+    ctx.stroke();
+    
+    // Right tank to right engine
+    ctx.beginPath();
+    ctx.moveTo(rightTankX + 10, rightTankY + 20);
+    ctx.lineTo(rightTankX + 10, rightTankY + 35);
+    ctx.stroke();
+    
+    ctx.setLineDash([]);
+    
+    // TOTAL FUEL display at top
+    ctx.fillStyle = '#167fac';
+    ctx.font = 'bold 10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('TOTAL', centerX, 35);
+    
+    ctx.fillStyle = '#00ff00';
+    ctx.font = 'bold 14px Arial';
+    ctx.fillText(Math.round(fuelTotal), centerX, 50);
+    
+    ctx.font = '9px Arial';
+    ctx.fillStyle = '#888';
+    ctx.fillText('GALLONS', centerX, 60);
+    
+    // Convert to KG
+    const fuelKg = Math.round(fuelTotal * 3.785 * 0.8);
+    ctx.fillStyle = '#00ff00';
+    ctx.font = 'bold 12px Arial';
+    ctx.fillText(fuelKg + ' KG', centerX, 73);
+    
+    // Bottom info
+    const bottomY = height - 30;
+    
+    // Pump legend
+    ctx.fillStyle = '#888';
+    ctx.font = '8px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('PUMPS:', 10, bottomY);
+    
+    // Left pump status
+    ctx.fillStyle = leftPump ? '#00ff00' : '#888';
+    ctx.fillText('L', 50, bottomY);
+    
+    // Center pump status
+    ctx.fillStyle = centerPump ? '#00ff00' : '#888';
+    ctx.fillText('C', 65, bottomY);
+    
+    // Right pump status
+    ctx.fillStyle = rightPump ? '#00ff00' : '#888';
+    ctx.fillText('R', 80, bottomY);
+    
+    // Fuel used display
+    const fuelUsed = 20000 - fuelTotal; // Assume 20000 gal capacity
+    if (fuelUsed > 0) {
+        ctx.fillStyle = '#888';
+        ctx.font = '8px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText('USED: ' + Math.round(fuelUsed) + ' GAL', width - 10, bottomY);
+    }
+}
+
 function drawSystemsPage(ctx, width, height, apData) {
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 12px Arial';
@@ -3039,6 +3279,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
