@@ -2884,7 +2884,6 @@ function drawFuelPage(ctx, width, height, apData) {
     ctx.fillText('0 °C', width - 30, tempY);
     ctx.fillText('0', width - 50, tempY);
 }
-}
 
 function drawSystemsPage(ctx, width, height, apData) {
     ctx.fillStyle = '#fff';
@@ -3229,6 +3228,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
