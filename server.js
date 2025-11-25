@@ -3349,6 +3349,10 @@ function drawElectricalPage(ctx, width, height, apData) {
 }
 
 function drawBleedPressPage(ctx, width, height, apData) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Title
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 12px Arial';
     ctx.textAlign = 'center';
@@ -3357,72 +3361,92 @@ function drawBleedPressPage(ctx, width, height, apData) {
     const bleedAir1 = apData.bleedAir1 || false;
     const bleedAir2 = apData.bleedAir2 || false;
     const bleedAirApu = apData.bleedAirApu || false;
+    const eng1BleedPsi = apData.eng1BleedAirPsi || 0;
+    const eng2BleedPsi = apData.eng2BleedAirPsi || 0;
+    
     const engineAntiIce1 = apData.engineAntiIce1 || false;
     const engineAntiIce2 = apData.engineAntiIce2 || false;
     const wingAntiIce = apData.wingAntiIce || false;
+    
     const cabinAlt = apData.cabinAltitude || 0;
     const cabinRate = apData.cabinRate || 0;
     const pressDiff = apData.pressureDifferential || 0;
     
-    const topY = 35;
-    const centerX = width / 2;
+    // Enhanced engine bleed sections with PSI boxes
+    const eng1X = 40;
+    const eng2X = width - 40;
+    const bleedY = 35;
     
-    // BLEED AIR SECTION
+    // Engine 1 bleed
     ctx.fillStyle = '#167fac';
     ctx.font = 'bold 10px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('BLEED AIR', centerX, topY);
-    
-    // Engine 1 bleed
-    const eng1X = 60;
-    const bleedY = topY + 15;
-    
-    ctx.fillStyle = '#888';
-    ctx.font = '8px Arial';
     ctx.fillText('ENG 1', eng1X, bleedY);
     
-    ctx.strokeStyle = bleedAir1 ? '#00ff00' : '#666';
+    // PSI box for eng 1
+    const psi1Color = eng1BleedPsi > 25 ? '#00ff00' : '#ff8800';
+    ctx.strokeStyle = psi1Color;
     ctx.lineWidth = 2;
-    ctx.strokeRect(eng1X - 15, bleedY + 5, 30, 15);
+    ctx.strokeRect(eng1X - 25, bleedY + 5, 50, 18);
     
-    ctx.fillStyle = bleedAir1 ? '#00ff00' : '#666';
-    ctx.font = 'bold 9px Arial';
-    ctx.fillText(bleedAir1 ? 'ON' : 'OFF', eng1X, bleedY + 16);
-    
-    // Line from eng1
-    ctx.strokeStyle = bleedAir1 ? '#00ff00' : '#666';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(eng1X, bleedY + 20);
-    ctx.lineTo(eng1X, bleedY + 35);
-    ctx.lineTo(centerX - 30, bleedY + 35);
-    ctx.stroke();
-    
-    // Engine 2 bleed
-    const eng2X = width - 60;
+    ctx.fillStyle = psi1Color;
+    ctx.font = 'bold 11px Arial';
+    ctx.fillText(eng1BleedPsi.toFixed(1), eng1X, bleedY + 18);
     
     ctx.fillStyle = '#888';
     ctx.font = '8px Arial';
-    ctx.fillText('ENG 2', eng2X, bleedY);
+    ctx.fillText('PSI', eng1X, bleedY + 30);
     
-    ctx.strokeStyle = bleedAir2 ? '#00ff00' : '#666';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(eng2X - 15, bleedY + 5, 30, 15);
-    
-    ctx.fillStyle = bleedAir2 ? '#00ff00' : '#666';
-    ctx.font = 'bold 9px Arial';
-    ctx.fillText(bleedAir2 ? 'ON' : 'OFF', eng2X, bleedY + 16);
-    
-    // Line from eng2
-    ctx.strokeStyle = bleedAir2 ? '#00ff00' : '#666';
+    // Valve indicator
+    ctx.strokeStyle = bleedAir1 ? '#00ff00' : '#666';
     ctx.lineWidth = 3;
+    ctx.strokeRect(eng1X - 8, bleedY + 35, 16, 16);
+    
+    if (bleedAir1) {
+        ctx.fillStyle = '#00ff00';
+        ctx.fillRect(eng1X - 6, bleedY + 37, 12, 12);
+    }
+    
+    // Bleed line from eng1
     ctx.beginPath();
-    ctx.moveTo(eng2X, bleedY + 20);
-    ctx.lineTo(eng2X, bleedY + 35);
-    ctx.lineTo(centerX + 30, bleedY + 35);
+    ctx.moveTo(eng1X, bleedY + 51);
+    ctx.lineTo(eng1X, bleedY + 70);
+    ctx.lineTo(width / 2 - 30, bleedY + 70);
     ctx.stroke();
     
-    // APU bleed (center)
+    // Engine 2 bleed (mirror)
+    ctx.fillStyle = '#167fac';
+    ctx.fillText('ENG 2', eng2X, bleedY);
+    
+    const psi2Color = eng2BleedPsi > 25 ? '#00ff00' : '#ff8800';
+    ctx.strokeStyle = psi2Color;
+    ctx.strokeRect(eng2X - 25, bleedY + 5, 50, 18);
+    
+    ctx.fillStyle = psi2Color;
+    ctx.font = 'bold 11px Arial';
+    ctx.fillText(eng2BleedPsi.toFixed(1), eng2X, bleedY + 18);
+    
+    ctx.fillStyle = '#888';
+    ctx.font = '8px Arial';
+    ctx.fillText('PSI', eng2X, bleedY + 30);
+    
+    ctx.strokeStyle = bleedAir2 ? '#00ff00' : '#666';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(eng2X - 8, bleedY + 35, 16, 16);
+    
+    if (bleedAir2) {
+        ctx.fillStyle = '#00ff00';
+        ctx.fillRect(eng2X - 6, bleedY + 37, 12, 12);
+    }
+    
+    ctx.beginPath();
+    ctx.moveTo(eng2X, bleedY + 51);
+    ctx.lineTo(eng2X, bleedY + 70);
+    ctx.lineTo(width / 2 + 30, bleedY + 70);
+    ctx.stroke();
+    
+    // APU bleed with animated flow
+    const centerX = width / 2;
     ctx.fillStyle = '#888';
     ctx.font = '8px Arial';
     ctx.textAlign = 'center';
@@ -3430,27 +3454,27 @@ function drawBleedPressPage(ctx, width, height, apData) {
     
     ctx.strokeStyle = bleedAirApu ? '#00ff00' : '#666';
     ctx.lineWidth = 2;
-    ctx.strokeRect(centerX - 15, bleedY + 5, 30, 15);
+    ctx.strokeRect(centerX - 12, bleedY + 8, 24, 14);
     
-    ctx.fillStyle = bleedAirApu ? '#00ff00' : '#666';
-    ctx.font = 'bold 9px Arial';
-    ctx.fillText(bleedAirApu ? 'ON' : 'OFF', centerX, bleedY + 16);
+    if (bleedAirApu) {
+        ctx.fillStyle = '#00ff00';
+        ctx.fillRect(centerX - 10, bleedY + 10, 20, 10);
+    }
     
-    ctx.strokeStyle = bleedAirApu ? '#00ff00' : '#666';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(centerX, bleedY + 20);
-    ctx.lineTo(centerX, bleedY + 35);
+    ctx.moveTo(centerX, bleedY + 22);
+    ctx.lineTo(centerX, bleedY + 70);
     ctx.stroke();
     
-    // Main manifold line
-    const manifoldY = bleedY + 35;
+    // Main manifold
+    const manifoldY = bleedY + 70;
     const anyBleed = bleedAir1 || bleedAir2 || bleedAirApu;
     ctx.strokeStyle = anyBleed ? '#00ff00' : '#666';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 5;
     ctx.beginPath();
-    ctx.moveTo(30, manifoldY);
-    ctx.lineTo(width - 30, manifoldY);
+    ctx.moveTo(20, manifoldY);
+    ctx.lineTo(width - 20, manifoldY);
     ctx.stroke();
     
     // ANTI-ICE SECTION
@@ -3552,161 +3576,204 @@ function drawBleedPressPage(ctx, width, height, apData) {
 }
 
 function drawDoorsOxyPage(ctx, width, height, apData) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Title
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 12px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('DOORS / OXYGEN', width / 2, 15);
+    ctx.fillText('DOOR/OXY', width / 2, 15);
+    
+    // Oxygen pressure in top right
+    const oxygenPressure = apData.oxygenPressure || 1800;
+    const oxyColor = oxygenPressure > 1000 ? '#00ff00' : '#ff8800';
+    
+    ctx.fillStyle = '#888';
+    ctx.font = '9px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText('CKPT OXY', width - 65, 20);
+    
+    ctx.fillStyle = oxyColor;
+    ctx.font = 'bold 11px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(Math.round(oxygenPressure), width - 30, 20);
+    
+    ctx.fillStyle = '#888';
+    ctx.font = '8px Arial';
+    ctx.fillText('PSI', width - 10, 20);
+    
+    ctx.fillStyle = oxyColor;
+    ctx.font = 'bold 11px Arial';
+    ctx.fillText(Math.round(oxygenPressure), width - 10, 32);
     
     const exitDoor = apData.exitDoor || 0;
     const cargoDoor = apData.cargoDoor || 0;
     const canopyOpen = apData.canopyOpen || 0;
-    const oxygenPressure = apData.oxygenPressure || 1800;
     
+    // Aircraft outline - refined proportions
     const centerX = width / 2;
-    const topY = 40;
+    const topY = 50;
+    const noseY = topY;
+    const tailY = 230;
+    const fuselageWidth = 28;
     
-    // Draw aircraft outline (side view)
-    ctx.strokeStyle = '#888';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
     
-    // Fuselage
+    // Fuselage outline
     ctx.beginPath();
-    ctx.moveTo(centerX, topY);
-    ctx.lineTo(centerX - 10, topY + 10);
-    ctx.lineTo(centerX - 10, topY + 100);
-    ctx.lineTo(centerX, topY + 110);
-    ctx.lineTo(centerX + 10, topY + 100);
-    ctx.lineTo(centerX + 10, topY + 10);
+    // Nose
+    ctx.moveTo(centerX, noseY);
+    ctx.lineTo(centerX - 8, noseY + 15);
+    ctx.lineTo(centerX - fuselageWidth/2, noseY + 25);
+    // Left side
+    ctx.lineTo(centerX - fuselageWidth/2, tailY - 30);
+    ctx.lineTo(centerX - 15, tailY);
+    // Tail
+    ctx.lineTo(centerX, tailY + 5);
+    ctx.lineTo(centerX + 15, tailY);
+    // Right side
+    ctx.lineTo(centerX + fuselageWidth/2, tailY - 30);
+    ctx.lineTo(centerX + fuselageWidth/2, noseY + 25);
+    ctx.lineTo(centerX + 8, noseY + 15);
     ctx.closePath();
     ctx.stroke();
     
-    // DOORS
-    ctx.fillStyle = '#167fac';
-    ctx.font = 'bold 10px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText('DOORS', 20, topY + 20);
+    // Wings
+    ctx.beginPath();
+    ctx.moveTo(centerX - fuselageWidth/2, 140);
+    ctx.lineTo(centerX - 75, 150);
+    ctx.lineTo(centerX - 78, 155);
+    ctx.lineTo(centerX - fuselageWidth/2, 148);
+    ctx.closePath();
+    ctx.stroke();
     
-    // Main door positions on fuselage
-    const door1Y = topY + 30;
-    const door2Y = topY + 60;
-    const door3Y = topY + 80;
+    ctx.beginPath();
+    ctx.moveTo(centerX + fuselageWidth/2, 140);
+    ctx.lineTo(centerX + 75, 150);
+    ctx.lineTo(centerX + 78, 155);
+    ctx.lineTo(centerX + fuselageWidth/2, 148);
+    ctx.closePath();
+    ctx.stroke();
     
-    // Door 1 - Cabin/Exit
-    const cabinDoorOpen = exitDoor > 10;
-    ctx.strokeStyle = cabinDoorOpen ? '#ff8800' : '#00ff00';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(centerX - 13, door1Y, 6, 12);
+    // Door positions - matching reference image layout
+    const doorWidth = 8;
+    const doorHeight = 12;
+    const doorColor = '#00ff00';
+    const doorOpenColor = '#ff8800';
     
-    if (cabinDoorOpen) {
-        ctx.fillStyle = '#ff8800';
-        ctx.fillRect(centerX - 20, door1Y, 6, 12);
-    }
+    // Left side doors (from top to bottom)
+    const leftX = centerX - fuselageWidth/2;
+    const leftDoors = [
+        { y: 70, name: 'L1', open: exitDoor > 10 },      // Front left
+        { y: 95, name: 'L2', open: false },              // Mid-front left
+        { y: 160, name: 'L3', open: false },             // Mid-rear left
+        { y: 200, name: 'L4', open: false }              // Rear left
+    ];
     
-    ctx.fillStyle = '#888';
-    ctx.font = '7px Arial';
-    ctx.textAlign = 'right';
-    ctx.fillText('CABIN', centerX - 25, door1Y + 8);
+    leftDoors.forEach(door => {
+        ctx.strokeStyle = door.open ? doorOpenColor : doorColor;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(leftX - doorWidth - 2, door.y, doorWidth, doorHeight);
+        
+        if (door.open) {
+            ctx.fillStyle = 'rgba(255, 136, 0, 0.3)';
+            ctx.fillRect(leftX - doorWidth - 2, door.y, doorWidth, doorHeight);
+        }
+    });
     
-    ctx.textAlign = 'left';
-    ctx.fillStyle = cabinDoorOpen ? '#ff8800' : '#00ff00';
-    ctx.font = 'bold 8px Arial';
-    ctx.fillText(cabinDoorOpen ? 'OPEN' : 'CLOSED', centerX + 15, door1Y + 8);
+    // Right side doors
+    const rightX = centerX + fuselageWidth/2;
+    const rightDoors = [
+        { y: 70, name: 'R1', open: false },
+        { y: 95, name: 'R2', open: false },
+        { y: 160, name: 'R3', open: false },
+        { y: 200, name: 'R4', open: false }
+    ];
     
-    // Door 2 - Cargo
-    const cargoOpen = cargoDoor > 10;
-    ctx.strokeStyle = cargoOpen ? '#ff8800' : '#00ff00';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(centerX - 13, door2Y, 6, 12);
+    rightDoors.forEach(door => {
+        ctx.strokeStyle = door.open ? doorOpenColor : doorColor;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(rightX + 2, door.y, doorWidth, doorHeight);
+        
+        if (door.open) {
+            ctx.fillStyle = 'rgba(255, 136, 0, 0.3)';
+            ctx.fillRect(rightX + 2, door.y, doorWidth, doorHeight);
+        }
+    });
     
-    if (cargoOpen) {
-        ctx.fillStyle = '#ff8800';
-        ctx.fillRect(centerX - 20, door2Y, 6, 12);
-    }
+    // Cargo doors (belly)
+    const cargoDoors = [
+        { x: centerX - 10, y: 120, w: 20, h: 8, open: false },      // Front cargo
+        { x: centerX - 10, y: 180, w: 20, h: 8, open: cargoDoor > 10 }  // Rear cargo
+    ];
     
-    ctx.fillStyle = '#888';
-    ctx.font = '7px Arial';
-    ctx.textAlign = 'right';
-    ctx.fillText('CARGO', centerX - 25, door2Y + 8);
+    cargoDoors.forEach(door => {
+        ctx.strokeStyle = door.open ? doorOpenColor : doorColor;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(door.x, door.y, door.w, door.h);
+        
+        if (door.open) {
+            ctx.fillStyle = 'rgba(255, 136, 0, 0.3)';
+            ctx.fillRect(door.x, door.y, door.w, door.h);
+        }
+    });
     
-    ctx.textAlign = 'left';
-    ctx.fillStyle = cargoOpen ? '#ff8800' : '#00ff00';
-    ctx.font = 'bold 8px Arial';
-    ctx.fillText(cargoOpen ? 'OPEN' : 'CLOSED', centerX + 15, door2Y + 8);
-    
-    // Canopy/Top hatch
-    const canopyIsOpen = canopyOpen > 10;
-    ctx.strokeStyle = canopyIsOpen ? '#ff8800' : '#00ff00';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(centerX - 6, topY - 5, 12, 6);
-    
-    if (canopyIsOpen) {
-        ctx.fillStyle = '#ff8800';
-        ctx.fillRect(centerX - 6, topY - 12, 12, 6);
-    }
-    
-    ctx.fillStyle = '#888';
-    ctx.font = '7px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('CANOPY', centerX, topY - 15);
-    
-    ctx.fillStyle = canopyIsOpen ? '#ff8800' : '#00ff00';
-    ctx.font = 'bold 8px Arial';
-    ctx.fillText(canopyIsOpen ? 'OPEN' : 'CLOSED', centerX, topY + 25);
-    
-    // OXYGEN SECTION
-    const oxyY = height - 80;
-    
-    ctx.fillStyle = '#167fac';
-    ctx.font = 'bold 10px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('OXYGEN', centerX, oxyY);
-    
-    // Oxygen bottle
-    ctx.strokeStyle = '#00ff00';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(centerX - 20, oxyY + 10, 40, 35);
-    
-    // Pressure gauge indicator
-    const oxyPercent = (oxygenPressure / 1850) * 100;
-    const gaugeHeight = (oxyPercent / 100) * 30;
-    
-    ctx.fillStyle = oxygenPressure > 1000 ? '#00ff00' : '#ff8800';
-    ctx.globalAlpha = 0.3;
-    ctx.fillRect(centerX - 18, oxyY + 43 - gaugeHeight, 36, gaugeHeight);
-    ctx.globalAlpha = 1.0;
-    
-    // Pressure value
-    ctx.fillStyle = oxygenPressure > 1000 ? '#00ff00' : '#ff8800';
-    ctx.font = 'bold 11px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(Math.round(oxygenPressure), centerX, oxyY + 30);
-    
-    ctx.fillStyle = '#888';
-    ctx.font = '7px Arial';
-    ctx.fillText('PSI', centerX, oxyY + 40);
-    
-    // Status
-    const statusY = height - 20;
+    // Emergency exit labels on wings
     ctx.fillStyle = '#888';
     ctx.font = '8px Arial';
     ctx.textAlign = 'center';
+    ctx.fillText('SLIDE', centerX - 75, 165);
+    ctx.fillText('SLIDE', centerX + 75, 165);
     
-    const anyDoorOpen = cabinDoorOpen || cargoOpen || canopyIsOpen;
-    if (anyDoorOpen) {
-        ctx.fillStyle = '#ff8800';
-        ctx.fillText('⚠ DOOR OPEN', centerX, statusY);
-    } else {
-        ctx.fillStyle = '#00ff00';
-        ctx.fillText('ALL DOORS CLOSED', centerX, statusY);
-    }
+    // Status indicators at bottom
+    const bottomY = height - 30;
     
-    // Oxygen status
+    // TAT and SAT
     ctx.fillStyle = '#888';
+    ctx.font = '9px Arial';
     ctx.textAlign = 'left';
-    ctx.fillText('O2:', 20, statusY);
+    ctx.fillText('TAT', 20, bottomY);
+    ctx.fillText('SAT', 20, bottomY + 12);
     
-    ctx.fillStyle = oxygenPressure > 1000 ? '#00ff00' : '#ff8800';
-    ctx.fillText(oxygenPressure > 1000 ? 'NORMAL' : 'LOW', 40, statusY);
+    const tat = apData.tatTemperature || 12;
+    const sat = apData.satTemperature || 12;
+    
+    ctx.fillStyle = '#00ff00';
+    ctx.font = 'bold 10px Arial';
+    ctx.fillText('+' + tat, 50, bottomY);
+    ctx.fillText('+' + sat, 50, bottomY + 12);
+    
+    ctx.fillStyle = '#67A4C1';
+    ctx.font = '9px Arial';
+    ctx.fillText('°C', 75, bottomY);
+    ctx.fillText('°C', 75, bottomY + 12);
+    
+    // Time
+    const now = new Date();
+    const hours = now.getUTCHours().toString().padStart(2, '0');
+    const minutes = now.getUTCMinutes().toString().padStart(2, '0');
+    
+    ctx.fillStyle = '#00ff00';
+    ctx.font = 'bold 11px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(hours + ' H ' + minutes, centerX, bottomY + 6);
+    
+    // GW (Gross Weight)
+    ctx.fillStyle = '#888';
+    ctx.font = '9px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText('GW', width - 60, bottomY);
+    
+    const grossWeight = apData.grossWeight || 59700;
+    ctx.fillStyle = '#00ff00';
+    ctx.font = 'bold 11px Arial';
+    ctx.fillText(grossWeight, width - 10, bottomY);
+    
+    ctx.fillStyle = '#888';
+    ctx.font = '8px Arial';
+    ctx.fillText('KG', width - 10, bottomY + 12);
 }
 
 
@@ -3839,6 +3906,9 @@ function drawSystemsPage(ctx, width, height, apData) {
 }
 
 function drawFlightControlsPage(ctx, width, height, apData) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, width, height);
+    
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 12px Arial';
     ctx.textAlign = 'center';
@@ -3847,14 +3917,16 @@ function drawFlightControlsPage(ctx, width, height, apData) {
     const centerX = width / 2;
     const centerY = height / 2;
     
-    // Get control surface positions
+    // Get control surface positions (-100 to +100)
     const aileron = apData.aileronPosition || 0;
     const elevator = apData.elevatorPosition || 0;
     const rudder = apData.rudderPosition || 0;
     const flaps = apData.flaps || 0;
     const spoilers = apData.spoilers || 0;
     
-    // Draw simplified aircraft top view
+    console.log('Flight controls:', { aileron, elevator, rudder, flaps, spoilers }); // Debug
+    
+    // Simplified aircraft top view
     ctx.strokeStyle = '#888';
     ctx.lineWidth = 2;
     
@@ -3882,92 +3954,94 @@ function drawFlightControlsPage(ctx, width, height, apData) {
     ctx.lineTo(centerX, centerY + 70);
     ctx.stroke();
     
-    // Ailerons (animated)
-    const aileronDeflection = aileron * 0.15;
+    // LEFT AILERON
+    const leftAileronX = centerX - 70;
+    const aileronY = centerY;
+    const leftAileronDeflection = aileron * 0.2; // Scale for visual
     
-    // Left aileron
     ctx.strokeStyle = '#00ff00';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(centerX - 80, centerY);
-    ctx.lineTo(centerX - 50, centerY - aileronDeflection);
+    ctx.moveTo(leftAileronX, aileronY);
+    ctx.lineTo(leftAileronX - 5, aileronY + leftAileronDeflection);
     ctx.stroke();
     
-    // Right aileron
+    // RIGHT AILERON (opposite deflection)
+    const rightAileronX = centerX + 70;
     ctx.beginPath();
-    ctx.moveTo(centerX + 80, centerY);
-    ctx.lineTo(centerX + 50, centerY + aileronDeflection);
+    ctx.moveTo(rightAileronX, aileronY);
+    ctx.lineTo(rightAileronX + 5, aileronY - leftAileronDeflection);
     ctx.stroke();
     
-    // Elevator (animated)
-    const elevatorDeflection = elevator * 0.1;
-    ctx.strokeStyle = '#00ff00';
-    ctx.lineWidth = 3;
+    // ELEVATOR
+    const elevatorDeflection = elevator * 0.15;
     ctx.beginPath();
     ctx.moveTo(centerX - 25, centerY + 50 + elevatorDeflection);
     ctx.lineTo(centerX + 25, centerY + 50 + elevatorDeflection);
     ctx.stroke();
     
-    // Rudder (animated)
-    const rudderDeflection = rudder * 0.15;
-    ctx.strokeStyle = '#00ff00';
-    ctx.lineWidth = 3;
+    // RUDDER
+    const rudderDeflection = rudder * 0.2;
     ctx.beginPath();
     ctx.moveTo(centerX, centerY + 50);
     ctx.lineTo(centerX + rudderDeflection, centerY + 70);
     ctx.stroke();
     
-    // Flaps indicators
-    if (flaps > 0) {
-        ctx.strokeStyle = '#167fac';
-        ctx.lineWidth = 2;
-        // Left flap
-        ctx.beginPath();
-        ctx.moveTo(centerX - 45, centerY + 5);
-        ctx.lineTo(centerX - 35, centerY + 5 + (flaps * 0.1));
-        ctx.stroke();
-        // Right flap
-        ctx.beginPath();
-        ctx.moveTo(centerX + 45, centerY + 5);
-        ctx.lineTo(centerX + 35, centerY + 5 + (flaps * 0.1));
-        ctx.stroke();
-    }
-    
-    // Spoilers indicators
+    // SPOILERS (if extended)
     if (spoilers > 10) {
         ctx.strokeStyle = '#ff8800';
         ctx.lineWidth = 2;
+        
         // Left spoiler
         ctx.beginPath();
-        ctx.moveTo(centerX - 60, centerY);
-        ctx.lineTo(centerX - 60, centerY - (spoilers * 0.15));
+        ctx.moveTo(centerX - 50, centerY);
+        ctx.lineTo(centerX - 50, centerY - (spoilers * 0.15));
         ctx.stroke();
+        
         // Right spoiler
         ctx.beginPath();
-        ctx.moveTo(centerX + 60, centerY);
-        ctx.lineTo(centerX + 60, centerY - (spoilers * 0.15));
+        ctx.moveTo(centerX + 50, centerY);
+        ctx.lineTo(centerX + 50, centerY - (spoilers * 0.15));
         ctx.stroke();
     }
     
-// Control surface position readouts - moved higher to avoid overlap
+    // FLAPS (if extended)
+    if (flaps > 0) {
+        ctx.strokeStyle = '#167fac';
+        ctx.lineWidth = 2;
+        
+        // Left flap
+        ctx.beginPath();
+        ctx.moveTo(centerX - 35, centerY + 5);
+        ctx.lineTo(centerX - 30, centerY + 5 + (flaps * 0.08));
+        ctx.stroke();
+        
+        // Right flap
+        ctx.beginPath();
+        ctx.moveTo(centerX + 35, centerY + 5);
+        ctx.lineTo(centerX + 30, centerY + 5 + (flaps * 0.08));
+        ctx.stroke();
+    }
+    
+    // Position readouts at bottom
     ctx.font = '8px Arial';
     ctx.textAlign = 'left';
     ctx.fillStyle = '#888';
     
     let infoY = height - 45;
-    ctx.fillText('AILER:', 10, infoY);
+    ctx.fillText('AIL:', 10, infoY);
     ctx.fillStyle = '#00ff00';
-    ctx.fillText(aileron.toFixed(1), 45, infoY);
+    ctx.fillText(aileron.toFixed(1), 35, infoY);
     
     ctx.fillStyle = '#888';
-    ctx.fillText('ELEV:', 85, infoY);
+    ctx.fillText('ELEV:', 75, infoY);
     ctx.fillStyle = '#00ff00';
-    ctx.fillText(elevator.toFixed(1), 115, infoY);
+    ctx.fillText(elevator.toFixed(1), 105, infoY);
     
     ctx.fillStyle = '#888';
-    ctx.fillText('RUD:', 155, infoY);
+    ctx.fillText('RUD:', 145, infoY);
     ctx.fillStyle = '#00ff00';
-    ctx.fillText(rudder.toFixed(1), 180, infoY);
+    ctx.fillText(rudder.toFixed(1), 170, infoY);
     
     infoY += 12;
     ctx.fillStyle = '#888';
@@ -3976,9 +4050,9 @@ function drawFlightControlsPage(ctx, width, height, apData) {
     ctx.fillText(flaps.toFixed(0) + '%', 45, infoY);
     
     ctx.fillStyle = '#888';
-    ctx.fillText('SPLRS:', 85, infoY);
+    ctx.fillText('SPLR:', 85, infoY);
     ctx.fillStyle = spoilers > 10 ? '#ff8800' : '#888';
-    ctx.fillText(spoilers.toFixed(0) + '%', 120, infoY);
+    ctx.fillText(spoilers.toFixed(0) + '%', 115, infoY);
 }
 
 function drawSystemBar(ctx, x, y, width, label, value, max, color) {
@@ -4054,6 +4128,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
