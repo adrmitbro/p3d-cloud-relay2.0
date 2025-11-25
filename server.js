@@ -2848,31 +2848,33 @@ function drawFuelPage(ctx, width, height, apData) {
     // Right wing quantity
     ctx.fillText(Math.round(fuelRight), width - 50, wingBarY + 14);
     
-    // Pump indicators (orange squares)
+// Pump indicators (orange squares) - moved UP so they don't cover labels
+    const pumpY = bottomLineY + 5;
+    
     // Left pump
     if (leftPump) {
         ctx.fillStyle = '#ff8800';
-        ctx.fillRect(leftX - 6, bottomLineY + 10, 12, 8);
+        ctx.fillRect(leftX - 6, pumpY, 12, 8);
     }
     ctx.strokeStyle = '#ff8800';
     ctx.lineWidth = 2;
-    ctx.strokeRect(leftX - 6, bottomLineY + 10, 12, 8);
+    ctx.strokeRect(leftX - 6, pumpY, 12, 8);
     
     // Center pump
     if (centerPump) {
         ctx.fillStyle = '#ff8800';
-        ctx.fillRect(centerX - 6, bottomLineY + 10, 12, 8);
+        ctx.fillRect(centerX - 6, pumpY, 12, 8);
     }
     ctx.strokeStyle = '#ff8800';
-    ctx.strokeRect(centerX - 6, bottomLineY + 10, 12, 8);
+    ctx.strokeRect(centerX - 6, pumpY, 12, 8);
     
     // Right pump
     if (rightPump) {
         ctx.fillStyle = '#ff8800';
-        ctx.fillRect(rightX - 6, bottomLineY + 10, 12, 8);
+        ctx.fillRect(rightX - 6, pumpY, 12, 8);
     }
     ctx.strokeStyle = '#ff8800';
-    ctx.strokeRect(rightX - 6, bottomLineY + 10, 12, 8);
+    ctx.strokeRect(rightX - 6, pumpY, 12, 8);
     
     // Temperature indicators at very bottom (if available)
     const tempY = height - 15;
@@ -2883,6 +2885,259 @@ function drawFuelPage(ctx, width, height, apData) {
     ctx.fillText('0', 50, tempY);
     ctx.fillText('0 °C', width - 30, tempY);
     ctx.fillText('0', width - 50, tempY);
+}
+
+function drawHydraulicsPage(ctx, width, height, apData) {
+    // Draw title
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('HYDRAULICS', width / 2, 15);
+    
+    const hydA = apData.hydraulicA !== undefined ? apData.hydraulicA : 3000;
+    const hydB = apData.hydraulicB !== undefined ? apData.hydraulicB : 3000;
+    const hydPressure1 = apData.hydraulicPressure1 || 3000;
+    const hydPressure2 = apData.hydraulicPressure2 || 3000;
+    const hydRes1 = apData.hydraulicReservoir1 || 100;
+    const hydRes2 = apData.hydraulicReservoir2 || 100;
+    
+    const centerX = width / 2;
+    const topY = 50;
+    
+    // System A (LEFT/GREEN)
+    const leftX = 60;
+    
+    ctx.fillStyle = '#167fac';
+    ctx.font = 'bold 10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('SYSTEM A', leftX, topY);
+    
+    // Reservoir
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(leftX - 15, topY + 10, 30, 25);
+    
+    ctx.fillStyle = '#888';
+    ctx.font = '7px Arial';
+    ctx.fillText('RES', leftX, topY + 20);
+    
+    ctx.fillStyle = '#00ff00';
+    ctx.font = 'bold 9px Arial';
+    ctx.fillText(Math.round(hydRes1) + '%', leftX, topY + 30);
+    
+    // Vertical line down
+    ctx.strokeStyle = '#00ff00';
+    ctx.beginPath();
+    ctx.moveTo(leftX, topY + 35);
+    ctx.lineTo(leftX, topY + 60);
+    ctx.stroke();
+    
+    // Pump (triangle)
+    ctx.fillStyle = '#00ff00';
+    ctx.beginPath();
+    ctx.moveTo(leftX, topY + 60);
+    ctx.lineTo(leftX - 8, topY + 72);
+    ctx.lineTo(leftX + 8, topY + 72);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 8px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('P', leftX, topY + 69);
+    
+    // Pressure line down
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(leftX, topY + 72);
+    ctx.lineTo(leftX, topY + 110);
+    ctx.stroke();
+    
+    // Pressure value box
+    ctx.fillStyle = '#000';
+    ctx.fillRect(leftX - 20, topY + 95, 40, 20);
+    
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(leftX - 20, topY + 95, 40, 20);
+    
+    const pressure1 = Math.round(hydPressure1);
+    ctx.fillStyle = pressure1 > 2500 ? '#00ff00' : '#ff8800';
+    ctx.font = 'bold 10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(pressure1, leftX, topY + 109);
+    
+    ctx.fillStyle = '#888';
+    ctx.font = '7px Arial';
+    ctx.fillText('PSI', leftX, topY + 92);
+    
+    // Horizontal distribution lines
+    const distY = topY + 110;
+    ctx.strokeStyle = '#00ff00';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(leftX, distY);
+    ctx.lineTo(leftX, distY + 30);
+    ctx.lineTo(20, distY + 30);
+    ctx.lineTo(20, distY + 60);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(leftX, distY + 30);
+    ctx.lineTo(100, distY + 30);
+    ctx.lineTo(100, distY + 60);
+    ctx.stroke();
+    
+    // Actuator symbols (rectangles with circles)
+    // Left actuator
+    ctx.fillStyle = '#00ff00';
+    ctx.fillRect(15, distY + 60, 10, 15);
+    ctx.beginPath();
+    ctx.arc(20, distY + 68, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#888';
+    ctx.font = '6px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('ELEV', 20, distY + 85);
+    
+    // Right actuator
+    ctx.fillStyle = '#00ff00';
+    ctx.fillRect(95, distY + 60, 10, 15);
+    ctx.beginPath();
+    ctx.arc(100, distY + 68, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#888';
+    ctx.font = '6px Arial';
+    ctx.fillText('AILER', 100, distY + 85);
+    
+    // System B (RIGHT/YELLOW)
+    const rightX = width - 60;
+    
+    ctx.fillStyle = '#167fac';
+    ctx.font = 'bold 10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('SYSTEM B', rightX, topY);
+    
+    // Reservoir
+    ctx.strokeStyle = '#ffcc00';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(rightX - 15, topY + 10, 30, 25);
+    
+    ctx.fillStyle = '#888';
+    ctx.font = '7px Arial';
+    ctx.fillText('RES', rightX, topY + 20);
+    
+    ctx.fillStyle = '#ffcc00';
+    ctx.font = 'bold 9px Arial';
+    ctx.fillText(Math.round(hydRes2) + '%', rightX, topY + 30);
+    
+    // Vertical line down
+    ctx.strokeStyle = '#ffcc00';
+    ctx.beginPath();
+    ctx.moveTo(rightX, topY + 35);
+    ctx.lineTo(rightX, topY + 60);
+    ctx.stroke();
+    
+    // Pump (triangle)
+    ctx.fillStyle = '#ffcc00';
+    ctx.beginPath();
+    ctx.moveTo(rightX, topY + 60);
+    ctx.lineTo(rightX - 8, topY + 72);
+    ctx.lineTo(rightX + 8, topY + 72);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 8px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('P', rightX, topY + 69);
+    
+    // Pressure line down
+    ctx.strokeStyle = '#ffcc00';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(rightX, topY + 72);
+    ctx.lineTo(rightX, topY + 110);
+    ctx.stroke();
+    
+    // Pressure value box
+    ctx.fillStyle = '#000';
+    ctx.fillRect(rightX - 20, topY + 95, 40, 20);
+    
+    ctx.strokeStyle = '#ffcc00';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(rightX - 20, topY + 95, 40, 20);
+    
+    const pressure2 = Math.round(hydPressure2);
+    ctx.fillStyle = pressure2 > 2500 ? '#ffcc00' : '#ff8800';
+    ctx.font = 'bold 10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(pressure2, rightX, topY + 109);
+    
+    ctx.fillStyle = '#888';
+    ctx.font = '7px Arial';
+    ctx.fillText('PSI', rightX, topY + 92);
+    
+    // Horizontal distribution lines
+    ctx.strokeStyle = '#ffcc00';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(rightX, distY);
+    ctx.lineTo(rightX, distY + 30);
+    ctx.lineTo(width - 20, distY + 30);
+    ctx.lineTo(width - 20, distY + 60);
+    ctx.stroke();
+    
+    ctx.beginPath();
+    ctx.moveTo(rightX, distY + 30);
+    ctx.lineTo(width - 100, distY + 30);
+    ctx.lineTo(width - 100, distY + 60);
+    ctx.stroke();
+    
+    // Actuator symbols
+    // Right actuator
+    ctx.fillStyle = '#ffcc00';
+    ctx.fillRect(width - 25, distY + 60, 10, 15);
+    ctx.beginPath();
+    ctx.arc(width - 20, distY + 68, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#888';
+    ctx.font = '6px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('RUD', width - 20, distY + 85);
+    
+    // Left actuator
+    ctx.fillStyle = '#ffcc00';
+    ctx.fillRect(width - 105, distY + 60, 10, 15);
+    ctx.beginPath();
+    ctx.arc(width - 100, distY + 68, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.fillStyle = '#888';
+    ctx.font = '6px Arial';
+    ctx.fillText('FLAP', width - 100, distY + 85);
+    
+    // Status text at bottom
+    const statusY = height - 20;
+    
+    ctx.fillStyle = '#888';
+    ctx.font = '8px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('SYSTEM A:', 10, statusY);
+    
+    ctx.fillStyle = hydA > 2500 ? '#00ff00' : '#ff8800';
+    ctx.fillText(hydA > 2500 ? 'NORMAL' : 'LOW', 65, statusY);
+    
+    ctx.fillStyle = '#888';
+    ctx.textAlign = 'right';
+    ctx.fillText('SYSTEM B:', width - 65, statusY);
+    
+    ctx.fillStyle = hydB > 2500 ? '#ffcc00' : '#ff8800';
+    ctx.fillText(hydB > 2500 ? 'NORMAL' : 'LOW', width - 10, statusY);
 }
 
 function drawSystemsPage(ctx, width, height, apData) {
@@ -3228,6 +3483,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
