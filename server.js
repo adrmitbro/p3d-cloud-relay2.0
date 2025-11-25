@@ -3247,7 +3247,7 @@ function drawElectricalPage(ctx, width, height, apData) {
     ctx.fillStyle = '#888';
     ctx.font = '7px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('MAIN BUS', centerX, busY - 25);
+    ctx.fillText('MAIN BUS', centerX, busY - 23);
     
     ctx.fillStyle = '#00ff00';
     ctx.font = 'bold 10px Arial';
@@ -4054,6 +4054,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
