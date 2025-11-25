@@ -3459,7 +3459,7 @@ function drawBleedPressPage(ctx, width, height, apData) {
     ctx.fillStyle = '#167fac';
     ctx.font = 'bold 10px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('ANTI-ICE', centerX - 3, antiIceY);
+    ctx.fillText('ANTI ICE', centerX - 4, antiIceY);
     
     // Wing anti-ice
     ctx.strokeStyle = anyBleed ? '#00ff00' : '#666';
@@ -4054,6 +4054,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
