@@ -2477,7 +2477,7 @@ function drawEICAS() {
     
     switch(eicasPage) {
         case 0: drawEnginePage(ctx, width, height, apData); break;
-        case 1: drawFuelPage(ctx, width, height, apData); break;
+        case 1: Page(ctx, width, height, apData); break;
         case 2: drawHydraulicsPage(ctx, width, height, apData); break;
         case 3: drawElectricalPage(ctx, width, height, apData); break;
         case 4: drawBleedPressPage(ctx, width, height, apData); break;
@@ -2768,7 +2768,7 @@ function drawFuelPage(ctx, width, height, apData) {
     ctx.fillStyle = '#888';
     ctx.font = '8px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('LEFT', leftX, height - 65);
+    ctx.fillText('LEFT', leftX, height - 60);
     
     // Tank circles - RIGHT
     const rightX = width - 50;
@@ -2789,7 +2789,7 @@ function drawFuelPage(ctx, width, height, apData) {
     ctx.fillStyle = '#888';
     ctx.font = '8px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('RIGHT', rightX, height - 65);
+    ctx.fillText('RIGHT', rightX, height - 60);
     
     // CENTER tank circle
     const centerTankY = topY + 75;
@@ -2810,7 +2810,7 @@ function drawFuelPage(ctx, width, height, apData) {
     ctx.fillStyle = '#888';
     ctx.font = '8px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('CTR', centerX, height - 65);
+    ctx.fillText('CTR', centerX, height - 60);
     
     // Horizontal line connecting all tanks at bottom
     const bottomLineY = height - 80;
@@ -3121,23 +3121,23 @@ function drawHydraulicsPage(ctx, width, height, apData) {
     ctx.font = '6px Arial';
     ctx.fillText('FLP', width - 100, distY + 82);
     
-    // Status text at bottom
-    const statusY = height - 20;
+// Status text at bottom - moved up
+    const statusY = height - 30;
     
     ctx.fillStyle = '#888';
     ctx.font = '8px Arial';
     ctx.textAlign = 'left';
-    ctx.fillText('SYSTEM A:', 10, statusY);
+    ctx.fillText('SYS A:', 10, statusY);
     
     ctx.fillStyle = hydA > 2500 ? '#00ff00' : '#ff8800';
-    ctx.fillText(hydA > 2500 ? 'NORMAL' : 'LOW', 65, statusY);
+    ctx.fillText(hydA > 2500 ? 'NORM' : 'LOW', 48, statusY);
     
     ctx.fillStyle = '#888';
     ctx.textAlign = 'right';
-    ctx.fillText('SYSTEM B:', width - 65, statusY);
+    ctx.fillText('SYS B:', width - 48, statusY);
     
     ctx.fillStyle = hydB > 2500 ? '#ffcc00' : '#ff8800';
-    ctx.fillText(hydB > 2500 ? 'NORMAL' : 'LOW', width - 10, statusY);
+    ctx.fillText(hydB > 2500 ? 'NORM' : 'LOW', width - 10, statusY);
 }
 
 function drawElectricalPage(ctx, width, height, apData) {
@@ -3258,7 +3258,7 @@ function drawElectricalPage(ctx, width, height, apData) {
     // Lines down to loads
     const loadY = busY + 30;
     
-    // AVIONICS BUS
+// AVIONICS BUS - moved values inside box better
     ctx.strokeStyle = '#00ff00';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -3266,18 +3266,18 @@ function drawElectricalPage(ctx, width, height, apData) {
     ctx.lineTo(centerX - 50, loadY);
     ctx.stroke();
     
-    ctx.strokeRect(centerX - 70, loadY, 40, 20);
+    ctx.strokeRect(centerX - 70, loadY, 40, 22);
     
     ctx.fillStyle = '#888';
-    ctx.font = '7px Arial';
+    ctx.font = '6px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('AVIONICS', centerX - 50, loadY - 3);
+    ctx.fillText('AVIONICS', centerX - 50, loadY + 5);
     
     ctx.fillStyle = '#00ff00';
-    ctx.font = 'bold 9px Arial';
-    ctx.fillText(Math.round(avionicsBusVolts) + 'V', centerX - 50, loadY + 13);
+    ctx.font = 'bold 10px Arial';
+    ctx.fillText(Math.round(avionicsBusVolts) + 'V', centerX - 50, loadY + 17);
     
-    // BATTERY
+    // BATTERY - moved values inside box better
     const battX = centerX + 50;
     
     ctx.strokeStyle = '#00ff00';
@@ -3287,19 +3287,19 @@ function drawElectricalPage(ctx, width, height, apData) {
     ctx.lineTo(battX, loadY);
     ctx.stroke();
     
-    ctx.strokeRect(battX - 20, loadY, 40, 20);
+    ctx.strokeRect(battX - 20, loadY, 40, 22);
     
     ctx.fillStyle = '#888';
-    ctx.font = '7px Arial';
+    ctx.font = '6px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('BATTERY', battX, loadY - 3);
+    ctx.fillText('BATTERY', battX, loadY + 5);
     
     ctx.fillStyle = batteryVoltage > 20 ? '#00ff00' : '#ff8800';
-    ctx.font = 'bold 9px Arial';
-    ctx.fillText(batteryVoltage.toFixed(1) + 'V', battX, loadY + 13);
+    ctx.font = 'bold 10px Arial';
+    ctx.fillText(batteryVoltage.toFixed(1) + 'V', battX, loadY + 17);
     
-    // Load indicators at bottom
-    const bottomY = height - 40;
+    // Load indicators at bottom - moved up
+    const bottomY = height - 50;
     
     ctx.fillStyle = '#888';
     ctx.font = '8px Arial';
@@ -4054,6 +4054,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
