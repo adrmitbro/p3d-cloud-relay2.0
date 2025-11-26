@@ -1244,6 +1244,8 @@ function showInstallPrompt() {
     const installBanner = document.createElement('div');
     installBanner.id = 'installBanner';
     installBanner.style.cssText = 'position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(135deg, #167fac 0%, #1a8fd4 100%); padding: 15px; z-index: 10000; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.5);';
+    
+    // Fix: Use template literals with proper escaping
     installBanner.innerHTML = `
         <div style="flex: 1;">
             <div style="font-weight: bold; margin-bottom: 3px;">📱 Install P3D Remote</div>
@@ -1252,6 +1254,7 @@ function showInstallPrompt() {
         <button onclick="installPWA()" style="background: #fff; color: #167fac; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; margin-right: 8px;">Install</button>
         <button onclick="dismissInstall()" style="background: transparent; color: #fff; border: 1px solid #fff; padding: 10px 15px; border-radius: 8px;">Later</button>
     `;
+    
     document.body.appendChild(installBanner);
 }
 
@@ -3442,6 +3445,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
