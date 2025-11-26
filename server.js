@@ -985,11 +985,6 @@ body {
 
 <!-- Autopilot Tab -->
 <div class='tab-content'>
-    <div id='controlLock' class='card'>
-        <div class='info-box'>🔒 Enter password to access controls</div>
-        <input type='password' id='controlPassword' placeholder='Password'>
-        <button class='btn btn-primary' onclick='unlockControls()'>Unlock Controls</button>
-    </div>
     
     <div id='controlPanel' class='hidden'>
         <div class='card'>
@@ -3447,6 +3442,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
