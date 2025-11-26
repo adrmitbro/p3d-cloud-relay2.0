@@ -25,93 +25,6 @@ app.get('/', (req, res) => {
   res.send(getMobileAppHTML());
 });
 
-// PWA Manifest
-app.get('/manifest.json', (req, res) => {
-  res.json({
-    "name": "Prepar3D Remote Control",
-    "short_name": "P3D Remote",
-    "description": "Professional flight simulator remote control",
-    "start_url": "/",
-    "display": "standalone",
-    "background_color": "#000000",
-    "theme_color": "#000000",
-    "orientation": "portrait",
-    "icons": [
-      {
-        "src": "/icon-192.png",
-        "sizes": "192x192",
-        "type": "image/png",
-        "purpose": "any maskable"
-      },
-      {
-        "src": "/icon-512.png",
-        "sizes": "512x512",
-        "type": "image/png",
-        "purpose": "any maskable"
-      }
-    ]
-  });
-});
-
-// Service Worker
-app.get('/sw.js', (req, res) => {
-  res.setHeader('Content-Type', 'application/javascript');
-  res.send(`
-    const CACHE_NAME = 'p3d-remote-v1';
-    const urlsToCache = [
-      '/',
-      '/manifest.json'
-    ];
-
-    self.addEventListener('install', event => {
-      event.waitUntil(
-        caches.open(CACHE_NAME)
-          .then(cache => cache.addAll(urlsToCache))
-      );
-    });
-
-    self.addEventListener('fetch', event => {
-      event.respondWith(
-        caches.match(event.request)
-          .then(response => response || fetch(event.request))
-      );
-    });
-
-    // Push notification support
-    self.addEventListener('push', event => {
-      const data = event.data ? event.data.json() : {};
-      const title = data.title || 'P3D Remote';
-      const options = {
-        body: data.body || 'Notification from P3D Remote',
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
-        vibrate: [200, 100, 200],
-        data: data.data || {}
-      };
-      
-      event.waitUntil(
-        self.registration.showNotification(title, options)
-      );
-    });
-
-    self.addEventListener('notificationclick', event => {
-      event.notification.close();
-      event.waitUntil(
-        clients.openWindow('/')
-      );
-    });
-  `);
-});
-
-// Icon endpoints (placeholder - you should replace with actual icons)
-app.get('/icon-192.png', (req, res) => {
-  res.redirect('https://via.placeholder.com/192x192/167fac/ffffff?text=P3D');
-});
-
-app.get('/icon-512.png', (req, res) => {
-  res.redirect('https://via.placeholder.com/512x512/167fac/ffffff?text=P3D');
-});
-
 wss.on('connection', (ws, req) => {
   console.log('New connection');
   
@@ -119,143 +32,74 @@ wss.on('connection', (ws, req) => {
     try {
       const data = JSON.parse(message);
       
-if (data.type === 'register_pc') {
-    const uniqueId = data.uniqueId;
-    const password = data.password;
-    const guestPassword = data.guestPassword;
-    
-    ws.uniqueId = uniqueId;
-    ws.clientType = 'pc';
-    
-    if (!sessions.has(uniqueId)) {
-        sessions.set(uniqueId, {
+      if (data.type === 'register_pc') {
+        // PC registering with unique ID
+        const uniqueId = data.uniqueId;
+        const password = data.password;
+        const guestPassword = data.guestPassword;
+        
+        ws.uniqueId = uniqueId;
+        ws.clientType = 'pc';
+        
+        if (!sessions.has(uniqueId)) {
+          sessions.set(uniqueId, {
             pcClient: ws,
             mobileClients: new Set(),
             password: password,
-            guestPassword: guestPassword,
-            isGuestPasswordEnabled: guestPassword !== "" // Track if guest password is enabled
-        });
-    } else {
+            guestPassword: guestPassword
+          });
+        } else {
+          const session = sessions.get(uniqueId);
+          session.pcClient = ws;
+          session.password = password;
+          session.guestPassword = guestPassword;
+        }
+        
+        ws.send(JSON.stringify({ type: 'registered', uniqueId }));
+        console.log(`PC registered: ${uniqueId}`);
+      }
+      
+      else if (data.type === 'connect_mobile') {
+        // Mobile connecting with unique ID
+        const uniqueId = data.uniqueId;
+        
+        if (!sessions.has(uniqueId)) {
+          ws.send(JSON.stringify({ type: 'error', message: 'Invalid ID' }));
+          return;
+        }
+        
         const session = sessions.get(uniqueId);
-        session.pcClient = ws;
-        session.password = password;
-        session.guestPassword = guestPassword;
-        session.isGuestPasswordEnabled = guestPassword !== ""; // Update this flag
-    }
-    
-    ws.send(JSON.stringify({ type: 'registered', uniqueId }));
-    console.log(`PC registered: ${uniqueId}`);
-}
+        ws.uniqueId = uniqueId;
+        ws.clientType = 'mobile';
+        ws.hasControlAccess = false;
+        
+        session.mobileClients.add(ws);
+        
+        ws.send(JSON.stringify({ 
+          type: 'connected',
+          pcOnline: !!session.pcClient
+        }));
+        
+        console.log(`Mobile connected to: ${uniqueId}`);
+      }
       
-// In the connect_mobile case, update to check for password in the initial connection:
-
-else if (data.type === 'connect_mobile') {
-    // Mobile connecting with unique ID
-    const uniqueId = data.uniqueId;
-    
-    if (!sessions.has(uniqueId)) {
-        ws.send(JSON.stringify({ type: 'error', message: 'Invalid ID' }));
-        return;
-    }
-    
-    const session = sessions.get(uniqueId);
-    ws.uniqueId = uniqueId;
-    ws.clientType = 'mobile';
-    ws.hasControlAccess = false;
-    // NEW: Track how this client authenticated to allow for revoking access later
-    ws.authenticatedWithGuestPassword = false;
-    
-    // Generate or use provided device ID
-    const deviceId = data.deviceId || generateDeviceId();
-    ws.deviceId = deviceId;
-    
-    // Check if this device was previously authenticated
-    let autoAuthenticated = false;
-    if (session.authenticatedDevices.has(deviceId)) {
-        const deviceInfo = session.authenticatedDevices.get(deviceId);
-        ws.hasControlAccess = true;
-        ws.deviceName = deviceInfo.deviceName;
-        // RESTORE: How this device was authenticated before
-        ws.authenticatedWithGuestPassword = deviceInfo.authenticatedWithGuestPassword || false;
+      else if (data.type === 'request_control') {
+        // Mobile requesting control access
+        const password = data.password;
+        const session = sessions.get(ws.uniqueId);
         
-        // Update last seen timestamp
-        deviceInfo.timestamp = Date.now();
-        autoAuthenticated = true;
-    }
-    // Check if password was provided in the initial connection
-    else if (data.password) {
-        let authenticated = false;
-        let usedGuestPassword = false; // LOCAL: Track if guest password is used for this attempt
-        
-        // Check main password
-        if (data.password === session.password) {
-            authenticated = true;
-        }
-        // IMPORTANT: Only check guest password if it's enabled on the server
-        else if (session.isGuestPasswordEnabled && data.password === session.guestPassword) {
-            authenticated = true;
-            usedGuestPassword = true;
+        if (!session) {
+          ws.send(JSON.stringify({ type: 'auth_failed' }));
+          return;
         }
         
-        if (authenticated) {
-            ws.hasControlAccess = true;
-            // STORE: How this client authenticated
-            ws.authenticatedWithGuestPassword = usedGuestPassword;
-            ws.deviceName = data.deviceName || 'Unknown Device';
-            
-            // Store this device as authenticated, including the method
-            session.authenticatedDevices.set(deviceId, {
-                timestamp: Date.now(),
-                deviceName: ws.deviceName,
-                authenticatedWithGuestPassword: usedGuestPassword
-            });
-            autoAuthenticated = true;
+        if (password === session.password || password === session.guestPassword) {
+          ws.hasControlAccess = true;
+          ws.send(JSON.stringify({ type: 'control_granted' }));
+        } else {
+          ws.send(JSON.stringify({ type: 'auth_failed' }));
         }
-    }
-    
-    session.mobileClients.add(ws);
-    
-    ws.send(JSON.stringify({ 
-        type: 'connected',
-        pcOnline: !!session.pcClient,
-        hasControlAccess: ws.hasControlAccess,
-        deviceId: deviceId,
-        deviceName: ws.deviceName,
-        autoAuthenticated: autoAuthenticated,
-        // NEW: Inform the mobile client whether the guest password feature is enabled
-        guestPasswordEnabled: session.isGuestPasswordEnabled 
-    }));
-    
-    console.log(`Mobile connected to: ${uniqueId}`);
-}
-      
-else if (data.type === 'request_control') {
-    const password = data.password;
-    const session = sessions.get(ws.uniqueId);
-    
-    if (!session) {
-        ws.send(JSON.stringify({ type: 'auth_failed' }));
-        return;
-    }
-    
-    let authenticated = false;
-    
-    // Check main password
-    if (password === session.password) {
-        authenticated = true;
-    }
-    // Only check guest password if it's enabled
-    else if (session.isGuestPasswordEnabled && password === session.guestPassword) {
-        authenticated = true;
-    }
-    
-    if (authenticated) {
-        ws.hasControlAccess = true;
-        ws.send(JSON.stringify({ type: 'control_granted' }));
-    } else {
-        ws.send(JSON.stringify({ type: 'auth_failed' }));
-    }
-}
+      }
       
       else {
         // Route all other messages
@@ -334,37 +178,24 @@ function getMobileAppHTML() {
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="P3D Remote">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#000000">
-    <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icon-192.png">
-    <title>P3D Remote</title>
+<title>P3D Remote</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link href="https://fonts.cdnfonts.com/css/good-times-2" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-body { 
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-    background: #000000;
-    color: white;
-    overflow-x: hidden;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    touch-action: manipulation;
-    overscroll-behavior: none;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
-/* PWA Safe Area Support */
-body {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-}
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #000000;
+            color: white;
+            overflow-x: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            border-bottom: 2px solid #167fac;
+        }
 .header h1 { 
             font-size: 20px;
             display: flex;
@@ -1020,6 +851,11 @@ body {
 
 <!-- Autopilot Tab -->
 <div class='tab-content'>
+    <div id='controlLock' class='card'>
+        <div class='info-box'>🔒 Enter password to access controls</div>
+        <input type='password' id='controlPassword' placeholder='Password'>
+        <button class='btn btn-primary' onclick='unlockControls()'>Unlock Controls</button>
+    </div>
     
     <div id='controlPanel' class='hidden'>
         <div class='card'>
@@ -1265,211 +1101,6 @@ let eicasCtx = null;
 let eicasPage = 0;
 let numEngines = 2;
 
-// PWA Installation
-let deferredPrompt;
-let notificationPermission = false;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    showInstallPrompt();
-});
-
-function showInstallPrompt() {
-    const installBanner = document.createElement('div');
-    installBanner.id = 'installBanner';
-    installBanner.style.cssText = 'position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(135deg, #167fac 0%, #1a8fd4 100%); padding: 15px; z-index: 10000; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.5);';
-    
-    // Fix: Use template literals with proper escaping
-    installBanner.innerHTML = `
-        <div style="flex: 1;">
-            <div style="font-weight: bold; margin-bottom: 3px;">📱 Install P3D Remote</div>
-            <div style="font-size: 12px; opacity: 0.9;">Add to home screen for easy access</div>
-        </div>
-        <button onclick="installPWA()" style="background: #fff; color: #167fac; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; margin-right: 8px;">Install</button>
-        <button onclick="dismissInstall()" style="background: transparent; color: #fff; border: 1px solid #fff; padding: 10px 15px; border-radius: 8px;">Later</button>
-    `;
-    
-    document.body.appendChild(installBanner);
-}
-
-window.installPWA = async function() {
-    if (!deferredPrompt) return;
-    
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-        console.log('PWA installed');
-        // Request notification permission after install
-        setTimeout(requestNotificationPermission, 1000);
-    }
-    
-    deferredPrompt = null;
-    const banner = document.getElementById('installBanner');
-    if (banner) banner.remove();
-};
-
-window.dismissInstall = function() {
-    const banner = document.getElementById('installBanner');
-    if (banner) banner.remove();
-};
-
-// Register Service Worker
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-        .then(reg => {
-            console.log('Service Worker registered');
-            // Check notification permission
-            if (Notification.permission === 'granted') {
-                notificationPermission = true;
-            }
-        })
-        .catch(err => console.log('Service Worker registration failed:', err));
-}
-
-// Request Notification Permission
-async function requestNotificationPermission() {
-    if (!('Notification' in window)) {
-        console.log('Notifications not supported');
-        return;
-    }
-    
-    if (Notification.permission === 'granted') {
-        notificationPermission = true;
-        return;
-    }
-    
-    if (Notification.permission !== 'denied') {
-        const permission = await Notification.requestPermission();
-        notificationPermission = permission === 'granted';
-        
-        if (notificationPermission) {
-            showNotification('🎉 Notifications Enabled!', 'You\'ll receive flight alerts');
-        }
-    }
-}
-
-// Show Notification
-function showNotification(title, body, options = {}) {
-    if (!notificationPermission) return;
-    
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        // Use service worker for background notifications
-        navigator.serviceWorker.ready.then(registration => {
-            registration.showNotification(title, {
-                body: body,
-                icon: '/icon-192.png',
-                badge: '/icon-192.png',
-                vibrate: [200, 100, 200],
-                tag: 'p3d-remote',
-                requireInteraction: false,
-                ...options
-            });
-        });
-    } else {
-        // Fallback to regular notification
-        new Notification(title, {
-            body: body,
-            icon: '/icon-192.png',
-            vibrate: [200, 100, 200],
-            ...options
-        });
-    }
-}
-
-// Add notification button to UI after connected
-function addNotificationButton() {
-    const controlPanel = document.getElementById('controlPanel');
-    if (!controlPanel) return;
-    
-    const notifCard = document.createElement('div');
-    notifCard.className = 'card';
-    notifCard.innerHTML = `
-        <h3>🔔 Notifications</h3>
-        <div class='control-row'>
-            <span class='control-label'>Flight Alerts</span>
-            <button class='toggle-btn off' id='notifToggle' onclick='toggleNotifications()'>OFF</button>
-        </div>
-        <div style='font-size: 12px; color: #888; margin-top: 8px;'>
-            Get alerts for autopilot changes, altitude warnings, and more
-        </div>
-    `;
-    
-    // Insert at the top of control panel
-    controlPanel.insertBefore(notifCard, controlPanel.firstChild);
-    
-    // Update button state
-    updateNotificationButton();
-}
-
-function updateNotificationButton() {
-    const btn = document.getElementById('notifToggle');
-    if (btn) {
-        btn.className = 'toggle-btn ' + (notificationPermission ? 'on' : 'off');
-        btn.textContent = notificationPermission ? 'ON' : 'OFF';
-    }
-}
-
-window.toggleNotifications = function() {
-    if (!notificationPermission) {
-        requestNotificationPermission();
-    } else {
-        // Can't revoke programmatically, show instruction
-        alert('To disable notifications, go to your browser/device settings');
-    }
-};
-
-// Monitor flight events for notifications
-let lastAltitude = 0;
-let lastApState = {};
-
-function checkFlightAlerts(data) {
-    if (!notificationPermission) return;
-    
-    // Altitude milestone alerts (every 10,000 ft)
-    const currentMilestone = Math.floor(data.altitude / 10000);
-    const lastMilestone = Math.floor(lastAltitude / 10000);
-    
-    if (currentMilestone !== lastMilestone && data.altitude > 1000) {
-        showNotification(
-            `✈️ Altitude: ${Math.round(data.altitude).toLocaleString()} ft`,
-            `Climbing through FL${Math.floor(data.altitude / 100)}`
-        );
-    }
-    
-    lastAltitude = data.altitude;
-}
-
-function checkAutopilotAlerts(data) {
-    if (!notificationPermission) return;
-    
-    // AP Master engaged/disengaged
-    if (data.master !== lastApState.master) {
-        if (data.master) {
-            showNotification('✅ Autopilot Engaged', 'Autopilot is now active');
-        } else {
-            showNotification('⚠️ Autopilot Disconnected', 'Manual control required', {
-                requireInteraction: true
-            });
-        }
-    }
-    
-    // Altitude hold captured
-    if (data.altitude && !lastApState.altitude) {
-        showNotification('🎯 Altitude Hold Active', `Target: ${Math.round(data.apAltitude).toLocaleString()} ft`);
-    }
-    
-    // Approach mode activated
-    if (data.approach && !lastApState.approach) {
-        showNotification('🛬 Approach Mode Active', 'Intercepting localizer');
-    }
-    
-    lastApState = {...data};
-}
-
-
-
 function switchTab(index) {
             document.querySelectorAll('.tab').forEach((tab, i) => {
                 tab.classList.toggle('active', i === index);
@@ -1487,173 +1118,35 @@ function switchTab(index) {
             }
         }
 
-// In the connectToSim() function, update to save and use the password:
+        function connectToSim() {
+            uniqueId = document.getElementById('uniqueId').value.trim();
+            if (!uniqueId) {
+                alert('Please enter your Unique ID');
+                return;
+            }
+            
+            localStorage.setItem('p3d_unique_id', uniqueId);
+            
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(protocol + '//' + window.location.host);
+            
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ 
+                    type: 'connect_mobile',
+                    uniqueId: uniqueId
+                }));
+            };
 
-function connectToSim() {
-    uniqueId = document.getElementById('uniqueId').value.trim();
-    deviceName = document.getElementById('deviceName').value.trim() || 'Unknown Device';
-    
-    if (!uniqueId) {
-        alert('Please enter your Unique ID');
-        return;
-    }
-    
-    // Generate or retrieve device ID from localStorage
-    deviceId = localStorage.getItem('p3d_device_id') || generateDeviceId();
-    localStorage.setItem('p3d_device_id', deviceId);
-    
-    // Save unique ID and device name
-    localStorage.setItem('p3d_unique_id', uniqueId);
-    localStorage.setItem('p3d_device_name', deviceName);
-    
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(protocol + '//' + window.location.host);
-    
-    ws.onopen = () => {
-        // Get saved password if available
-        const savedPassword = localStorage.getItem('p3d_password');
-        
-        ws.send(JSON.stringify({ 
-            type: 'connect_mobile',
-            uniqueId: uniqueId,
-            deviceId: deviceId,
-            deviceName: deviceName,
-            password: savedPassword || null // Send saved password if available
-        }));
-    };
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
 
-    ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        handleMessage(data);
-    };
-
-    ws.onclose = () => {
-        updateStatus('offline');
-        setTimeout(connectToSim, 3000);
-    };
-}
-
-// Update the unlockControls() function to save the password:
-
-function unlockControls() {
-    const password = document.getElementById('controlPassword').value;
-    
-    // Save password to localStorage for future use
-    if (password) {
-        localStorage.setItem('p3d_password', password);
-    }
-    
-    ws.send(JSON.stringify({ type: 'request_control', password }));
-}
-
-// Update the handleMessage() function to handle auto-authentication:
-
-function handleMessage(data) {
-    switch(data.type) {
-case 'connected':
-    document.getElementById('loginScreen').classList.add('hidden');
-    document.getElementById('mainApp').classList.remove('hidden');
-    updateStatus(data.pcOnline ? 'connected' : 'offline');
-    
-    // Add notification button after connection
-    setTimeout(() => {
-        addNotificationButton();
-        // Auto-request notification permission
-        if (Notification.permission === 'default') {
-            setTimeout(requestNotificationPermission, 2000);
+            ws.onclose = () => {
+                updateStatus('offline');
+                setTimeout(connectToSim, 3000);
+            };
         }
-    }, 500);
-    
-    // Update device information
-    if (data.deviceId) {
-        deviceId = data.deviceId;
-    }
-    
-    if (data.deviceName) {
-        deviceName = data.deviceName;
-    }
-    
-    // If we have control access, hide control lock
-    if (data.hasControlAccess) {
-        hasControl = true;
-        document.getElementById('controlLock').classList.add('hidden');
-        document.getElementById('controlPanel').classList.remove('hidden');
-    }
-    break;
-
-// UPDATE the updateFlightData function - add notification checks:
-
-        // ... other cases remain the same ...
-
-        case 'password_changed':
-            // Clear saved password when server password changes
-            localStorage.removeItem('p3d_password');
-            alert(data.message);
-            // Force re-authentication
-            hasControl = false;
-            document.getElementById('controlLock').classList.remove('hidden');
-            document.getElementById('controlPanel').classList.add('hidden');
-            document.getElementById('controlPassword').value = '';
-            break;
-        
-        case 'access_revoked':
-            // Clear saved password when access is revoked
-            localStorage.removeItem('p3d_password');
-            alert(data.message);
-            // Force re-authentication
-            hasControl = false;
-            document.getElementById('controlLock').classList.remove('hidden');
-            document.getElementById('controlPanel').classList.add('hidden');
-            document.getElementById('controlPassword').value = '';
-            break;
-    }
-}
-
-// Update window.onload to load saved password:
-
-window.onload = () => {
-    const savedId = localStorage.getItem('p3d_unique_id');
-    if (savedId) {
-        document.getElementById('uniqueId').value = savedId;
-    }
-    
-    const savedDeviceName = localStorage.getItem('p3d_device_name');
-    if (savedDeviceName) {
-        document.getElementById('deviceName').value = savedDeviceName;
-    }
-    
-    // Load device ID from localStorage
-    const savedDeviceId = localStorage.getItem('p3d_device_id');
-    if (savedDeviceId) {
-        deviceId = savedDeviceId;
-    }
-    
-    // Check if we have a saved password and pre-fill the password field
-    const savedPassword = localStorage.getItem('p3d_password');
-    if (savedPassword) {
-        document.getElementById('controlPassword').value = savedPassword;
-    }
-};
-
-// Add a "Clear Saved Password" button to the control lock section:
-
-// In the HTML, update the controlLock div:
-<div id='controlLock' class='card'>
-    <div class='info-box'>🔒 Enter password to access controls</div>
-    <input type='password' id='controlPassword' placeholder='Password'>
-    <button class='btn btn-primary' onclick='unlockControls()'>Unlock Controls</button>
-    <button class='btn btn-secondary' onclick='clearSavedPassword()' style='margin-top: 5px;'>Clear Saved Password</button>
-</div>
-
-// Add the clearSavedPassword function:
-
-function clearSavedPassword() {
-    if (confirm('Are you sure you want to clear the saved password? You will need to enter it again next time.')) {
-        localStorage.removeItem('p3d_password');
-        document.getElementById('controlPassword').value = '';
-        alert('Saved password cleared');
-    }
-}
 
         function handleMessage(data) {
             switch(data.type) {
@@ -1723,106 +1216,100 @@ function clearSavedPassword() {
             badge.textContent = status === 'connected' ? 'Connected' : 'Offline';
         }
 
-function updateFlightData(data) {
-    document.getElementById('speed').textContent = Math.round(data.groundSpeed);
-    document.getElementById('altitude').textContent = Math.round(data.altitude).toLocaleString();
-    document.getElementById('heading').textContent = Math.round(data.heading) + '°';
-    document.getElementById('vs').textContent = Math.round(data.verticalSpeed);
-    
-    document.getElementById('nextWaypoint').textContent = data.nextWaypoint || 'No Active Waypoint';
-    document.getElementById('wpDistance').textContent = 'Distance: ' + (data.distanceToWaypoint ? data.distanceToWaypoint.toFixed(1) + ' nm' : '--');
-    document.getElementById('wpBearing').textContent = 'Bearing: ' + (data.bearingToWaypoint ? Math.round(data.bearingToWaypoint) + '°' : '--°');
-    
-    if (data.waypointEte && data.waypointEte > 0) {
-        const wpHours = Math.floor(data.waypointEte / 3600);
-        const wpMinutes = Math.floor((data.waypointEte % 3600) / 60);
-        document.getElementById('wpEte').textContent = 'ETE: ' + (wpHours > 0 ? wpHours + 'h ' + wpMinutes + 'm' : wpMinutes + 'min');
-    } else {
-        document.getElementById('wpEte').textContent = 'ETE: --';
-    }
-    
-    if (data.totalDistance && data.totalDistance > 0) {
-        document.getElementById('distance').textContent = data.totalDistance.toFixed(1);
-    } else {
-        document.getElementById('distance').textContent = '--';
-    }
-    
-    if (data.ete && data.ete > 0) {
-        const hours = Math.floor(data.ete / 3600);
-        const minutes = Math.floor((data.ete % 3600) / 60);
-        document.getElementById('ete').textContent = 'Total ETE: ' + (hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'min');
-    } else {
-        document.getElementById('ete').textContent = 'Total ETE: --';
-    }
+        function updateFlightData(data) {
+            document.getElementById('speed').textContent = Math.round(data.groundSpeed);
+            document.getElementById('altitude').textContent = Math.round(data.altitude).toLocaleString();
+            document.getElementById('heading').textContent = Math.round(data.heading) + '°';
+            document.getElementById('vs').textContent = Math.round(data.verticalSpeed);
+            
+            document.getElementById('nextWaypoint').textContent = data.nextWaypoint || 'No Active Waypoint';
+            document.getElementById('wpDistance').textContent = 'Distance: ' + (data.distanceToWaypoint ? data.distanceToWaypoint.toFixed(1) + ' nm' : '--');
+            document.getElementById('wpBearing').textContent = 'Bearing: ' + (data.bearingToWaypoint ? Math.round(data.bearingToWaypoint) + '°' : '--°');
+            
+            if (data.waypointEte && data.waypointEte > 0) {
+                const wpHours = Math.floor(data.waypointEte / 3600);
+                const wpMinutes = Math.floor((data.waypointEte % 3600) / 60);
+                document.getElementById('wpEte').textContent = 'ETE: ' + (wpHours > 0 ? wpHours + 'h ' + wpMinutes + 'm' : wpMinutes + 'min');
+            } else {
+                document.getElementById('wpEte').textContent = 'ETE: --';
+            }
+            
+            if (data.totalDistance && data.totalDistance > 0) {
+                document.getElementById('distance').textContent = data.totalDistance.toFixed(1);
+            } else {
+                document.getElementById('distance').textContent = '--';
+            }
+            
+            if (data.ete && data.ete > 0) {
+                const hours = Math.floor(data.ete / 3600);
+                const minutes = Math.floor((data.ete % 3600) / 60);
+                document.getElementById('ete').textContent = 'Total ETE: ' + (hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'min');
+            } else {
+                document.getElementById('ete').textContent = 'Total ETE: --';
+            }
 
-    const pauseBadge = document.getElementById('pauseBadge');
-    if (data.isPaused) {
-        pauseBadge.classList.add('visible');
-    } else {
-        pauseBadge.classList.remove('visible');
-    }
+            const pauseBadge = document.getElementById('pauseBadge');
+            if (data.isPaused) {
+                pauseBadge.classList.add('visible');
+            } else {
+                pauseBadge.classList.remove('visible');
+            }
 
-    const btnPause = document.getElementById('btnPause');
-    if (data.isPaused) {
-        btnPause.textContent = '▶️ Resume';
-        btnPause.className = 'btn btn-warning';
-    } else {
-        btnPause.textContent = '⏸️ Pause';
-        btnPause.className = 'btn btn-secondary';
-    }
+            const btnPause = document.getElementById('btnPause');
+            if (data.isPaused) {
+                btnPause.textContent = '▶️ Resume';
+                btnPause.className = 'btn btn-warning';
+            } else {
+                btnPause.textContent = '⏸️ Pause';
+                btnPause.className = 'btn btn-secondary';
+            }
 
-    if (map && data.latitude && data.longitude) {
-        updateMap(data.latitude, data.longitude, data.heading);
-    }
-    
-    // Check for flight alerts (ADD THIS)
-    checkFlightAlerts(data);
-}
+            if (map && data.latitude && data.longitude) {
+                updateMap(data.latitude, data.longitude, data.heading);
+            }
+        }
 
 function updateAutopilotUI(data) {
     // Store autopilot state globally for PFD access
     window.lastAutopilotState = data;
     
     updateToggle('apMaster', data.master);
-    updateToggle('apAlt', data.altitude);
-    updateToggle('apHdg', data.heading);
-    updateToggle('apVS', data.vs);
-    updateToggle('apSpeed', data.speed);
-    updateToggle('apApp', data.approach);
-    updateToggle('apNav', data.nav);
-    updateToggle('autoThrottle', data.throttle);
-    updateToggle('gear', data.gear, data.gear ? 'DOWN' : 'UP');
-    updateToggle('parkingBrake', data.parkingBrake, data.parkingBrake ? 'ON' : 'OFF');
-    
-    document.getElementById('flapsPos').textContent = Math.round(data.flaps) + '%';
-    
-    const spoilersBtn = document.getElementById('spoilers');
-    const spoilersActive = data.spoilers > 10;
-    spoilersBtn.className = 'toggle-btn ' + (spoilersActive ? 'on' : 'off');
-    spoilersBtn.textContent = spoilersActive ? 'EXTENDED' : 'RETRACTED';
-    
-    const navBtn = document.getElementById('navMode');
-    navBtn.textContent = data.navMode ? 'GPS' : 'NAV';
-    navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
-    
-    updateToggle('lightStrobe', data.lightStrobe);
-    updateToggle('lightPanel', data.lightPanel);
-    updateToggle('lightLanding', data.lightLanding);
-    updateToggle('lightTaxi', data.lightTaxi);
-    updateToggle('lightBeacon', data.lightBeacon);
-    updateToggle('lightNav', data.lightNav);
-    updateToggle('lightLogo', data.lightLogo);
-    updateToggle('lightWing', data.lightWing);
-    updateToggle('lightRecognition', data.lightRecognition);
-    updateToggle('noSmokingSwitch', data.noSmokingSwitch);
-    updateToggle('seatbeltsSwitch', data.seatbeltsSwitch);
-    
-    updateFlightSummary(data);
-    updateAutopilotStatus(data);
-    
-    // Check for autopilot alerts (ADD THIS)
-    checkAutopilotAlerts(data);
-}
+            updateToggle('apAlt', data.altitude);
+            updateToggle('apHdg', data.heading);
+            updateToggle('apVS', data.vs);
+            updateToggle('apSpeed', data.speed);
+            updateToggle('apApp', data.approach);
+            updateToggle('apNav', data.nav);
+            updateToggle('autoThrottle', data.throttle);
+            updateToggle('gear', data.gear, data.gear ? 'DOWN' : 'UP');
+            updateToggle('parkingBrake', data.parkingBrake, data.parkingBrake ? 'ON' : 'OFF');
+            
+            document.getElementById('flapsPos').textContent = Math.round(data.flaps) + '%';
+            
+            const spoilersBtn = document.getElementById('spoilers');
+            const spoilersActive = data.spoilers > 10;
+            spoilersBtn.className = 'toggle-btn ' + (spoilersActive ? 'on' : 'off');
+            spoilersBtn.textContent = spoilersActive ? 'EXTENDED' : 'RETRACTED';
+            
+            const navBtn = document.getElementById('navMode');
+            navBtn.textContent = data.navMode ? 'GPS' : 'NAV';
+            navBtn.className = 'toggle-btn ' + (data.navMode ? 'on' : 'off');
+            
+            updateToggle('lightStrobe', data.lightStrobe);
+            updateToggle('lightPanel', data.lightPanel);
+            updateToggle('lightLanding', data.lightLanding);
+            updateToggle('lightTaxi', data.lightTaxi);
+            updateToggle('lightBeacon', data.lightBeacon);
+            updateToggle('lightNav', data.lightNav);
+            updateToggle('lightLogo', data.lightLogo);
+            updateToggle('lightWing', data.lightWing);
+            updateToggle('lightRecognition', data.lightRecognition);
+            updateToggle('noSmokingSwitch', data.noSmokingSwitch);
+            updateToggle('seatbeltsSwitch', data.seatbeltsSwitch);
+            
+            updateFlightSummary(data);
+            updateAutopilotStatus(data);
+        }
 
         function updateFlightSummary(data) {
             const speedValue = data.apSpeed !== undefined ? Math.round(data.apSpeed) : '--';
@@ -3480,11 +2967,6 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
-
-
-
-
-
 
 
 
