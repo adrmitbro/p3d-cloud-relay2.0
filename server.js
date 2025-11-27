@@ -195,11 +195,6 @@ function getMobileAppHTML() {
     <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
     <meta name="apple-mobile-web-app-capable" content="yes">
 <title>P3D Remote</title>
-<link rel="manifest" href="/manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="P3D Remote">
-<link rel="apple-touch-icon" href="/icon-192.png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link href="https://fonts.cdnfonts.com/css/good-times-2" rel="stylesheet">
@@ -1250,13 +1245,6 @@ case 'auth_failed':
             document.getElementById('nextWaypoint').textContent = data.nextWaypoint || 'No Active Waypoint';
             document.getElementById('wpDistance').textContent = 'Distance: ' + (data.distanceToWaypoint ? data.distanceToWaypoint.toFixed(1) + ' nm' : '--');
             document.getElementById('wpBearing').textContent = 'Bearing: ' + (data.bearingToWaypoint ? Math.round(data.bearingToWaypoint) + '°' : '--°');
-
-            // In the updateFlightData function, add:
-if ('setAppBadge' in navigator) {
-    const distance = Math.round(data.totalDistance || 0);
-    navigator.setAppBadge(distance);
-}
-
             
             if (data.waypointEte && data.waypointEte > 0) {
                 const wpHours = Math.floor(data.waypointEte / 3600);
@@ -3002,17 +2990,6 @@ window.onload = () => {
     }
 };
     </script>
-
-        <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
-                    .then(reg => console.log('Service Worker registered'))
-                    .catch(err => console.log('Service Worker registration failed:', err));
-            });
-        }
-    </script>
-    
 </body>
 </html>`;
 }
@@ -3020,7 +2997,6 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
-
 
 
 
