@@ -1382,11 +1382,21 @@ function updateEngineControls(data) {
 }
 
 function toggleEngine(engineNumber) {
+    console.log('toggleEngine called, engineNumber:', engineNumber);
+    console.log('hasControl:', hasControl);
+    console.log('ws:', ws);
+    console.log('ws.readyState:', ws ? ws.readyState : 'no ws');
+    
     if (!hasControl) {
         alert('Please unlock controls first');
         return;
     }
-    ws.send(JSON.stringify({ type: 'toggle_engine', engineNumber: engineNumber }));
+    
+    console.log('Sending toggle_engine message');
+    const message = { type: 'toggle_engine', engineNumber: engineNumber };
+    console.log('Message:', JSON.stringify(message));
+    ws.send(JSON.stringify(message));
+    console.log('Message sent!');
 }
 
         function updateFlightSummary(data) {
@@ -3055,6 +3065,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
