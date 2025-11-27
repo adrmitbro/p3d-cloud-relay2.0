@@ -62,7 +62,7 @@ if (data.type === 'register_pc') {
         console.log(`PC registered: ${uniqueId}`);
       }
       
-      else if (data.type === 'connect_mobile') {
+else if (data.type === 'connect_mobile') {
         // Mobile connecting with unique ID
         const uniqueId = data.uniqueId;
         
@@ -75,6 +75,7 @@ if (data.type === 'register_pc') {
         ws.uniqueId = uniqueId;
         ws.clientType = 'mobile';
         ws.hasControlAccess = false;
+        ws.notificationsEnabled = false; // NEW: Track notification preference
         
         session.mobileClients.add(ws);
         
@@ -84,6 +85,12 @@ if (data.type === 'register_pc') {
         }));
         
         console.log(`Mobile connected to: ${uniqueId}`);
+      }
+      
+else if (data.type === 'enable_notifications') {
+        // Mobile client enabling notifications
+        ws.notificationsEnabled = data.enabled;
+        console.log(`Notifications ${data.enabled ? 'enabled' : 'disabled'} for mobile client`);
       }
       
 else if (data.type === 'request_control') {
@@ -205,6 +212,71 @@ function getMobileAppHTML() {
             background: #000000;
             color: white;
             overflow-x: hidden;
+        }
+        /* Notification permission banner */
+        .notification-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #167fac 0%, #1a8fd4 100%);
+            padding: 15px;
+            display: none;
+            z-index: 10000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        
+        .notification-banner.show {
+            display: block;
+        }
+        
+        .notification-banner-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .notification-banner-text {
+            flex: 1;
+            margin-right: 15px;
+        }
+        
+        .notification-banner-text h3 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+        }
+        
+        .notification-banner-text p {
+            margin: 0;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .notification-banner-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .notification-banner-buttons button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .notification-banner-buttons .btn-allow {
+            background: #fff;
+            color: #167fac;
+        }
+        
+        .notification-banner-buttons .btn-dismiss {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
         }
         .header {
             background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
@@ -731,6 +803,20 @@ function getMobileAppHTML() {
     </style>
 </head>
 <body>
+    <!-- Notification Permission Banner -->
+    <div id='notificationBanner' class='notification-banner'>
+        <div class='notification-banner-content'>
+            <div class='notification-banner-text'>
+                <h3>🔔 Enable Lock Screen Notifications</h3>
+                <p>Get distance updates on your lock screen</p>
+            </div>
+            <div class='notification-banner-buttons'>
+                <button class='btn-allow' onclick='requestNotificationPermission()'>Allow</button>
+                <button class='btn-dismiss' onclick='dismissNotificationBanner()'>Not Now</button>
+            </div>
+        </div>
+    </div>
+
     <div class='header'>
         <h1>Prepar3D Remote</h1>
         <div id='statusBadge' class='status offline'>Offline</div>
@@ -1108,6 +1194,9 @@ function getMobileAppHTML() {
         let userHeading = 0;
         let currentFlightData = {};
         let mapInitialized = false;
+        let notificationsEnabled = false;
+        let lastNotificationTime = 0;
+        let wakeLock = null;
 let pfdCanvas = null;
 let pfdCtx = null;
 let mfdCanvas = null;
@@ -1170,6 +1259,12 @@ case 'connected':
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('mainApp').classList.remove('hidden');
     updateStatus(data.pcOnline ? 'connected' : 'offline');
+    
+    // Show notification banner after connection
+    checkNotificationPermission();
+    
+    // Request wake lock to keep updates running
+    requestWakeLock();
     break;
 
                 case 'save_complete':
@@ -1284,8 +1379,13 @@ case 'auth_failed':
                 btnPause.className = 'btn btn-secondary';
             }
 
-            if (map && data.latitude && data.longitude) {
+if (map && data.latitude && data.longitude) {
                 updateMap(data.latitude, data.longitude, data.heading);
+            }
+            
+            // Update lock screen notification if enabled
+            if (notificationsEnabled && data.totalDistance) {
+                updateLockScreenNotification(data);
             }
         }
 
@@ -2978,6 +3078,109 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
     }
 }
 
+async function checkNotificationPermission() {
+            if (!('Notification' in window)) {
+                console.log('This browser does not support notifications');
+                return;
+            }
+            
+            const permission = Notification.permission;
+            
+            if (permission === 'granted') {
+                enableNotifications();
+            } else if (permission === 'default') {
+                const bannerDismissed = localStorage.getItem('notification_banner_dismissed');
+                if (!bannerDismissed) {
+                    document.getElementById('notificationBanner').classList.add('show');
+                }
+            }
+        }
+
+        async function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                alert('This browser does not support notifications');
+                return;
+            }
+            
+            const permission = await Notification.requestPermission();
+            
+            if (permission === 'granted') {
+                enableNotifications();
+                document.getElementById('notificationBanner').classList.remove('show');
+            } else {
+                alert('Notifications blocked. Enable them in your browser settings.');
+            }
+        }
+
+        function dismissNotificationBanner() {
+            document.getElementById('notificationBanner').classList.remove('show');
+            localStorage.setItem('notification_banner_dismissed', 'true');
+        }
+
+        function enableNotifications() {
+            notificationsEnabled = true;
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'enable_notifications',
+                    enabled: true
+                }));
+            }
+            
+            new Notification('P3D Remote Connected', {
+                body: 'Lock screen notifications enabled',
+                tag: 'p3d-remote',
+                requireInteraction: false
+            });
+        }
+
+        function updateLockScreenNotification(data) {
+            const now = Date.now();
+            if (now - lastNotificationTime < 5000) {
+                return;
+            }
+            lastNotificationTime = now;
+            
+            const distance = data.totalDistance ? data.totalDistance.toFixed(1) : '--';
+            const nextWaypoint = data.nextWaypoint || 'No waypoint';
+            
+            let body = `Distance: ${distance} nm`;
+            if (data.ete && data.ete > 0) {
+                const hours = Math.floor(data.ete / 3600);
+                const minutes = Math.floor((data.ete % 3600) / 60);
+                const eteText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}min`;
+                body += ` • ETE: ${eteText}`;
+            }
+            
+            new Notification(`✈️ ${nextWaypoint}`, {
+                body: body,
+                tag: 'p3d-distance',
+                requireInteraction: false,
+                silent: true
+            });
+        }
+
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake lock acquired');
+                    
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Wake lock released');
+                    });
+                } catch (err) {
+                    console.error('Wake lock error:', err);
+                }
+            }
+        }
+
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible' && wakeLock === null) {
+                await requestWakeLock();
+            }
+        });
+
 window.onload = () => {
     const savedId = localStorage.getItem('p3d_unique_id');
     if (savedId) {
@@ -2997,6 +3200,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
