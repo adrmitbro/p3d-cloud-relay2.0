@@ -234,40 +234,7 @@ function getMobileAppHTML() {
     color: #fff;
     display: none;
 }
-.status.paused.visible { display: inline-block; }
-
-.refresh-btn {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 2px solid #167fac;
-    background: #1a1a1a;
-    color: #167fac;
-    font-size: 18px;
-    cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.refresh-btn:active {
-    background: #167fac;
-    color: #fff;
-    transform: rotate(180deg);
-}
-
-.refresh-btn.spin {
-    animation: spin 0.6s linear;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
+        .status.paused.visible { display: inline-block; }
         
         .login-screen {
             padding: 20px;
@@ -764,12 +731,11 @@ function getMobileAppHTML() {
     </style>
 </head>
 <body>
-<div class='header'>
-    <h1>Prepar3D Remote</h1>
-    <button id='refreshBtn' class='refresh-btn hidden' onclick='reconnectToServer()' title='Reconnect to server'>🔄</button>
-    <div id='statusBadge' class='status offline'>Offline</div>
-    <div id='pauseBadge' class='status paused'>Paused</div>
-</div>
+    <div class='header'>
+        <h1>Prepar3D Remote</h1>
+        <div id='statusBadge' class='status offline'>Offline</div>
+        <div id='pauseBadge' class='status paused'>Paused</div>
+    </div>
 
     <div id='loginScreen' class='login-screen'>
         <div class='login-card'>
@@ -1236,23 +1202,7 @@ function switchTab(index) {
                         alert(data.message);
                     }
                     break;
-case 'settings_updated':
-    // Server settings changed, show refresh button
-    hasControl = false;
-    document.getElementById('controlLock').classList.remove('hidden');
-    document.getElementById('controlPanel').classList.add('hidden');
-    document.getElementById('controlPassword').value = '';
-    // Clear saved password since settings changed
-    localStorage.removeItem('p3d_control_password');
-    
-    // Show refresh button
-    const refreshBtn = document.getElementById('refreshBtn');
-    refreshBtn.classList.remove('hidden');
-    refreshBtn.classList.add('spin');
-    setTimeout(() => refreshBtn.classList.remove('spin'), 600);
-    
-    alert('Server settings updated. Click the refresh button to reconnect.');
-    break;
+                    
                 case 'flight_data':
                     currentFlightData = data.data;
                     updateFlightData(data.data);
@@ -1281,22 +1231,6 @@ case 'settings_updated':
             badge.className = 'status ' + status;
             badge.textContent = status === 'connected' ? 'Connected' : 'Offline';
         }
-
-function reconnectToServer() {
-    const refreshBtn = document.getElementById('refreshBtn');
-    refreshBtn.classList.add('spin');
-    
-    // Close existing connection
-    if (ws) {
-        ws.close();
-    }
-    
-    // Reconnect after brief delay
-    setTimeout(() => {
-        connectToSim();
-        refreshBtn.classList.add('hidden');
-    }, 600);
-}
 
         function updateFlightData(data) {
             document.getElementById('speed').textContent = Math.round(data.groundSpeed);
@@ -3049,8 +2983,6 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
-
-
 
 
 
