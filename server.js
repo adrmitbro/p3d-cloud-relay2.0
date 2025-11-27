@@ -201,7 +201,10 @@ function getMobileAppHTML() {
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
     <meta name="apple-mobile-web-app-capable" content="yes">
-<title>P3D Remote</title>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon.png">
+    <title>P3D Remote</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link href="https://fonts.cdnfonts.com/css/good-times-2" rel="stylesheet">
@@ -213,45 +216,72 @@ function getMobileAppHTML() {
             color: white;
             overflow-x: hidden;
         }
-/* Lock Screen Banner */
-        .lock-screen-banner {
+/* Notification Banner */
+        .notification-banner {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            width: 100%;
             background: linear-gradient(135deg, #167fac 0%, #1a8fd4 100%);
-            padding: 20px;
+            padding: 15px;
             display: none;
-            z-index: 999999 !important;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.8);
-            text-align: center;
-            pointer-events: auto;
+            z-index: 10000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
         
-        .lock-screen-banner.visible {
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
+        .notification-banner.show {
+            display: block;
         }
         
-        .lock-screen-content {
+        .notification-banner-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             max-width: 600px;
             margin: 0 auto;
         }
         
-        .lock-screen-title {
-            font-size: 28px;
-            font-weight: bold;
-            color: #fff;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        .notification-banner-text {
+            flex: 1;
+            margin-right: 15px;
         }
         
-        .lock-screen-info {
-            font-size: 18px;
-            color: rgba(255,255,255,0.95);
-            font-weight: 500;
+        .notification-banner-text h3 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+            color: #fff;
+        }
+        
+        .notification-banner-text p {
+            margin: 0;
+            font-size: 12px;
+            opacity: 0.9;
+            color: #fff;
+        }
+        
+        .notification-banner-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .notification-banner-buttons button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .notification-banner-buttons .btn-allow {
+            background: #fff;
+            color: #167fac;
+        }
+        
+        .notification-banner-buttons .btn-dismiss {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
         }
         .header {
             background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
@@ -792,12 +822,16 @@ function getMobileAppHTML() {
     </style>
 </head>
 <body>
-<!-- Lock Screen Banner -->
-    <div id='lockScreenBanner' class='lock-screen-banner'>
-        <div class='lock-screen-content'>
-            <div class='lock-screen-title'>✈️ <span id='lockWaypoint'>--</span></div>
-            <div class='lock-screen-info'>
-                <span id='lockDistance'>-- nm</span> • <span id='lockETE'>--</span>
+<!-- Notification Permission Banner -->
+    <div id='notificationBanner' class='notification-banner'>
+        <div class='notification-banner-content'>
+            <div class='notification-banner-text'>
+                <h3>🔔 Enable Lock Screen Updates</h3>
+                <p>Get flight progress on your lock screen</p>
+            </div>
+            <div class='notification-banner-buttons'>
+                <button class='btn-allow' onclick='requestNotificationPermission()'>Enable</button>
+                <button class='btn-dismiss' onclick='dismissNotificationBanner()'>Not Now</button>
             </div>
         </div>
     </div>
@@ -1187,6 +1221,8 @@ function getMobileAppHTML() {
         let mapInitialized = false;
         let wakeLock = null;
         let lockScreenUpdateInterval = null;
+        
+let notificationInterval = null;
 let pfdCanvas = null;
 let pfdCtx = null;
 let mfdCanvas = null;
@@ -1250,11 +1286,11 @@ case 'connected':
     document.getElementById('mainApp').classList.remove('hidden');
     updateStatus(data.pcOnline ? 'connected' : 'offline');
     
-    // Request wake lock to keep screen active
+    // Request wake lock
     requestWakeLock();
     
-    // Start lock screen banner updates
-    startLockScreenUpdates();
+    // Check notification support
+    checkNotificationSupport();
     break;
 
                 case 'save_complete':
@@ -3045,19 +3081,6 @@ function drawFlightControlsPage(ctx, width, height, apData) {
     ctx.fillText(spoilers.toFixed(0) + '%', 120, infoY);
 }
 
-function testBanner() {
-    const banner = document.getElementById('lockScreenBanner');
-    banner.classList.add('visible');
-    
-    // Update with test data
-    document.getElementById('lockWaypoint').textContent = 'KJFK';
-    document.getElementById('lockDistance').textContent = '150.5 nm';
-    document.getElementById('lockETE').textContent = '45min';
-    
-    alert('Banner should now be visible! If you see a blue bar at the top, it works. Press OK to hide it.');
-    
-    banner.classList.remove('visible');
-}
 
 function drawSystemBar(ctx, x, y, width, label, value, max, color) {
     ctx.font = '9px Arial';
@@ -3117,79 +3140,97 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
         ctx.stroke();
     }
 }
-
-function startLockScreenUpdates() {
-    // Show banner when screen is locked (visibility change)
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+function checkNotificationSupport() {
+    if (!('Notification' in window)) {
+        console.log('Notifications not supported');
+        return;
+    }
     
-    // Initial check
-    handleVisibilityChange();
-}
-
-function handleVisibilityChange() {
-    const banner = document.getElementById('lockScreenBanner');
+    const permission = Notification.permission;
     
-    if (document.hidden) {
-        // Screen is locked/hidden - show banner
-        banner.classList.add('visible');
-        
-        // Keep updating the banner every 5 seconds while hidden
-        if (lockScreenUpdateInterval) {
-            clearInterval(lockScreenUpdateInterval);
-        }
-        lockScreenUpdateInterval = setInterval(() => {
-            updateLockScreenBanner(currentFlightData);
-        }, 5000);
-    } else {
-        // Screen is visible - hide banner
-        banner.classList.remove('visible');
-        
-        // Stop interval updates
-        if (lockScreenUpdateInterval) {
-            clearInterval(lockScreenUpdateInterval);
-            lockScreenUpdateInterval = null;
-        }
+    if (permission === 'default') {
+        // Show banner to request permission
+        setTimeout(() => {
+            document.getElementById('notificationBanner').classList.add('show');
+        }, 3000);
+    } else if (permission === 'granted') {
+        startNotificationUpdates();
     }
 }
 
-function updateLockScreenBanner(data) {
-    if (!data) return;
+async function requestNotificationPermission() {
+    try {
+        const permission = await Notification.requestPermission();
+        
+        if (permission === 'granted') {
+            document.getElementById('notificationBanner').classList.remove('show');
+            startNotificationUpdates();
+            
+            // Show success notification
+            new Notification('✈️ P3D Remote', {
+                body: 'Lock screen updates enabled!',
+                icon: '/icon.png',
+                tag: 'p3d-enabled'
+            });
+        } else {
+            alert('Please enable notifications in your browser settings to see flight updates on your lock screen.');
+        }
+    } catch (error) {
+        console.error('Notification permission error:', error);
+        alert('Unable to enable notifications. Make sure you\'ve added this app to your home screen.');
+    }
+}
+
+function dismissNotificationBanner() {
+    document.getElementById('notificationBanner').classList.remove('show');
+    localStorage.setItem('notification_banner_dismissed', 'true');
+}
+
+function startNotificationUpdates() {
+    // Update notification every 30 seconds when app is in background
+    if (notificationInterval) {
+        clearInterval(notificationInterval);
+    }
     
-    const waypoint = data.nextWaypoint || 'No Waypoint';
-    const distance = data.totalDistance ? data.totalDistance.toFixed(1) + ' nm' : '-- nm';
+    notificationInterval = setInterval(() => {
+        if (document.hidden && currentFlightData && currentFlightData.nextWaypoint) {
+            updateLockScreenNotification();
+        }
+    }, 30000); // Every 30 seconds
+    
+    // Also listen for visibility changes
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && currentFlightData && currentFlightData.nextWaypoint) {
+            updateLockScreenNotification();
+        }
+    });
+}
+
+function updateLockScreenNotification() {
+    if (Notification.permission !== 'granted') return;
+    if (!currentFlightData) return;
+    
+    const waypoint = currentFlightData.nextWaypoint || 'No Waypoint';
+    const distance = currentFlightData.totalDistance ? currentFlightData.totalDistance.toFixed(1) + ' nm' : '--';
     
     let eteText = '--';
-    if (data.ete && data.ete > 0) {
-        const hours = Math.floor(data.ete / 3600);
-        const minutes = Math.floor((data.ete % 3600) / 60);
+    if (currentFlightData.ete && currentFlightData.ete > 0) {
+        const hours = Math.floor(currentFlightData.ete / 3600);
+        const minutes = Math.floor((currentFlightData.ete % 3600) / 60);
         eteText = hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'min';
     }
     
-    document.getElementById('lockWaypoint').textContent = waypoint;
-    document.getElementById('lockDistance').textContent = distance;
-    document.getElementById('lockETE').textContent = eteText;
+    const altitude = Math.round(currentFlightData.altitude || 0).toLocaleString() + ' ft';
+    const speed = Math.round(currentFlightData.groundSpeed || 0) + ' kts';
+    
+    new Notification('✈️ ' + waypoint, {
+        body: distance + ' • ' + eteText + '\n' + speed + ' • ' + altitude,
+        icon: '/icon.png',
+        tag: 'p3d-flight-update',
+        requireInteraction: false,
+        silent: true
+    });
 }
-
-        async function requestWakeLock() {
-            if ('wakeLock' in navigator) {
-                try {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Wake lock acquired');
-                    
-                    wakeLock.addEventListener('release', () => {
-                        console.log('Wake lock released');
-                    });
-                } catch (err) {
-                    console.error('Wake lock error:', err);
-                }
-            }
-        }
-
-        document.addEventListener('visibilitychange', async () => {
-            if (document.visibilityState === 'visible' && wakeLock === null) {
-                await requestWakeLock();
-            }
-        });
 
 window.onload = () => {
     const savedId = localStorage.getItem('p3d_unique_id');
@@ -3210,6 +3251,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
