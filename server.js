@@ -79,10 +79,20 @@ else if (data.type === 'connect_mobile') {
         
         session.mobileClients.add(ws);
         
-        ws.send(JSON.stringify({ 
-          type: 'connected',
-          pcOnline: !!session.pcClient
-        }));
+ws.onopen = () => {
+    ws.send(JSON.stringify({ 
+        type: 'connect_mobile',
+        uniqueId: uniqueId
+    }));
+    
+    // Request notification permission after connecting
+    requestNotificationPermission().then(function(result) {
+        if (result === 'granted') {
+            console.log('Notification permission granted.');
+            // Show a test notification
+            showNotification('P3D Remote', 'Connected to simulator');
+        }
+    });
         
         console.log(`Mobile connected to: ${uniqueId}`);
       }
@@ -201,10 +211,11 @@ function getMobileAppHTML() {
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icon.png">
-    <title>P3D Remote</title>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="P3D Remote">
+    <link rel="apple-touch-icon" href="/images/icon.png">
+<title>P3D Remote</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link href="https://fonts.cdnfonts.com/css/good-times-2" rel="stylesheet">
@@ -1286,6 +1297,10 @@ case 'connected':
     document.getElementById('mainApp').classList.remove('hidden');
     updateStatus(data.pcOnline ? 'connected' : 'offline');
     
+    // Show connection notification
+    showNotification('P3D Remote', data.pcOnline ? 'Connected to simulator' : 'Simulator offline');
+    break;
+    
     // Request wake lock
     requestWakeLock();
     
@@ -1345,9 +1360,11 @@ case 'auth_failed':
                     }
                     break;
                     
-                case 'pc_offline':
-                    updateStatus('offline');
-                    break;
+case 'pc_offline':
+    updateStatus('offline');
+    // Show disconnection notification
+    showNotification('P3D Remote', 'Simulator disconnected', { priority: 'high' });
+    break;
             }
         }
 
@@ -3229,6 +3246,56 @@ function updateLockScreenNotification() {
     });
 }
 
+// Register service worker for notifications
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js')
+  .then(function(registration) {
+    console.log('Service Worker registered with scope:', registration.scope);
+  })
+  .catch(function(err) {
+    console.log('Service Worker registration failed:', err);
+  });
+}
+
+// Request notification permission
+function requestNotificationPermission() {
+  return new Promise(function(resolve, reject) {
+    const permissionResult = Notification.requestPermission(function(result) {
+      resolve(result);
+    });
+    
+    if (permissionResult) {
+      permissionResult.then(resolve, reject);
+    }
+  });
+}
+
+// Show notification function
+function showNotification(title, body, data = {}) {
+  if (Notification.permission === 'granted') {
+    navigator.serviceWorker.ready.then(function(registration) {
+      registration.showNotification(title, {
+        body: body,
+        icon: '/images/icon.png',
+        badge: '/images/badge.png',
+        vibrate: [100, 50, 100],
+        data: data,
+        requireInteraction: true,
+        actions: [
+          {
+            action: 'open',
+            title: 'Open App'
+          },
+          {
+            action: 'dismiss',
+            title: 'Dismiss'
+          }
+        ]
+      });
+    });
+  }
+}
+
 window.onload = () => {
     const savedId = localStorage.getItem('p3d_unique_id');
     if (savedId) {
@@ -3248,6 +3315,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
