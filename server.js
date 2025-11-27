@@ -805,6 +805,10 @@ function getMobileAppHTML() {
         <div id='statusBadge' class='status offline'>Offline</div>
         <div id='pauseBadge' class='status paused'>Paused</div>
     </div>
+    <!-- TEST BUTTON - Remove after testing -->
+<div style='padding: 10px; background: #1a1a1a;'>
+    <button class='btn btn-secondary' onclick='testBanner()' style='width: 100%; margin: 0;'>🧪 Test Lock Screen Banner</button>
+</div>
 
     <div id='loginScreen' class='login-screen'>
         <div class='login-card'>
@@ -3037,6 +3041,20 @@ function drawFlightControlsPage(ctx, width, height, apData) {
     ctx.fillText(spoilers.toFixed(0) + '%', 120, infoY);
 }
 
+function testBanner() {
+    const banner = document.getElementById('lockScreenBanner');
+    banner.classList.add('visible');
+    
+    // Update with test data
+    document.getElementById('lockWaypoint').textContent = 'KJFK';
+    document.getElementById('lockDistance').textContent = '150.5 nm';
+    document.getElementById('lockETE').textContent = '45min';
+    
+    alert('Banner should now be visible! If you see a blue bar at the top, it works. Press OK to hide it.');
+    
+    banner.classList.remove('visible');
+}
+
 function drawSystemBar(ctx, x, y, width, label, value, max, color) {
     ctx.font = '9px Arial';
     ctx.fillStyle = '#888';
@@ -3188,6 +3206,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
