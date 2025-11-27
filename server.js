@@ -32,28 +32,31 @@ wss.on('connection', (ws, req) => {
     try {
       const data = JSON.parse(message);
       
-      if (data.type === 'register_pc') {
-        // PC registering with unique ID
-        const uniqueId = data.uniqueId;
-        const password = data.password;
-        const guestPassword = data.guestPassword;
-        
-        ws.uniqueId = uniqueId;
-        ws.clientType = 'pc';
-        
-        if (!sessions.has(uniqueId)) {
-          sessions.set(uniqueId, {
-            pcClient: ws,
-            mobileClients: new Set(),
-            password: password,
-            guestPassword: guestPassword
-          });
-        } else {
-          const session = sessions.get(uniqueId);
-          session.pcClient = ws;
-          session.password = password;
-          session.guestPassword = guestPassword;
-        }
+if (data.type === 'register_pc') {
+  // PC registering with unique ID
+  const uniqueId = data.uniqueId;
+  const password = data.password;
+  const guestPassword = data.guestPassword;
+  const isGuestPasswordEnabled = data.isGuestPasswordEnabled !== false; // default to true for backwards compatibility
+  
+  ws.uniqueId = uniqueId;
+  ws.clientType = 'pc';
+  
+  if (!sessions.has(uniqueId)) {
+    sessions.set(uniqueId, {
+      pcClient: ws,
+      mobileClients: new Set(),
+      password: password,
+      guestPassword: guestPassword,
+      isGuestPasswordEnabled: isGuestPasswordEnabled
+    });
+} else {
+    const session = sessions.get(uniqueId);
+    session.pcClient = ws;
+    session.password = password;
+    session.guestPassword = guestPassword;
+    session.isGuestPasswordEnabled = isGuestPasswordEnabled;
+  }
         
         ws.send(JSON.stringify({ type: 'registered', uniqueId }));
         console.log(`PC registered: ${uniqueId}`);
@@ -83,23 +86,27 @@ wss.on('connection', (ws, req) => {
         console.log(`Mobile connected to: ${uniqueId}`);
       }
       
-      else if (data.type === 'request_control') {
-        // Mobile requesting control access
-        const password = data.password;
-        const session = sessions.get(ws.uniqueId);
-        
-        if (!session) {
-          ws.send(JSON.stringify({ type: 'auth_failed' }));
-          return;
-        }
-        
-        if (password === session.password || password === session.guestPassword) {
-          ws.hasControlAccess = true;
-          ws.send(JSON.stringify({ type: 'control_granted' }));
-        } else {
-          ws.send(JSON.stringify({ type: 'auth_failed' }));
-        }
-      }
+else if (data.type === 'request_control') {
+  // Mobile requesting control access
+  const password = data.password;
+  const session = sessions.get(ws.uniqueId);
+  
+  if (!session) {
+    ws.send(JSON.stringify({ type: 'auth_failed' }));
+    return;
+  }
+  
+  // Check main password or guest password (only if guest password is enabled)
+  const isMainPassword = password === session.password;
+  const isGuestPassword = session.isGuestPasswordEnabled && password === session.guestPassword;
+  
+  if (isMainPassword || isGuestPassword) {
+    ws.hasControlAccess = true;
+    ws.send(JSON.stringify({ type: 'control_granted' }));
+  } else {
+    ws.send(JSON.stringify({ type: 'auth_failed' }));
+  }
+}
       
       else {
         // Route all other messages
@@ -2967,6 +2974,7 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
