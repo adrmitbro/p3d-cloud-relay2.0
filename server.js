@@ -1238,27 +1238,7 @@ case 'auth_failed':
                 case 'autopilot_state':
                     updateAutopilotUI(data.data);
                     break;
-
-                    case 'toggle_engine':
-    int engineNumber = (int)data.engineNumber;
-    
-    // Map to the correct engine toggle event
-    switch (engineNumber) {
-        case 1:
-            simconnect.TransmitClientEvent(0, EVENTS.TOGGLE_ENGINE1, 0, GROUPID.GROUP0, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
-            break;
-        case 2:
-            simconnect.TransmitClientEvent(0, EVENTS.TOGGLE_ENGINE2, 0, GROUPID.GROUP0, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
-            break;
-        case 3:
-            simconnect.TransmitClientEvent(0, EVENTS.TOGGLE_ENGINE3, 0, GROUPID.GROUP0, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
-            break;
-        case 4:
-            simconnect.TransmitClientEvent(0, EVENTS.TOGGLE_ENGINE4, 0, GROUPID.GROUP0, SIMCONNECT_EVENT_FLAG.GROUPID_IS_PRIORITY);
-            break;
-    }
-    break;
-                    
+   
                 case 'ai_traffic':
                     aiAircraft = data.data;
                     updateNearbyAircraftList();
@@ -3071,6 +3051,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
