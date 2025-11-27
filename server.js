@@ -213,70 +213,41 @@ function getMobileAppHTML() {
             color: white;
             overflow-x: hidden;
         }
-        /* Notification permission banner */
-        .notification-banner {
+/* Lock Screen Banner */
+        .lock-screen-banner {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             background: linear-gradient(135deg, #167fac 0%, #1a8fd4 100%);
-            padding: 15px;
+            padding: 20px;
             display: none;
             z-index: 10000;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+            text-align: center;
         }
         
-        .notification-banner.show {
+        .lock-screen-banner.visible {
             display: block;
         }
         
-        .notification-banner-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        .lock-screen-content {
             max-width: 600px;
             margin: 0 auto;
         }
         
-        .notification-banner-text {
-            flex: 1;
-            margin-right: 15px;
-        }
-        
-        .notification-banner-text h3 {
-            margin: 0 0 5px 0;
-            font-size: 14px;
-        }
-        
-        .notification-banner-text p {
-            margin: 0;
-            font-size: 12px;
-            opacity: 0.9;
-        }
-        
-        .notification-banner-buttons {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .notification-banner-buttons button {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            font-size: 12px;
+        .lock-screen-title {
+            font-size: 28px;
             font-weight: bold;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        
-        .notification-banner-buttons .btn-allow {
-            background: #fff;
-            color: #167fac;
-        }
-        
-        .notification-banner-buttons .btn-dismiss {
-            background: rgba(255,255,255,0.2);
             color: #fff;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .lock-screen-info {
+            font-size: 18px;
+            color: rgba(255,255,255,0.95);
+            font-weight: 500;
         }
         .header {
             background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
@@ -817,16 +788,12 @@ function getMobileAppHTML() {
     </style>
 </head>
 <body>
-    <!-- Notification Permission Banner -->
-    <div id='notificationBanner' class='notification-banner'>
-        <div class='notification-banner-content'>
-            <div class='notification-banner-text'>
-                <h3>🔔 Enable Lock Screen Notifications</h3>
-                <p>Get distance updates on your lock screen</p>
-            </div>
-            <div class='notification-banner-buttons'>
-                <button class='btn-allow' onclick='requestNotificationPermission()'>Allow</button>
-                <button class='btn-dismiss' onclick='dismissNotificationBanner()'>Not Now</button>
+<!-- Lock Screen Banner -->
+    <div id='lockScreenBanner' class='lock-screen-banner'>
+        <div class='lock-screen-content'>
+            <div class='lock-screen-title'>✈️ <span id='lockWaypoint'>--</span></div>
+            <div class='lock-screen-info'>
+                <span id='lockDistance'>-- nm</span> • <span id='lockETE'>--</span>
             </div>
         </div>
     </div>
@@ -834,7 +801,6 @@ function getMobileAppHTML() {
 <div class='header'>
         <div style='display: flex; justify-content: space-between; align-items: center;'>
             <h1>Prepar3D Remote</h1>
-            <button id='notificationToggle' class='btn-icon' onclick='toggleNotifications()' style='background: transparent; border: 1px solid #167fac; color: #167fac; padding: 8px 12px; border-radius: 6px; font-size: 20px; cursor: pointer; display: none;'>🔔</button>
         </div>
         <div id='statusBadge' class='status offline'>Offline</div>
         <div id='pauseBadge' class='status paused'>Paused</div>
@@ -1211,9 +1177,8 @@ function getMobileAppHTML() {
         let userHeading = 0;
         let currentFlightData = {};
         let mapInitialized = false;
-        let notificationsEnabled = false;
-        let lastNotificationTime = 0;
         let wakeLock = null;
+        let lockScreenUpdateInterval = null;
 let pfdCanvas = null;
 let pfdCtx = null;
 let mfdCanvas = null;
@@ -1277,11 +1242,11 @@ case 'connected':
     document.getElementById('mainApp').classList.remove('hidden');
     updateStatus(data.pcOnline ? 'connected' : 'offline');
     
-    // Show notification banner after connection
-    checkNotificationPermission();
-    
-    // Request wake lock to keep updates running
+    // Request wake lock to keep screen active
     requestWakeLock();
+    
+    // Start lock screen banner updates
+    startLockScreenUpdates();
     break;
 
                 case 'save_complete':
@@ -1400,10 +1365,8 @@ if (map && data.latitude && data.longitude) {
                 updateMap(data.latitude, data.longitude, data.heading);
             }
             
-            // Update lock screen notification if enabled
-            if (notificationsEnabled && data.totalDistance) {
-                updateLockScreenNotification(data);
-            }
+// Update lock screen banner
+            updateLockScreenBanner(data);
         }
 
 function updateAutopilotUI(data) {
@@ -3095,170 +3058,57 @@ function drawArcGauge(ctx, x, y, radius, value, max, color) {
     }
 }
 
-async function checkNotificationPermission() {
-            if (!('Notification' in window)) {
-                console.log('This browser does not support notifications');
-                return;
-            }
-            
-            const permission = Notification.permission;
-            const toggleBtn = document.getElementById('notificationToggle');
-            
-            if (permission === 'granted') {
-                // Check if user had previously disabled notifications
-                const savedPreference = localStorage.getItem('notifications_enabled');
-                
-                if (savedPreference === 'false') {
-                    // Show toggle button but keep disabled
-                    toggleBtn.style.display = 'block';
-                    toggleBtn.classList.remove('active');
-                } else {
-                    // Enable by default
-                    enableNotifications();
-                }
-            } else if (permission === 'default') {
-                // Show banner
-                const bannerDismissed = localStorage.getItem('notification_banner_dismissed');
-                if (!bannerDismissed) {
-                    document.getElementById('notificationBanner').classList.add('show');
-                }
-                
-                // Show disabled toggle button
-                toggleBtn.style.display = 'block';
-                toggleBtn.classList.add('disabled');
-            } else if (permission === 'denied') {
-                // Show disabled toggle button
-                toggleBtn.style.display = 'block';
-                toggleBtn.classList.add('disabled');
-            }
-        }
+function startLockScreenUpdates() {
+    // Show banner when screen is locked (visibility change)
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Initial check
+    handleVisibilityChange();
+}
 
-async function requestNotificationPermission() {
-            if (!('Notification' in window)) {
-                alert('This browser does not support notifications');
-                return;
-            }
-            
-            const permission = await Notification.requestPermission();
-            const toggleBtn = document.getElementById('notificationToggle');
-            
-            if (permission === 'granted') {
-                enableNotifications();
-                document.getElementById('notificationBanner').classList.remove('show');
-            } else {
-                alert('Notifications blocked. Enable them in your browser settings.');
-                
-                // Show disabled toggle
-                toggleBtn.style.display = 'block';
-                toggleBtn.classList.add('disabled');
-            }
-        }
-
-function dismissNotificationBanner() {
-            document.getElementById('notificationBanner').classList.remove('show');
-            localStorage.setItem('notification_banner_dismissed', 'true');
-            
-            // Show disabled toggle button
-            const toggleBtn = document.getElementById('notificationToggle');
-            toggleBtn.style.display = 'block';
-            toggleBtn.classList.add('disabled');
-        }
-
-function enableNotifications() {
-            notificationsEnabled = true;
-            localStorage.setItem('notifications_enabled', 'true');
-            
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    type: 'enable_notifications',
-                    enabled: true
-                }));
-            }
-            
-            // Update toggle button
-            const toggleBtn = document.getElementById('notificationToggle');
-            if (toggleBtn) {
-                toggleBtn.classList.add('active');
-                toggleBtn.classList.remove('disabled');
-                toggleBtn.style.display = 'block';
-            }
-            
-            new Notification('P3D Remote Connected', {
-                body: 'Lock screen notifications enabled',
-                tag: 'p3d-remote',
-                requireInteraction: false
-            });
-        }
+function handleVisibilityChange() {
+    const banner = document.getElementById('lockScreenBanner');
+    
+    if (document.hidden) {
+        // Screen is locked/hidden - show banner
+        banner.classList.add('visible');
         
-        function disableNotifications() {
-            notificationsEnabled = false;
-            localStorage.setItem('notifications_enabled', 'false');
-            
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    type: 'enable_notifications',
-                    enabled: false
-                }));
-            }
-            
-            // Update toggle button
-            const toggleBtn = document.getElementById('notificationToggle');
-            if (toggleBtn) {
-                toggleBtn.classList.remove('active');
-            }
+        // Keep updating the banner every 5 seconds while hidden
+        if (lockScreenUpdateInterval) {
+            clearInterval(lockScreenUpdateInterval);
         }
+        lockScreenUpdateInterval = setInterval(() => {
+            updateLockScreenBanner(currentFlightData);
+        }, 5000);
+    } else {
+        // Screen is visible - hide banner
+        banner.classList.remove('visible');
         
-        function toggleNotifications() {
-            if (!('Notification' in window)) {
-                alert('This browser does not support notifications');
-                return;
-            }
-            
-            const permission = Notification.permission;
-            
-            if (permission === 'denied') {
-                alert('Notifications are blocked. Please enable them in your browser settings.');
-                return;
-            }
-            
-            if (permission === 'default') {
-                requestNotificationPermission();
-                return;
-            }
-            
-            // Toggle on/off
-            if (notificationsEnabled) {
-                disableNotifications();
-            } else {
-                enableNotifications();
-            }
+        // Stop interval updates
+        if (lockScreenUpdateInterval) {
+            clearInterval(lockScreenUpdateInterval);
+            lockScreenUpdateInterval = null;
         }
+    }
+}
 
-function updateLockScreenNotification(data) {
-            const now = Date.now();
-            if (now - lastNotificationTime < 5000) {
-                return;
-            }
-            lastNotificationTime = now;
-            
-            const distance = data.totalDistance ? data.totalDistance.toFixed(1) : '--';
-            const nextWaypoint = data.nextWaypoint || 'No waypoint';
-            
-            let body = 'Distance: ' + distance + ' nm';
-            if (data.ete && data.ete > 0) {
-                const hours = Math.floor(data.ete / 3600);
-                const minutes = Math.floor((data.ete % 3600) / 60);
-                const eteText = hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'min';
-                body += ' • ETE: ' + eteText;
-            }
-            
-            new Notification('✈️ ' + nextWaypoint, {
-                body: body,
-                tag: 'p3d-distance',
-                requireInteraction: false,
-                silent: true
-            });
-        }
+function updateLockScreenBanner(data) {
+    if (!data) return;
+    
+    const waypoint = data.nextWaypoint || 'No Waypoint';
+    const distance = data.totalDistance ? data.totalDistance.toFixed(1) + ' nm' : '-- nm';
+    
+    let eteText = '--';
+    if (data.ete && data.ete > 0) {
+        const hours = Math.floor(data.ete / 3600);
+        const minutes = Math.floor((data.ete % 3600) / 60);
+        eteText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}min`;
+    }
+    
+    document.getElementById('lockWaypoint').textContent = waypoint;
+    document.getElementById('lockDistance').textContent = distance;
+    document.getElementById('lockETE').textContent = eteText;
+}
 
         async function requestWakeLock() {
             if ('wakeLock' in navigator) {
@@ -3300,6 +3150,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
