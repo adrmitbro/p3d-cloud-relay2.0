@@ -1356,11 +1356,11 @@ function updateAutopilotUI(data) {
 updateEngineControls(data);
         }
 
-        function updateEngineControls(data) {
-    const hasEngine1 = data.engine1N1 !== undefined && data.engine1N1 > 0;
-    const hasEngine2 = data.engine2N1 !== undefined && data.engine2N1 > 0;
-    const hasEngine3 = data.engine3N1 !== undefined && data.engine3N1 > 0;
-    const hasEngine4 = data.engine4N1 !== undefined && data.engine4N1 > 0;
+function updateEngineControls(data) {
+    const hasEngine1 = data.engine1N2 !== undefined && data.engine1N2 > 0;
+    const hasEngine2 = data.engine2N2 !== undefined && data.engine2N2 > 0;
+    const hasEngine3 = data.engine3N2 !== undefined && data.engine3N2 > 0;
+    const hasEngine4 = data.engine4N2 !== undefined && data.engine4N2 > 0;
     
     const engineCount = hasEngine4 ? 4 : (hasEngine3 ? 3 : 2);
     
@@ -1374,11 +1374,11 @@ updateEngineControls(data);
     document.getElementById('engine3Row').style.display = engineCount >= 3 ? 'flex' : 'none';
     document.getElementById('engine4Row').style.display = engineCount >= 4 ? 'flex' : 'none';
     
-    // Update engine states
-    if (engineCount >= 1) updateToggle('engine1', data.engine1Running > 0.5, data.engine1Running > 0.5 ? 'ON' : 'OFF');
-    if (engineCount >= 2) updateToggle('engine2', data.engine2Running > 0.5, data.engine2Running > 0.5 ? 'ON' : 'OFF');
-    if (engineCount >= 3) updateToggle('engine3', data.engine3Running > 0.5, data.engine3Running > 0.5 ? 'ON' : 'OFF');
-    if (engineCount >= 4) updateToggle('engine4', data.engine4Running > 0.5, data.engine4Running > 0.5 ? 'ON' : 'OFF');
+// Update engine states using N2 > 10% as running indicator
+    if (engineCount >= 1) updateToggle('engine1', data.engine1N2 > 10, data.engine1N2 > 10 ? 'ON' : 'OFF');
+    if (engineCount >= 2) updateToggle('engine2', data.engine2N2 > 10, data.engine2N2 > 10 ? 'ON' : 'OFF');
+    if (engineCount >= 3) updateToggle('engine3', data.engine3N2 > 10, data.engine3N2 > 10 ? 'ON' : 'OFF');
+    if (engineCount >= 4) updateToggle('engine4', data.engine4N2 > 10, data.engine4N2 > 10 ? 'ON' : 'OFF');
 }
 
 function toggleEngine(engineNumber) {
@@ -3051,6 +3051,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
