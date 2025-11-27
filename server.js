@@ -3102,7 +3102,7 @@ function updateLockScreenBanner(data) {
     if (data.ete && data.ete > 0) {
         const hours = Math.floor(data.ete / 3600);
         const minutes = Math.floor((data.ete % 3600) / 60);
-        eteText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}min`;
+        eteText = hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'min';
     }
     
     document.getElementById('lockWaypoint').textContent = waypoint;
@@ -3150,6 +3150,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
