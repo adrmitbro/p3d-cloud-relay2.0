@@ -1166,11 +1166,17 @@ function switchTab(index) {
 
         function handleMessage(data) {
             switch(data.type) {
-                case 'connected':
-                    document.getElementById('loginScreen').classList.add('hidden');
-                    document.getElementById('mainApp').classList.remove('hidden');
-                    updateStatus(data.pcOnline ? 'connected' : 'offline');
-                    break;
+case 'connected':
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('mainApp').classList.remove('hidden');
+    updateStatus(data.pcOnline ? 'connected' : 'offline');
+    
+    // Auto-unlock if we have a saved password
+    const savedPassword = localStorage.getItem('p3d_control_password');
+    if (savedPassword) {
+        ws.send(JSON.stringify({ type: 'request_control', password: savedPassword }));
+    }
+    break;
 
                 case 'save_complete':
                     closeSaveProgress(true, data.filename);
@@ -2997,6 +3003,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
