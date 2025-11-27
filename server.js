@@ -1408,9 +1408,6 @@ case 'auth_failed':
 if (map && data.latitude && data.longitude) {
                 updateMap(data.latitude, data.longitude, data.heading);
             }
-            
-// Update lock screen banner
-            updateLockScreenBanner(data);
         }
 
 function updateAutopilotUI(data) {
@@ -3251,6 +3248,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
