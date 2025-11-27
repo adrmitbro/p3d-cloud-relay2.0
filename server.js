@@ -12,7 +12,20 @@ const PORT = process.env.PORT || 3000;
 // Simple session storage: uniqueId -> { pcClient, mobileClients: Set(), password, guestPassword }
 const sessions = new Map();
 
+// Serve static files from public directory
 app.use(express.static('public'));
+
+// Serve PWA files from root (required for iOS PWA)
+app.get('/manifest.json', (req, res) => {
+  res.sendFile(__dirname + '/manifest.json');
+});
+
+app.get('/service-worker.js', (req, res) => {
+  res.sendFile(__dirname + '/service-worker.js');
+});
+
+// Ensure images are served from root level
+app.use('/images', express.static('public/images'));
 
 app.get('/health', (req, res) => {
   res.json({ 
@@ -28,158 +41,137 @@ app.get('/', (req, res) => {
 wss.on('connection', (ws, req) => {
   console.log('New connection');
   
-  ws.on('message', (message) => {
+ws.on('message', (message) => {
     try {
-      const data = JSON.parse(message);
-      
-if (data.type === 'register_pc') {
-  // PC registering with unique ID
-  const uniqueId = data.uniqueId;
-  const password = data.password;
-  const guestPassword = data.guestPassword;
-  const isGuestPasswordEnabled = data.isGuestPasswordEnabled !== false; // default to true for backwards compatibility
-  
-  ws.uniqueId = uniqueId;
-  ws.clientType = 'pc';
-  
-  if (!sessions.has(uniqueId)) {
-    sessions.set(uniqueId, {
-      pcClient: ws,
-      mobileClients: new Set(),
-      password: password,
-      guestPassword: guestPassword,
-      isGuestPasswordEnabled: isGuestPasswordEnabled
-    });
-} else {
-    const session = sessions.get(uniqueId);
-    session.pcClient = ws;
-    session.password = password;
-    session.guestPassword = guestPassword;
-    session.isGuestPasswordEnabled = isGuestPasswordEnabled;
-  }
+        const data = JSON.parse(message);
         
-        ws.send(JSON.stringify({ type: 'registered', uniqueId }));
-        console.log(`PC registered: ${uniqueId}`);
-      }
-      
-else if (data.type === 'connect_mobile') {
-        // Mobile connecting with unique ID
-        const uniqueId = data.uniqueId;
-        
-        if (!sessions.has(uniqueId)) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Invalid ID' }));
-          return;
-        }
-        
-        const session = sessions.get(uniqueId);
-        ws.uniqueId = uniqueId;
-        ws.clientType = 'mobile';
-        ws.hasControlAccess = false;
-        ws.notificationsEnabled = false; // NEW: Track notification preference
-        
-        session.mobileClients.add(ws);
-        
-ws.onopen = () => {
-    ws.send(JSON.stringify({ 
-        type: 'connect_mobile',
-        uniqueId: uniqueId
-    }));
-    
-    // Request notification permission after connecting
-    requestNotificationPermission().then(function(result) {
-        if (result === 'granted') {
-            console.log('Notification permission granted.');
-            // Show a test notification
-            showNotification('P3D Remote', 'Connected to simulator');
-        }
-    });
-        
-        console.log(`Mobile connected to: ${uniqueId}`);
-      }
-      
-else if (data.type === 'enable_notifications') {
-        // Mobile client enabling notifications
-        ws.notificationsEnabled = data.enabled;
-        console.log(`Notifications ${data.enabled ? 'enabled' : 'disabled'} for mobile client`);
-      }
-      
-else if (data.type === 'request_control') {
-  // Mobile requesting control access
-  const password = data.password;
-  const session = sessions.get(ws.uniqueId);
-  
-  console.log('DEBUG request_control:');
-  console.log('  Entered password:', password);
-  console.log('  Session password:', session ? session.password : 'NO SESSION');
-  console.log('  Session guestPassword:', session ? session.guestPassword : 'NO SESSION');
-  console.log('  isGuestPasswordEnabled:', session ? session.isGuestPasswordEnabled : 'NO SESSION');
-  
-  if (!session) {
-    ws.send(JSON.stringify({ type: 'auth_failed' }));
-    return;
-  }
-  
-  // Check main password or guest password (only if guest password is enabled)
-  const isMainPassword = password === session.password;
-  const isGuestPassword = session.isGuestPasswordEnabled && password === session.guestPassword;
-  
-  console.log('  isMainPassword:', isMainPassword);
-  console.log('  isGuestPassword:', isGuestPassword);
-  
-  if (isMainPassword || isGuestPassword) {
-    ws.hasControlAccess = true;
-    ws.send(JSON.stringify({ type: 'control_granted' }));
-  } else {
-    ws.send(JSON.stringify({ type: 'auth_failed' }));
-  }
-}
-      
-      else {
-        // Route all other messages
-        const session = sessions.get(ws.uniqueId);
-        if (!session) return;
-        
-        if (ws.clientType === 'mobile' && session.pcClient) {
-          // Check if command requires control access
-          if (data.type.includes('autopilot') || 
-              data.type === 'pause_toggle' || 
-              data.type === 'save_game' ||
-              data.type === 'toggle_gear' ||
-              data.type === 'toggle_spoilers' ||
-              data.type === 'toggle_speedbrake' ||
-              data.type === 'toggle_parking_brake' ||
-              data.type === 'change_flaps' ||
-              data.type === 'throttle_control' ||
-              data.type.includes('toggle_light') || 
-              data.type.includes('toggle_cabin')) {
-            if (!ws.hasControlAccess) {
-              ws.send(JSON.stringify({ 
-                type: 'control_required',
-                message: 'Enter password to access controls'
-              }));
-              return;
+        if (data.type === 'register_pc') {
+            // PC registering with unique ID
+            const uniqueId = data.uniqueId;
+            const password = data.password;
+            const guestPassword = data.guestPassword;
+            const isGuestPasswordEnabled = data.isGuestPasswordEnabled !== false;
+            
+            ws.uniqueId = uniqueId;
+            ws.clientType = 'pc';
+            
+            if (!sessions.has(uniqueId)) {
+                sessions.set(uniqueId, {
+                    pcClient: ws,
+                    mobileClients: new Set(),
+                    password: password,
+                    guestPassword: guestPassword,
+                    isGuestPasswordEnabled: isGuestPasswordEnabled
+                });
+            } else {
+                const session = sessions.get(uniqueId);
+                session.pcClient = ws;
+                session.password = password;
+                session.guestPassword = guestPassword;
+                session.isGuestPasswordEnabled = isGuestPasswordEnabled;
             }
-          }
-          
-          // Forward to PC
-          if (session.pcClient.readyState === WebSocket.OPEN) {
-            session.pcClient.send(JSON.stringify(data));
-          }
+            
+            ws.send(JSON.stringify({ type: 'registered', uniqueId }));
+            console.log(`PC registered: ${uniqueId}`);
         }
-        else if (ws.clientType === 'pc') {
-          // Broadcast to all mobile clients
-          session.mobileClients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify(data));
+        else if (data.type === 'connect_mobile') {
+            // Mobile connecting with unique ID
+            const uniqueId = data.uniqueId;
+            
+            if (!sessions.has(uniqueId)) {
+                ws.send(JSON.stringify({ type: 'error', message: 'Invalid ID' }));
+                return;
             }
-          });
+            
+            const session = sessions.get(uniqueId);
+            ws.uniqueId = uniqueId;
+            ws.clientType = 'mobile';
+            ws.hasControlAccess = false;
+            
+            session.mobileClients.add(ws);
+            
+            ws.send(JSON.stringify({ 
+                type: 'connected',
+                pcOnline: !!session.pcClient
+            }));
+            
+            console.log(`Mobile connected to: ${uniqueId}`);
         }
-      }
-      
+        else if (data.type === 'request_control') {
+            // Mobile requesting control access
+            const password = data.password;
+            const session = sessions.get(ws.uniqueId);
+            
+            console.log('DEBUG request_control:');
+            console.log('  Entered password:', password);
+            console.log('  Session password:', session ? session.password : 'NO SESSION');
+            console.log('  Session guestPassword:', session ? session.guestPassword : 'NO SESSION');
+            console.log('  isGuestPasswordEnabled:', session ? session.isGuestPasswordEnabled : 'NO SESSION');
+            
+            if (!session) {
+                ws.send(JSON.stringify({ type: 'auth_failed' }));
+                return;
+            }
+            
+            const isMainPassword = password === session.password;
+            const isGuestPassword = session.isGuestPasswordEnabled && password === session.guestPassword;
+            
+            console.log('  isMainPassword:', isMainPassword);
+            console.log('  isGuestPassword:', isGuestPassword);
+            
+            if (isMainPassword || isGuestPassword) {
+                ws.hasControlAccess = true;
+                ws.send(JSON.stringify({ type: 'control_granted' }));
+            } else {
+                ws.send(JSON.stringify({ type: 'auth_failed' }));
+            }
+        }
+        else {
+            // Route all other messages
+            const session = sessions.get(ws.uniqueId);
+            if (!session) return;
+            
+            if (ws.clientType === 'mobile' && session.pcClient) {
+                // Check if command requires control access
+                if (data.type.includes('autopilot') || 
+                    data.type === 'pause_toggle' || 
+                    data.type === 'save_game' ||
+                    data.type === 'toggle_gear' ||
+                    data.type === 'toggle_spoilers' ||
+                    data.type === 'toggle_speedbrake' ||
+                    data.type === 'toggle_parking_brake' ||
+                    data.type === 'change_flaps' ||
+                    data.type === 'throttle_control' ||
+                    data.type.includes('toggle_light') || 
+                    data.type.includes('toggle_cabin')) {
+                    if (!ws.hasControlAccess) {
+                        ws.send(JSON.stringify({ 
+                            type: 'control_required',
+                            message: 'Enter password to access controls'
+                        }));
+                        return;
+                    }
+                }
+                
+                // Forward to PC
+                if (session.pcClient.readyState === WebSocket.OPEN) {
+                    session.pcClient.send(JSON.stringify(data));
+                }
+            }
+            else if (ws.clientType === 'pc') {
+                // Broadcast to all mobile clients
+                session.mobileClients.forEach(client => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify(data));
+                    }
+                });
+            }
+        }
+        
     } catch (error) {
-      console.error('Error:', error);
+        console.error('Error:', error);
     }
-  });
+});
 
   ws.on('close', () => {
     if (ws.uniqueId && sessions.has(ws.uniqueId)) {
@@ -3315,6 +3307,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
