@@ -219,16 +219,20 @@ function getMobileAppHTML() {
             top: 0;
             left: 0;
             right: 0;
+            width: 100%;
             background: linear-gradient(135deg, #167fac 0%, #1a8fd4 100%);
             padding: 20px;
             display: none;
-            z-index: 10000;
+            z-index: 999999 !important;
             box-shadow: 0 4px 20px rgba(0,0,0,0.8);
             text-align: center;
+            pointer-events: auto;
         }
         
         .lock-screen-banner.visible {
-            display: block;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
         }
         
         .lock-screen-content {
@@ -3206,6 +3210,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
