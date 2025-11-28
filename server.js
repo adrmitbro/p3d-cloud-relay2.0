@@ -913,6 +913,10 @@ function getMobileAppHTML() {
                         <span style='font-size: 10px; color: #888;'>GEAR</span>
                         <div id='summaryGear' class='arrow-up'></div>
                     </div>
+                    <div class='summary-secondary-item'>
+                        <span style='font-size: 10px; color: #888;'>ENG</span>
+                        <div id='summaryEngineIndicators' style='display: flex; gap: 3px;'></div>
+                    </div>
                 </div>
                 
 <div class='status-badges-row'>
@@ -3056,6 +3060,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
