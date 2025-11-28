@@ -2068,7 +2068,7 @@ function drawFlightRoute(data) {
                     })
                 }).addTo(routeLayer);
                 
-                wpMarker.bindPopup(String.raw`<b>${data.nextWaypoint}</b><br>Distance: ${data.distanceToWaypoint.toFixed(1)} nm`);
+                wpMarker.bindPopup('<b>' + data.nextWaypoint + '</b><br>Distance: ' + data.distanceToWaypoint.toFixed(1) + ' nm');
                 waypointMarkers.push(wpMarker);
                 
                 // If we have destination info, draw extended line
@@ -2099,7 +2099,7 @@ function drawFlightRoute(data) {
                             })
                         }).addTo(routeLayer);
                         
-                        destMarker.bindPopup(String.raw`<b>DESTINATION</b><br>${data.flightPlanDestination || 'Unknown'}<br>Distance: ${data.totalDistance.toFixed(1)} nm`);
+                        destMarker.bindPopup('<b>DESTINATION</b><br>' + (data.flightPlanDestination || 'Unknown') + '<br>Distance: ' + data.totalDistance.toFixed(1) + ' nm');
                     }
                 }
             }
@@ -3549,6 +3549,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
