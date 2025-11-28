@@ -863,7 +863,32 @@ function getMobileAppHTML() {
             justify-content: space-between;
             margin-top: 8px;
         }
+
+        .route-line {
+            stroke: #167fac;
+            stroke-width: 3;
+            stroke-dasharray: 10, 5;
+            fill: none;
+            opacity: 0.7;
+        }
         
+        .waypoint-marker {
+            background: #167fac;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            width: 12px;
+            height: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .destination-marker {
+            background: #ff0000;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
         .waypoint-info-item {
             color: #888;
             font-size: 13px;
@@ -1027,15 +1052,16 @@ function getMobileAppHTML() {
 
 <!-- Map Tab -->
 <div class='tab-content'>
-    <div class='map-controls'>
-        <div class='map-controls-row'>
-            <div class='map-buttons'>
-                <button id='followUserBtn' class='btn btn-secondary' onclick='toggleFollowUser()'>Follow Aircraft</button>
-                <button id='toggleLabelsBtn' class='btn btn-secondary' onclick='toggleAircraftLabels()'>Hide Labels</button>
+<div class='map-controls'>
+            <div class='map-controls-row'>
+                <div class='map-buttons'>
+                    <button id='followUserBtn' class='btn btn-secondary' onclick='toggleFollowUser()'>Follow Aircraft</button>
+                    <button id='toggleLabelsBtn' class='btn btn-secondary' onclick='toggleAircraftLabels()'>Hide Labels</button>
+                    <button id='toggleRouteBtn' class='btn btn-secondary' onclick='toggleRoute()'>Hide Route</button>
+                </div>
+                <span id='zoomLevel' class='zoom-indicator'>Zoom: 7</span>
             </div>
-            <span id='zoomLevel' class='zoom-indicator'>Zoom: 7</span>
         </div>
-    </div>
     
     <div class='map-container'>
         <div id='map'></div>
@@ -1335,6 +1361,8 @@ function getMobileAppHTML() {
         let isDragging = false;
         let showAircraftLabels = true;
         let uniqueId = null;
+        let routeLayer = null;
+        let waypointMarkers = [];
         let hasControl = false;
         let isPaused = false;
         let userLat = 0;
@@ -1553,8 +1581,9 @@ function updateFlightData(data) {
                 btnPause.className = 'btn btn-secondary';
             }
 
-            if (map && data.latitude && data.longitude) {
+if (map && data.latitude && data.longitude) {
                 updateMap(data.latitude, data.longitude, data.heading);
+                drawFlightRoute(data);
             }
         }
         
@@ -1852,6 +1881,9 @@ function updateAutopilotStatus(data) {
             }).addTo(map);
 
             document.getElementById('followUserBtn').textContent = followUser ? 'Following' : 'Follow Aircraft';
+
+            // Initialize route layer
+            routeLayer = L.layerGroup().addTo(map);
             
             map.on('mousedown', function(e) {
                 if (e.originalEvent.button === 0) {
@@ -1992,6 +2024,85 @@ userMarker.on('click', function(e) {
                     aircraftMarkers.push(labelMarker);
                 }
             });
+        }
+
+function drawFlightRoute(data) {
+            if (!map || !routeLayer) return;
+            
+            // Clear existing route
+            routeLayer.clearLayers();
+            waypointMarkers = [];
+            
+            // Don't draw if no active flight plan
+            if (!data.flightPlanActive || !data.nextWaypoint) return;
+            
+            // For now, draw a simple line from current position to next waypoint
+            // (Full route would require getting all waypoints from SimConnect)
+            
+            // Draw line to next waypoint if we have bearing and distance
+            if (data.bearingToWaypoint && data.distanceToWaypoint && data.distanceToWaypoint > 0) {
+                const bearing = data.bearingToWaypoint * Math.PI / 180;
+                const distance = data.distanceToWaypoint / 60; // Convert nm to degrees (approximate)
+                
+                const wpLat = data.latitude + (distance * Math.cos(bearing));
+                const wpLon = data.longitude + (distance * Math.sin(bearing) / Math.cos(data.latitude * Math.PI / 180));
+                
+                // Draw line
+                const routeLine = L.polyline(
+                    [[data.latitude, data.longitude], [wpLat, wpLon]],
+                    {
+                        color: '#167fac',
+                        weight: 3,
+                        opacity: 0.7,
+                        dashArray: '10, 5'
+                    }
+                ).addTo(routeLayer);
+                
+                // Add waypoint marker
+                const wpMarker = L.marker([wpLat, wpLon], {
+                    icon: L.divIcon({
+                        html: '<div class="waypoint-marker"></div>',
+                        className: '',
+                        iconSize: [12, 12],
+                        iconAnchor: [6, 6]
+                    })
+                }).addTo(routeLayer);
+                
+                wpMarker.bindPopup(`<b>${data.nextWaypoint}</b><br>Distance: ${data.distanceToWaypoint.toFixed(1)} nm`);
+                waypointMarkers.push(wpMarker);
+                
+                // If we have destination info, draw extended line
+                if (data.totalDistance && data.totalDistance > data.distanceToWaypoint) {
+                    const totalDistDeg = data.totalDistance / 60;
+                    const destLat = data.latitude + (totalDistDeg * Math.cos(bearing));
+                    const destLon = data.longitude + (totalDistDeg * Math.sin(bearing) / Math.cos(data.latitude * Math.PI / 180));
+                    
+                    // Extended route line
+                    const extendedLine = L.polyline(
+                        [[wpLat, wpLon], [destLat, destLon]],
+                        {
+                            color: '#167fac',
+                            weight: 2,
+                            opacity: 0.4,
+                            dashArray: '5, 10'
+                        }
+                    ).addTo(routeLayer);
+                    
+                    // Destination marker
+                    if (data.flightPlanDestination && data.flightPlanDestination !== data.nextWaypoint) {
+                        const destMarker = L.marker([destLat, destLon], {
+                            icon: L.divIcon({
+                                html: '<div class="destination-marker"></div>',
+                                className: '',
+                                iconSize: [16, 16],
+                                iconAnchor: [8, 8]
+                            })
+                        }).addTo(routeLayer);
+                        
+                        destMarker.bindPopup(`<b>DESTINATION</b><br>${data.flightPlanDestination || 'Unknown'}<br>Distance: ${data.totalDistance.toFixed(1)} nm`);
+                    }
+                }
+            }
         }
 
 function updateUserAircraftDetails() {
@@ -2144,6 +2255,18 @@ function updateUserAircraftDetails() {
                 map.setView([userLat, userLon], mapZoom);
             } else {
                 btn.textContent = 'Follow Aircraft';
+            }
+        }
+
+        function toggleRoute() {
+            if (!routeLayer) return;
+            
+            if (map.hasLayer(routeLayer)) {
+                map.removeLayer(routeLayer);
+                document.getElementById('toggleRouteBtn').textContent = 'Show Route';
+            } else {
+                map.addLayer(routeLayer);
+                document.getElementById('toggleRouteBtn').textContent = 'Hide Route';
             }
         }
 
@@ -3426,6 +3549,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
