@@ -1390,7 +1390,7 @@ function updateEngineIndicators(data) {
     }
 }
 
-        function updateFlightSummary(data) {
+function updateFlightSummary(data) {
             const speedValue = data.apSpeed !== undefined ? Math.round(data.apSpeed) : '--';
             document.getElementById('summarySpeed').textContent = speedValue;
             
@@ -1410,6 +1410,40 @@ function updateEngineIndicators(data) {
                 gearElement.className = 'arrow-down';
             } else {
                 gearElement.className = 'arrow-up';
+            }
+            
+            // Update summary engine indicators
+            updateSummaryEngineIndicators(data);
+        }
+
+        function updateSummaryEngineIndicators(data) {
+            // Determine number of engines
+            const hasEngine3 = data.engine3N2 !== undefined && data.engine3N2 > 0;
+            const hasEngine4 = data.engine4N2 !== undefined && data.engine4N2 > 0;
+            const numEngines = hasEngine4 ? 4 : (hasEngine3 ? 3 : 2);
+            
+            // Get or create indicator container
+            let indicatorContainer = document.getElementById('summaryEngineIndicators');
+            if (!indicatorContainer) return;
+            
+            // Clear and rebuild indicators
+            indicatorContainer.innerHTML = '';
+            
+            const engineStates = [
+                data.engine1N2 > 10,
+                data.engine2N2 > 10,
+                data.engine3N2 > 10,
+                data.engine4N2 > 10
+            ];
+            
+            for (let i = 0; i < numEngines; i++) {
+                const indicator = document.createElement('div');
+                indicator.style.width = '8px';
+                indicator.style.height = '8px';
+                indicator.style.borderRadius = '2px';
+                indicator.style.background = engineStates[i] ? '#167fac' : '#333';
+                indicator.style.transition = 'background 0.3s';
+                indicatorContainer.appendChild(indicator);
             }
         }
 
@@ -3060,6 +3094,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
