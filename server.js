@@ -704,145 +704,6 @@ function getMobileAppHTML() {
             font-size: 12px;
             font-weight: bold;
         }
-
-        .warning-banner {
-            position: fixed;
-            top: 70px;
-            left: 0;
-            right: 0;
-            background: #ff0000;
-            color: white;
-            padding: 10px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 14px;
-            z-index: 9999;
-            animation: flash 1s infinite;
-            display: none;
-        }
-        
-        .warning-banner.visible {
-            display: block;
-        }
-        
-        @keyframes flash {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        
-        .progress-bar-container {
-            background: #0d0d0d;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 10px;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background: #1a1a1a;
-            border-radius: 10px;
-            overflow: hidden;
-            border: 1px solid #333;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #167fac 0%, #1a8fd4 100%);
-            transition: width 0.5s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        
-        .performance-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        
-        .performance-item {
-            background: #0d0d0d;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #222;
-        }
-        
-        .performance-label {
-            font-size: 10px;
-            color: #888;
-            text-transform: uppercase;
-            margin-bottom: 3px;
-        }
-        
-        .performance-value {
-            font-size: 16px;
-            font-weight: bold;
-            color: #167fac;
-        }
-        
-        .radio-panel {
-            background: #0d0d0d;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 10px;
-        }
-        
-        .radio-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-        
-        .radio-row:last-child {
-            margin-bottom: 0;
-        }
-        
-        .radio-label {
-            color: #888;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        
-        .radio-value {
-            color: #00ff00;
-            font-size: 13px;
-            font-weight: bold;
-            font-family: 'Courier New', monospace;
-        }
-        
-        .weight-panel {
-            background: #0d0d0d;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 10px;
-        }
-        
-        .weight-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
-            border-bottom: 1px solid #222;
-        }
-        
-        .weight-row:last-child {
-            border-bottom: none;
-        }
-        
-        .weight-label {
-            color: #888;
-            font-size: 11px;
-        }
-        
-        .weight-value {
-            color: #fff;
-            font-size: 12px;
-            font-weight: bold;
-        }
         
         .user-aircraft {
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
@@ -863,32 +724,7 @@ function getMobileAppHTML() {
             justify-content: space-between;
             margin-top: 8px;
         }
-
-        .route-line {
-            stroke: #167fac;
-            stroke-width: 3;
-            stroke-dasharray: 10, 5;
-            fill: none;
-            opacity: 0.7;
-        }
         
-        .waypoint-marker {
-            background: #167fac;
-            border: 2px solid #fff;
-            border-radius: 50%;
-            width: 12px;
-            height: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }
-        
-        .destination-marker {
-            background: #ff0000;
-            border: 2px solid #fff;
-            border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }
         .waypoint-info-item {
             color: #888;
             font-size: 13px;
@@ -901,7 +737,6 @@ function getMobileAppHTML() {
         <div id='statusBadge' class='status offline'>Offline</div>
         <div id='pauseBadge' class='status paused'>Paused</div>
     </div>
-    <div id='warningBanner' class='warning-banner'></div>
 
     <div id='loginScreen' class='login-screen'>
         <div class='login-card'>
@@ -925,19 +760,6 @@ function getMobileAppHTML() {
 <!-- Flight Tab -->
 <div class='tab-content active'>
     <div class='card'>
-        <h3 style='margin-bottom: 10px;'>Flight Progress</h3>
-        <div class='progress-bar-container'>
-            <div class='progress-bar'>
-                <div class='progress-fill' id='progressFill'>0%</div>
-            </div>
-            <div style='display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: #888;'>
-                <span id='timeElapsed'>Elapsed: --</span>
-                <span id='timeRemaining'>Remaining: --</span>
-            </div>
-        </div>
-    </div>
-
-    <div class='card'>
         <div class='data-label'>Next Waypoint</div>
         <div class='data-value' style='font-size: 18px;' id='nextWaypoint'>--</div>
         <div class='waypoint-info-row'>
@@ -954,97 +776,26 @@ function getMobileAppHTML() {
     </div>
 
     <div class='card'>
-        <h3 style='margin-bottom: 10px;'>Performance</h3>
-        <div class='performance-grid'>
-            <div class='performance-item'>
-                <div class='performance-label'>GND SPD</div>
-                <div class='performance-value' id='speed'>--</div>
-                <div style='font-size: 9px; color: #666;'>knots</div>
+        <div class='data-grid'>
+            <div class='data-item'>
+                <div class='data-label'>Speed</div>
+                <div class='data-value' id='speed'>--</div>
+                <div style='font-size: 11px; color: #888;'>knots</div>
             </div>
-            <div class='performance-item'>
-                <div class='performance-label'>TRUE AS</div>
-                <div class='performance-value' id='airspeed'>--</div>
-                <div style='font-size: 9px; color: #666;'>knots</div>
+            <div class='data-item'>
+                <div class='data-label'>Altitude</div>
+                <div class='data-value' id='altitude'>--</div>
+                <div style='font-size: 11px; color: #888;'>feet</div>
             </div>
-            <div class='performance-item'>
-                <div class='performance-label'>Altitude</div>
-                <div class='performance-value' id='altitude'>--</div>
-                <div style='font-size: 9px; color: #666;'>feet</div>
+            <div class='data-item'>
+                <div class='data-label'>Heading</div>
+                <div class='data-value' id='heading'>--</div>
+                <div style='font-size: 11px; color: #888;'>degrees</div>
             </div>
-            <div class='performance-item'>
-                <div class='performance-label'>V/S</div>
-                <div class='performance-value' id='vs'>--</div>
-                <div style='font-size: 9px; color: #666;'>fpm</div>
-            </div>
-            <div class='performance-item'>
-                <div class='performance-label'>Heading</div>
-                <div class='performance-value' id='heading'>--</div>
-                <div style='font-size: 9px; color: #666;'>degrees</div>
-            </div>
-            <div class='performance-item'>
-                <div class='performance-label'>Mach</div>
-                <div class='performance-value' id='mach'>--</div>
-                <div style='font-size: 9px; color: #666;'>mach</div>
-            </div>
-        </div>
-    </div>
-    
-    <div class='card'>
-        <h3 style='margin-bottom: 10px;'>Weather</h3>
-        <div class='performance-grid'>
-            <div class='performance-item'>
-                <div class='performance-label'>OAT</div>
-                <div class='performance-value' id='oat'>--</div>
-                <div style='font-size: 9px; color: #666;'>°C</div>
-            </div>
-            <div class='performance-item'>
-                <div class='performance-label'>Wind</div>
-                <div class='performance-value' id='wind'>--</div>
-                <div style='font-size: 9px; color: #666;'>knots</div>
-            </div>
-        </div>
-    </div>
-    
-    <div class='card'>
-        <h3 style='margin-bottom: 10px;'>Radio Stack</h3>
-        <div class='radio-panel'>
-            <div class='radio-row'>
-                <span class='radio-label'>COM1</span>
-                <span class='radio-value' id='com1'>---.---</span>
-            </div>
-            <div class='radio-row'>
-                <span class='radio-label'>COM2</span>
-                <span class='radio-value' id='com2'>---.---</span>
-            </div>
-            <div class='radio-row'>
-                <span class='radio-label'>NAV1</span>
-                <span class='radio-value' id='nav1'>---.---</span>
-            </div>
-            <div class='radio-row'>
-                <span class='radio-label'>NAV2</span>
-                <span class='radio-value' id='nav2'>---.---</span>
-            </div>
-            <div class='radio-row'>
-                <span class='radio-label'>XPDR</span>
-                <span class='radio-value' id='transponder'>----</span>
-            </div>
-        </div>
-    </div>
-    
-    <div class='card'>
-        <h3 style='margin-bottom: 10px;'>Weight & Balance</h3>
-        <div class='weight-panel'>
-            <div class='weight-row'>
-                <span class='weight-label'>Total Weight</span>
-                <span class='weight-value' id='totalWeight'>-- lbs</span>
-            </div>
-            <div class='weight-row'>
-                <span class='weight-label'>Fuel Weight</span>
-                <span class='weight-value' id='fuelWeight'>-- lbs</span>
-            </div>
-            <div class='weight-row'>
-                <span class='weight-label'>Payload Weight</span>
-                <span class='weight-value' id='payloadWeight'>-- lbs</span>
+            <div class='data-item'>
+                <div class='data-label'>V/S</div>
+                <div class='data-value' id='vs'>--</div>
+                <div style='font-size: 11px; color: #888;'>fpm</div>
             </div>
         </div>
     </div>
@@ -1052,16 +803,15 @@ function getMobileAppHTML() {
 
 <!-- Map Tab -->
 <div class='tab-content'>
-<div class='map-controls'>
-            <div class='map-controls-row'>
-                <div class='map-buttons'>
-                    <button id='followUserBtn' class='btn btn-secondary' onclick='toggleFollowUser()'>Follow Aircraft</button>
-                    <button id='toggleLabelsBtn' class='btn btn-secondary' onclick='toggleAircraftLabels()'>Hide Labels</button>
-                    <button id='toggleRouteBtn' class='btn btn-secondary' onclick='toggleRoute()'>Hide Route</button>
-                </div>
-                <span id='zoomLevel' class='zoom-indicator'>Zoom: 7</span>
+    <div class='map-controls'>
+        <div class='map-controls-row'>
+            <div class='map-buttons'>
+                <button id='followUserBtn' class='btn btn-secondary' onclick='toggleFollowUser()'>Follow Aircraft</button>
+                <button id='toggleLabelsBtn' class='btn btn-secondary' onclick='toggleAircraftLabels()'>Hide Labels</button>
             </div>
+            <span id='zoomLevel' class='zoom-indicator'>Zoom: 7</span>
         </div>
+    </div>
     
     <div class='map-container'>
         <div id='map'></div>
@@ -1361,8 +1111,6 @@ function getMobileAppHTML() {
         let isDragging = false;
         let showAircraftLabels = true;
         let uniqueId = null;
-        let routeLayer = null;
-        let waypointMarkers = [];
         let hasControl = false;
         let isPaused = false;
         let userLat = 0;
@@ -1370,10 +1118,6 @@ function getMobileAppHTML() {
         let userHeading = 0;
         let currentFlightData = {};
         let mapInitialized = false;
-        let flightStartTime = null;
-        let totalFlightDistance = 0;
-        let initialTotalDistance = 0; // ADD THIS LINE
-
 let pfdCanvas = null;
 let pfdCtx = null;
 let mfdCanvas = null;
@@ -1502,34 +1246,12 @@ case 'auth_failed':
             badge.textContent = status === 'connected' ? 'Connected' : 'Offline';
         }
 
-function updateFlightData(data) {
-            // Performance data
+        function updateFlightData(data) {
             document.getElementById('speed').textContent = Math.round(data.groundSpeed);
-            document.getElementById('airspeed').textContent = Math.round(data.airspeed || data.groundSpeed);
             document.getElementById('altitude').textContent = Math.round(data.altitude).toLocaleString();
             document.getElementById('heading').textContent = Math.round(data.heading) + '°';
             document.getElementById('vs').textContent = Math.round(data.verticalSpeed);
-            document.getElementById('mach').textContent = (data.machNumber || 0).toFixed(3);
             
-            // Weather
-            document.getElementById('oat').textContent = Math.round(data.oat || 0);
-            const windSpeed = Math.round(data.windSpeed || 0);
-            const windDir = Math.round(data.windDirection || 0);
-            document.getElementById('wind').textContent = windSpeed > 0 ? windDir + '° @ ' + windSpeed : 'Calm';
-            
-            // Radio Stack
-            document.getElementById('com1').textContent = (data.com1 / 1000000).toFixed(3);
-            document.getElementById('com2').textContent = (data.com2 / 1000000).toFixed(3);
-            document.getElementById('nav1').textContent = (data.nav1 / 1000000).toFixed(2);
-            document.getElementById('nav2').textContent = (data.nav2 / 1000000).toFixed(2);
-            document.getElementById('transponder').textContent = data.transponder ? data.transponder.toString().padStart(4, '0') : '----';
-            
-            // Weight & Balance
-            document.getElementById('totalWeight').textContent = Math.round(data.totalWeight || 0).toLocaleString() + ' lbs';
-            document.getElementById('fuelWeight').textContent = Math.round(data.fuelWeight || 0).toLocaleString() + ' lbs';
-            document.getElementById('payloadWeight').textContent = Math.round(data.payloadWeight || 0).toLocaleString() + ' lbs';
-            
-            // Waypoint info
             document.getElementById('nextWaypoint').textContent = data.nextWaypoint || 'No Active Waypoint';
             document.getElementById('wpDistance').textContent = 'Distance: ' + (data.distanceToWaypoint ? data.distanceToWaypoint.toFixed(1) + ' nm' : '--');
             document.getElementById('wpBearing').textContent = 'Bearing: ' + (data.bearingToWaypoint ? Math.round(data.bearingToWaypoint) + '°' : '--°');
@@ -1542,41 +1264,19 @@ function updateFlightData(data) {
                 document.getElementById('wpEte').textContent = 'ETE: --';
             }
             
-// Total distance - capture initial value when flight plan activates
-if (data.flightPlanActive && data.totalDistance && data.totalDistance > 0) {
-    // Store initial distance only once when flight plan first activates
-    if (initialTotalDistance === 0 || data.totalDistance > initialTotalDistance) {
-        initialTotalDistance = data.totalDistance;
-        console.log('Initial flight distance captured:', initialTotalDistance, 'nm');
-    }
-    
-    document.getElementById('distance').textContent = data.totalDistance.toFixed(1);
-    totalFlightDistance = initialTotalDistance; // Use initial distance for calculations
-} else {
-    document.getElementById('distance').textContent = '--';
-    if (!data.flightPlanActive) {
-        // Reset when flight plan deactivates
-        initialTotalDistance = 0;
-        flightStartTime = null;
-    }
-}
+            if (data.totalDistance && data.totalDistance > 0) {
+                document.getElementById('distance').textContent = data.totalDistance.toFixed(1);
+            } else {
+                document.getElementById('distance').textContent = '--';
+            }
             
-            // ETE
             if (data.ete && data.ete > 0) {
                 const hours = Math.floor(data.ete / 3600);
                 const minutes = Math.floor((data.ete % 3600) / 60);
                 document.getElementById('ete').textContent = 'Total ETE: ' + (hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'min');
-                
-                // Update flight progress
-                updateFlightProgress(data);
             } else {
                 document.getElementById('ete').textContent = 'Total ETE: --';
-                document.getElementById('progressFill').style.width = '0%';
-                document.getElementById('progressFill').textContent = '0%';
             }
-
-            // Warnings
-            updateWarnings(data);
 
             const pauseBadge = document.getElementById('pauseBadge');
             if (data.isPaused) {
@@ -1594,83 +1294,8 @@ if (data.flightPlanActive && data.totalDistance && data.totalDistance > 0) {
                 btnPause.className = 'btn btn-secondary';
             }
 
-if (map && data.latitude && data.longitude) {
+            if (map && data.latitude && data.longitude) {
                 updateMap(data.latitude, data.longitude, data.heading);
-                drawFlightRoute(data);
-            }
-        }
-        
-        function updateFlightProgress(data) {
-// Initialize start time if not set and we have valid initial distance
-if (!flightStartTime && initialTotalDistance > 0 && data.groundSpeed > 5) {
-    flightStartTime = Date.now();
-    console.log('Flight timer started');
-}
-            
-            if (!flightStartTime) {
-                document.getElementById('timeElapsed').textContent = 'Elapsed: --';
-                document.getElementById('timeRemaining').textContent = 'Remaining: --';
-                return;
-            }
-            
-            // Calculate elapsed time
-            const elapsedMs = Date.now() - flightStartTime;
-            const elapsedSec = Math.floor(elapsedMs / 1000);
-            const elapsedHours = Math.floor(elapsedSec / 3600);
-            const elapsedMinutes = Math.floor((elapsedSec % 3600) / 60);
-            
-            // Calculate progress percentage
-            let progressPercent = 0;
-            if (totalFlightDistance > 0 && data.totalDistance > 0) {
-                const distanceTraveled = totalFlightDistance - data.totalDistance;
-                progressPercent = Math.max(0, Math.min(100, (distanceTraveled / totalFlightDistance) * 100));
-            }
-            
-            // Update progress bar
-            document.getElementById('progressFill').style.width = progressPercent.toFixed(1) + '%';
-            document.getElementById('progressFill').textContent = progressPercent.toFixed(0) + '%';
-            
-            // Display elapsed time
-            document.getElementById('timeElapsed').textContent = 'Elapsed: ' + 
-                (elapsedHours > 0 ? elapsedHours + 'h ' : '') + elapsedMinutes + 'm';
-            
-            // Display remaining time
-            if (data.ete && data.ete > 0) {
-                const remainingHours = Math.floor(data.ete / 3600);
-                const remainingMinutes = Math.floor((data.ete % 3600) / 60);
-                document.getElementById('timeRemaining').textContent = 'Remaining: ' + 
-                    (remainingHours > 0 ? remainingHours + 'h ' : '') + remainingMinutes + 'm';
-            } else {
-                document.getElementById('timeRemaining').textContent = 'Remaining: --';
-            }
-        }
-        
-        function updateWarnings(data) {
-            const warnings = [];
-            
-            if (data.overspeedWarning) {
-                warnings.push('⚠️ OVERSPEED');
-            }
-            
-            if (data.stallWarning) {
-                warnings.push('⚠️ STALL WARNING');
-            }
-            
-            if (data.gearWarning) {
-                warnings.push('⚠️ GEAR WARNING');
-            }
-            
-            // Low altitude with gear up warning
-            if (data.altitude < 1000 && data.altitude > 50 && !data.gearPosition) {
-                warnings.push('⚠️ GEAR UP - LOW ALTITUDE');
-            }
-            
-            const warningBanner = document.getElementById('warningBanner');
-            if (warnings.length > 0) {
-                warningBanner.textContent = warnings.join(' | ');
-                warningBanner.classList.add('visible');
-            } else {
-                warningBanner.classList.remove('visible');
             }
         }
 
@@ -1895,9 +1520,6 @@ function updateAutopilotStatus(data) {
             }).addTo(map);
 
             document.getElementById('followUserBtn').textContent = followUser ? 'Following' : 'Follow Aircraft';
-
-            // Initialize route layer
-            routeLayer = L.layerGroup().addTo(map);
             
             map.on('mousedown', function(e) {
                 if (e.originalEvent.button === 0) {
@@ -2038,85 +1660,6 @@ userMarker.on('click', function(e) {
                     aircraftMarkers.push(labelMarker);
                 }
             });
-        }
-
-function drawFlightRoute(data) {
-            if (!map || !routeLayer) return;
-            
-            // Clear existing route
-            routeLayer.clearLayers();
-            waypointMarkers = [];
-            
-            // Don't draw if no active flight plan
-            if (!data.flightPlanActive || !data.nextWaypoint) return;
-            
-            // For now, draw a simple line from current position to next waypoint
-            // (Full route would require getting all waypoints from SimConnect)
-            
-            // Draw line to next waypoint if we have bearing and distance
-            if (data.bearingToWaypoint && data.distanceToWaypoint && data.distanceToWaypoint > 0) {
-                const bearing = data.bearingToWaypoint * Math.PI / 180;
-                const distance = data.distanceToWaypoint / 60; // Convert nm to degrees (approximate)
-                
-                const wpLat = data.latitude + (distance * Math.cos(bearing));
-                const wpLon = data.longitude + (distance * Math.sin(bearing) / Math.cos(data.latitude * Math.PI / 180));
-                
-                // Draw line
-                const routeLine = L.polyline(
-                    [[data.latitude, data.longitude], [wpLat, wpLon]],
-                    {
-                        color: '#167fac',
-                        weight: 3,
-                        opacity: 0.7,
-                        dashArray: '10, 5'
-                    }
-                ).addTo(routeLayer);
-                
-                // Add waypoint marker
-                const wpMarker = L.marker([wpLat, wpLon], {
-                    icon: L.divIcon({
-                        html: '<div class="waypoint-marker"></div>',
-                        className: '',
-                        iconSize: [12, 12],
-                        iconAnchor: [6, 6]
-                    })
-                }).addTo(routeLayer);
-                
-                wpMarker.bindPopup('<b>' + data.nextWaypoint + '</b><br>Distance: ' + data.distanceToWaypoint.toFixed(1) + ' nm');
-                waypointMarkers.push(wpMarker);
-                
-                // If we have destination info, draw extended line
-                if (data.totalDistance && data.totalDistance > data.distanceToWaypoint) {
-                    const totalDistDeg = data.totalDistance / 60;
-                    const destLat = data.latitude + (totalDistDeg * Math.cos(bearing));
-                    const destLon = data.longitude + (totalDistDeg * Math.sin(bearing) / Math.cos(data.latitude * Math.PI / 180));
-                    
-                    // Extended route line
-                    const extendedLine = L.polyline(
-                        [[wpLat, wpLon], [destLat, destLon]],
-                        {
-                            color: '#167fac',
-                            weight: 2,
-                            opacity: 0.4,
-                            dashArray: '5, 10'
-                        }
-                    ).addTo(routeLayer);
-                    
-                    // Destination marker
-                    if (data.flightPlanDestination && data.flightPlanDestination !== data.nextWaypoint) {
-                        const destMarker = L.marker([destLat, destLon], {
-                            icon: L.divIcon({
-                                html: '<div class="destination-marker"></div>',
-                                className: '',
-                                iconSize: [16, 16],
-                                iconAnchor: [8, 8]
-                            })
-                        }).addTo(routeLayer);
-                        
-                        destMarker.bindPopup('<b>DESTINATION</b><br>' + (data.flightPlanDestination || 'Unknown') + '<br>Distance: ' + data.totalDistance.toFixed(1) + ' nm');
-                    }
-                }
-            }
         }
 
 function updateUserAircraftDetails() {
@@ -2269,18 +1812,6 @@ function updateUserAircraftDetails() {
                 map.setView([userLat, userLon], mapZoom);
             } else {
                 btn.textContent = 'Follow Aircraft';
-            }
-        }
-
-        function toggleRoute() {
-            if (!routeLayer) return;
-            
-            if (map.hasLayer(routeLayer)) {
-                map.removeLayer(routeLayer);
-                document.getElementById('toggleRouteBtn').textContent = 'Show Route';
-            } else {
-                map.addLayer(routeLayer);
-                document.getElementById('toggleRouteBtn').textContent = 'Hide Route';
             }
         }
 
@@ -3563,14 +3094,6 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
-
-
-
-
-
-
-
-
 
 
 
