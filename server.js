@@ -2068,7 +2068,7 @@ function drawFlightRoute(data) {
                     })
                 }).addTo(routeLayer);
                 
-                wpMarker.bindPopup(`<b>${data.nextWaypoint}</b><br>Distance: ${data.distanceToWaypoint.toFixed(1)} nm`);
+                wpMarker.bindPopup(`<b>{data.nextWaypoint}</b><br>Distance: ${data.distanceToWaypoint.toFixed(1)} nm`);
                 waypointMarkers.push(wpMarker);
                 
                 // If we have destination info, draw extended line
@@ -3549,6 +3549,7 @@ window.onload = () => {
 server.listen(PORT, () => {
   console.log(`P3D Remote Cloud Relay running on port ${PORT}`);
 });
+
 
 
 
